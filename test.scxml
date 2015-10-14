@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<scxml xmlns="http://www.w3.org/2005/07/scxml"
+       version="1.0"
+       datamodel="ecmascript"
+       initial="off"
+       >
+
+  <!--  trivial 5 second microwave oven example -->
+  <datamodel>
+    <data id="cook_time" expr="5"/>
+    <data id="door_closed" expr="true"/>
+    <data id="timer" expr="0"/>
+  </datamodel>
+
+  <state id="off">
+    <!-- off state -->
+    <transition event="turn.on" target="on"/>
+   <onentry>
+                    <log expr="'Sending to and External component failed'"/>
+                            <assign location="door_closed" expr="false"/>
+                                    <assign location="timer" expr="50"/>
+
+     </onentry>
+  </state>
+
+</scxml>
