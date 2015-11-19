@@ -1,5 +1,5 @@
 declare default element namespace 'http://www.w3.org/2005/07/scxml';
-declare namespace functx = "http://www.functx.com";
+(:declare namespace functx = "http://www.functx.com"; :)
 
 
 declare variable $statesToInvoke as node() := <states></states>;
@@ -24,7 +24,8 @@ declare function local:findinitalTransition($input as node()) as item()*
        
   };
 
-(: Initialize interpreter:)
+(: Initialize interpreter
+ enter the first transition:)
 declare function local:interpret($scxml as node())
 {
   let $running := true,
@@ -108,9 +109,18 @@ declare function local:isAtomicState($state as node())
   fn:not(fn:exists($state/parallel) or fn:exists($state/state))
 };
 
+(:
+compute a list of all states that will be entered and add to statestoInvoke
+sorting in entryOrder 
+add to current configuration
+execute onentry handlers bzw. inital content
+execute done events
 
+:)
 declare function local:enterStates($enabledTransitions as node()*,$scxml as node(), $configuration)
 {
+ 
+ (: compute states to enter :)
   let $states := local:computeEntrySet($enabledTransitions,$scxml)
   let $configuration := $states
   let $result :=   for $s in $states
@@ -127,6 +137,17 @@ declare function local:enterStates($enabledTransitions as node()*,$scxml as node
   
 };
 
+
+declare function local:computeEntrySet($transitions as node()*, $statesToEnter as node(), $statesForDefaultEntry as node(), $defaultHistoryContent as node())
+{
+  $transitions/
+  
+  
+  return
+};
+
+
+
 declare function local:executeContent($nodesToExecute as node()*)
 {
   for $n in $nodesToExecute
@@ -139,16 +160,24 @@ declare function local:executeContent($nodesToExecute as node()*)
  
 };
 
+
+(:
+set of states that will be enteres as a result of taking the transitions
+:)
 declare function local:computeEntrySet($transitions as node()*, $scxml as node())
 {
 (:  let $as := local:getTargetStates($transitions)
   let $max := $as/@target 
   return $as :)
   
+  
   if (fn:empty($transitions)) then ()
   else
-   let $states := local:getTargetStates($transitions, $scxml)
-   for $s in $states 
+   let $targetstates := local:getTargetStates($transitions, $scxml)
+   
+   let $DescendentstatestoEnter := local:addDescendantStatesToEnter($targetstates, <test></test>, <test></test>, <test></test>, $scxml)
+   let $ancester := local:getTransitionDomain($transitions, $scxml)
+   for $s in $targetstates 
    let $stateToEnter := local:addDescendantStatesToEnter($s, <test></test>, <test></test>, <test></test>, $scxml)
    return $stateToEnter
   
@@ -188,12 +217,9 @@ declare function local:isParallelState($state as node()) as xs:boolean
 declare function local:getTargetStates($transitions as node()* , $scxml as node())
 {
   if(fn:exists($transitions/@target)) then
-  $scxml/state[@id=$transitions/@target]
+  $scxml//state[@id=$transitions/@target]
    else
      return
-
-    
-  
 };
 
 declare function local:isCompoundState($state as node()) as xs:boolean
@@ -214,12 +240,6 @@ declare function local:removeConflictingTransitions($input as node())
   return
 };
 
-
-declare function local:computeEntrySet($transitions as node()*, $statesToEnter as node(), $statesForDefaultEntry as node(), $defaultHistoryContent as node())
-{
-  
-  return
-};
 
 
 
@@ -242,16 +262,21 @@ declare function local:selectTransitions($event as node(), $input as node())
 
 
 
-
-declare function local:getTransitionDomain($transition)
+(: 
+retunr stat that all states are exited or entered correctly (result of taking the transition :)
+declare function local:getTransitionDomain($transitions, $scxml)
 {
-  return
+  for $t in  $transitions
+    let $tstates := local:getEffectiveTargetStates($t, $scxml)
+    return $tstates
 };
 
-
-declare function local:getEffectiveTargetStates($transition)
+(:
+checks if state is historicState and 
+:)
+declare function local:getEffectiveTargetStates($transition ,$scxml)
 {
-  return
+  local:getTargetStates($transition ,$scxml)[]
 };
 
 declare function local:getProperAncestors($state1, $state2)
@@ -317,12 +342,17 @@ declare function local:microstep($enabledTransitions as node())
 
 
 
-
-let $scxml := doc('file:///C:\Program Files (x86)\BaseX\masterarbeit\example.scxml')/scxml
+let $scxml := doc('file:///C:\Users\Katharina\Documents\SCXMLInterpreter\example.scxml')/scxml
 let $test := <test> <a> <b> as</b> <b> bs </b></a><a> <b> cs</b></a></test>
 let $result := local:interpret($scxml)
+let $testgetTargetStats :=       <transitions>  <transition target="idle"/>     <transition target="off"/> </transitions>  
+return local:getTargetStates($testgetTargetStats/transition,$scxml)
+
+(:
 
 return fn:trace($result,'foo')
+
+:)
 
 (:
 fn:exists($state/self::sc:parallel)
@@ -337,8 +367,17 @@ let $result := $knoten/state[@id = "on"]
 (:return sc:max("test"):)
 
 
+
+
 (:
 
+declare function local:getTargetStates($transitions as node()* , $scxml as node())
+{
+  if(fn:exists($transitions/@target)) then
+  $scxml/state[@id=$transitions/@target]
+   else
+     return
+};
 
 
 

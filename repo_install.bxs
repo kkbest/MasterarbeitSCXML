@@ -1,0 +1,3 @@
+REPO INSTALL modules/functx.xqm
+REPO INSTALL modules/scxml_extension.xqm
+REPO INSTALL modules/scxml.xqm
