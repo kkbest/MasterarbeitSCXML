@@ -661,10 +661,70 @@ declare function sc:getSpecializedTransitions($transition as element(),
 };
 
 
-declare function sc:startProcess($mba, $scxml)
+declare function sc:getConfiguration($mba as element()) as element()* {
+  let $scxml := sc:getSCXML($mba)
+  let $currentStatus := sc:getCurrentStatus($mba)
+  
+  return if ($currentStatus) then
+    for $s in $currentStatus/*
+      return typeswitch($s)
+        case element(initial)
+          return $scxml//sc:initial[./parent::sc:scxml/@name = $s/@state or
+                                    ./parent::sc:state/@id = $s/@state]
+        case element(state)
+          return $scxml//sc:state[$s/@ref = ./@id]
+        default return ()
+   else ()
+};
+
+declare function sc:getExternalEventQueue($mba as element()) as element() {
+  let $scxml := sc:getSCXML($mba)
+  
+  return $scxml/sc:datamodel/sc:data[@id = '_x']/externalEventQueue
+};
+
+declare function sc:getSCXML($mba as element()) as element() {
+  let $levelName := sc:getTopLevelName($mba)
+  let $elements  := sc:getElementsAtLevel($mba, $levelName)
+  
+  let $scxml :=
+    if($elements/@activeVariant) then 
+      $elements/sc:scxml[@name = $elements/@activeVariant]
+    else $elements/sc:scxml[1]
+  
+  return $scxml
+};
+
+declare function sc:getCurrentStatus($mba as element()) as element()* {
+  let $scxml := sc:getSCXML($mba)
+  let $_x := $scxml/sc:datamodel/sc:data[@id = '_x']
+  let $currentStatus := if ($_x) then $_x/currentStatus
+    else ()
+  
+  return $currentStatus
+};
+
+declare function sc:getTopLevelName($mba as element()) as xs:string { 
+  if($mba/@hierarchy = 'simple') then $mba/sc:topLevel/@name else ()
+};
+
+declare function sc:getElementsAtLevel($mba       as element(),
+                                        $levelName as xs:string) as element()* { 
+  let $level :=
+    if($mba/@hierarchy = 'simple') then 
+      ($mba/sc:topLevel[@name = $levelName],
+       $mba/sc:topLevel//sc:childLevel[@name = $levelName])
+    else ()
+  
+  return $level/sc:elements
+};
+
+
+
+declare function sc:startProcess($scxml)
 {
   
-  
+  return  
   
     (: config übergeben ? (die erhält man eh über mba.. :)
   (:: umgang mit internal external quese:)
@@ -746,7 +806,5 @@ declare function sc:startProcess($mba, $scxml)
   
   
  
-  let $configuration := sc:getInitialStates($scxml)
-  let $scxml1 := $scxml 
-return $scxml 
+
 };
