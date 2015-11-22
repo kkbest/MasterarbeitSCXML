@@ -33,6 +33,7 @@
 module namespace sc = 'http://www.w3.org/2005/07/scxml';
 import module namespace scx='http://www.w3.org/2005/07/scxml/extension/';
 import module namespace functx = 'http://www.functx.com';
+(:import module namespace mba='http://www.dke.jku.at/MBA'; :)
 
 (:~
  : 
@@ -663,7 +664,89 @@ declare function sc:getSpecializedTransitions($transition as element(),
 declare function sc:startProcess($mba, $scxml)
 {
   
-  $let scxml
   
-return  
+  
+    (: config übergeben ? (die erhält man eh über mba.. :)
+  (:: umgang mit internal external quese:)
+  (:configuration sollte inintal transition bereits beinhalten:)
+  
+  (: 1. Intialisierung -> wie bisher auch im JAva
+  -> Ruft auf 
+  initSCXML -> mba:init 
+  initMBA -> getMBA, GetSCXML, mba:getconfiguration 
+  und mba addCurrentStated (sc:getinintalstates )
+  mba:initscxml (des sollte so auch noch immer passen) :)
+  (: 2. MBAS die upgedatet worden sind 
+  
+  let $collectionEntry := $document/mba:collections/mba:collection[			@name = $collectionName]
+
+    for $entry in $collectionEntry/mba:updated/mba:mba
+      return mba:getMBA($dbName, $collectionName, $entry/@ref)
+
+  > Ab jetzt wirklcih was zu tun :)
+  (: macrostep
+  
+  removeFromUpdateLog (mba-removeFromInsertlog ? )
+  loadNextExternalEveent (mba:loadNextExternalEvent)
+   getExecutable Content 
+   
+               let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+            let $scxml := mba:getSCXML($mba)
+            
+            let $currentEvent := mba:getCurrentEvent($mba)
+            let $eventName    := $currentEvent/name
+            
+            let $configuration := mba:getConfiguration($mba)
+            let $dataModels := sc:selectDataModels($configuration)
+            
+            let $transitions := 
+              if($eventName) then
+                sc:selectTransitions($configuration, $dataModels, $eventName)
+              else ()
+              
+            let $contents :=
+              for $t in $transitions
+                return $t/*
+            
+            return $contents
+
+
+   runExecutableContent
+   
+   
+   
+            let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+            let $scxml := mba:getSCXML($mba)
+            
+            let $configuration := mba:getConfiguration($mba)
+            let $dataModels := sc:selectDataModels($configuration)
+            
+            return 
+              typeswitch($content)
+                case element(sc:assign) return 
+                  sc:assign($dataModels, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*)
+                case element(sync:assignAncestor) return
+                  sync:assignAncestor($mba, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*, $content/@level)
+                case element(sync:sendAncestor) return 
+                  sync:sendAncestor($mba, $content/@event, $content/@level, $content/sc:param, $content/sc:content)
+                case element(sync:assignDescendants) return
+                  sync:assignDescendants($mba, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*, $content/@level, $content/@inState, $content/@satisfying)
+                case element(sync:sendDescendants) return 
+                  sync:sendDescendants($mba, $content/@event, $content/@level, $content/@inState, $content/@satisfying, $content/sc:param, $content/sc:content)
+                case element(sync:newDescendant) return 
+                  sync:newDescendant($mba, $content/@name, $content/@level, $content/@parents, $content/*)
+                default return ()
+   changeCurrentSttus
+   removeCurrentExternalEvents
+   processEventlessTransitions
+   
+  
+  ->  :)
+  
+  
+  
+ 
+  let $configuration := sc:getInitialStates($scxml)
+  let $scxml1 := $scxml 
+return $scxml 
 };
