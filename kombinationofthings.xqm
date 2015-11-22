@@ -34,7 +34,7 @@ declare updating function kk:initMBA($dbName,$collectionName,$mbaName as xs:stri
   
   let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
  let $scxml :=  mba:getSCXML($mba)
-  return  mba:init(mba:getMBA($dbName, $collectionName, $mbaName)), kk:initSCXML($dbName,$collectionName,$mbaName)
+  return  mba:init($mba),kk:initSCXML($dbName,$collectionName,$mbaName), kk:removeFromUpdateLog($dbName,$collectionName,$mbaName)
 
 };
 
@@ -223,6 +223,14 @@ declare updating function kk:macrostep($dbName, $collectionName, $mbaName)
 {
   
   kk:removeFromInsertLog($dbName, $collectionName, $mbaName), kk:getNextExternalEvent($dbName, $collectionName, $mbaName), kk:getandExecuteExecutablecontent($dbName, $collectionName, $mbaName), kk:changeCurrentStatus($dbName, $collectionName, $mbaName), kk:removeCurrentExternalEvent($dbName, $collectionName, $mbaName), kk:processEventlessTransitions($dbName, $collectionName, $mbaName)
+};
+
+
+declare updating function kk:removeFromUpdateLog($dbName, $collectionName, $mbaName)
+{
+  
+  let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
+return mba:removeFromUpdateLog($mba)
 };
 
 declare updating function kk:tostep($database, $collections)
