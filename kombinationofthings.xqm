@@ -167,11 +167,17 @@ return mba:removeCurrentEvent($mba)
 };
 
 (: getExecutableContentsEventless runExecutableContent changeCurrentStatusEventless :)
-declare updating function kk:processEventlessTransitions($dbName, $collectionName, $mbaName)
+declare updating function kk:runEventlessTransitions($dbName, $collectionName, $mbaName)
 {
   let $executableContents := kk:getExecutableContentsEventless($dbName, $collectionName, $mbaName)
   for $content in $executableContents
-  return kk:runExecutableContent($dbName, $collectionName, $mbaName, $content),kk:changeCurrentStatusEventless($dbName, $collectionName, $mbaName)
+  return kk:runExecutableContent($dbName, $collectionName, $mbaName, $content)
+};
+
+
+declare updating function kk:processEventlessTransitions($dbName, $collectionName, $mbaName)
+{
+  kk:runEventlessTransitions($dbName, $collectionName, $mbaName),kk:changeCurrentStatusEventless($dbName, $collectionName, $mbaName)
 };
 
 declare function kk:getExecutableContentsEventless($dbName, $collectionName, $mbaName)
@@ -238,6 +244,37 @@ declare updating function kk:tostep($database, $collections)
   let $updatedmbas := kk:getupdatedMBAS($database,$collections)
   for $name in $updatedmbas/@name
   return kk:macrostep($database, $collections, $name)
+};
+
+declare updating function kk:tryptoupdate($dbName, $collectionName, $mbaName)
+{
+
+let $mba   := fn:trace(mba:getMBA($dbName, $collectionName, $mbaName))
+let $configuration := mba:getConfiguration($mba)
+let $dataModels := sc:selectDataModels($configuration)
+
+let $v := kk:getExecutableContents("myMBAse", "JohannesKeplerUniversity","InformationSystems")
+  for $content in kk:getExecutableContents("myMBAse", "JohannesKeplerUniversity","InformationSystems")
+return 
+
+typeswitch($content)
+case element(sc:assign) return
+       sc:assign($dataModels, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*) 
+case element(sc:assignAnestor) return
+()
+default return ()
+
+};
+
+
+declare function kk:getcurrentExternalEvent($mba)
+{
+  let $queue := mba:getExternalEventQueue($mba)
+  let $nextEvent := ($queue/event)[1]
+  let $nextEventName := <name xmlns="">{fn:string($nextEvent/@name)}</name>
+  let $nextEventData := <data xmlns="">{$nextEvent/*}</data>
+  let $currentEvent := mba:getCurrentEvent($mba)
+  return $currentEvent
 };
 
 (:
