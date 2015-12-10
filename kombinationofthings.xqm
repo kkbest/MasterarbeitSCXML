@@ -305,6 +305,19 @@ declare function kk:removeCurrentExternalEventuA($mba)
 };
 
 
+declare function kk:removeCurrentExternalEventsauber($mba)
+{
+    
+ copy $copymba := $mba
+ modify
+  let $scxml := mba:getSCXML($copymba)
+  let $currentEvent := $scxml/sc:datamodel/sc:data[@id = '_event']
+  return delete nodes $currentEvent/*
+ return $copymba
+};
+ 
+
+
 (: getExecutableContentsEventless runExecutableContent changeCurrentStatusEventless :)
 declare updating function kk:runEventlessTransitions($dbName, $collectionName, $mbaName)
 {
@@ -691,15 +704,24 @@ declare function kk:donotUpdate($dbName,$collectionName, $mbaName)
  
  let $executableContent :=  kk:getExecutableContents($currentEmba)
 
-let $firstresult := kk:runExecutableContentuA($currentEmba, $executableContent)
-let $changestatusmba := kk:changeCurrentStatusoU($firstresult)
+ let $foldresults := fold-left($executableContent, $currentEmba, function($mba, $content){ fn:trace(kk:runExecutableContentuA($mba, $content))})
+
+(:let $max := fn:fold($executableContent,$currentEmba,kk:runExecutableConttentua($content,$mba)) :)
+
+(:let $firstresult :=   fn:for-each($executableContent, kk:runExecutableContentuA($currentEmba, $executableContent))
+:)
+(:let $firstresult := kk:runExecutableContentuA($currentEmba, $executableContent) :)
+
+let $changestatusmba := kk:changeCurrentStatusoU($foldresults)
 
 let $currentExternalEventmba := kk:removeCurrentExternalEventuA($changestatusmba)
 
 let $contentsevent := kk:getExecutableContentsEventless($currentExternalEventmba)
-let $final :=  kk:runExecutableContentuA($currentExternalEventmba, $contentsevent)
 
-let $result := kk:changeCurrentStatusEventlessuA($final)
+let $foldfinal := fold-left($contentsevent, $currentExternalEventmba, function($mba, $content){ fn:trace(kk:runExecutableContentuA($mba, $content))})
+(:let $final :=  kk:runExecutableContentuA($currentExternalEventmba, $contentsevent)
+:)
+let $result := kk:changeCurrentStatusEventlessuA($foldfinal)
 
  (: let $loadedmba :=kk:loadNextExternalEvent($removeInsertedMBA,$queue,$nextEvent,$nextEventName,$nextEventData,$currentEvent)
   let $mab :=  kk:tryptoupdate($dbName, $collectionName, $mbaName) :)
@@ -710,6 +732,46 @@ let $result := kk:changeCurrentStatusEventlessuA($final)
 
 
   return $result
+
+};
+
+
+declare function kk:fortesting($dbName,$collectionName, $mbaName)
+{
+  let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
+  let $removeInsertedMBA := kk:removeFromInsertLog($mba)
+  let $queue := mba:getExternalEventQueue($removeInsertedMBA)
+  let $nextEvent := ($queue/event)[1]
+  let $nextEventName := <name xmlns="">{fn:string($nextEvent/@name)}</name>
+  let $nextEventData := <data xmlns="">{$nextEvent/*}</data>
+  let $currentEvent := mba:getCurrentEvent($removeInsertedMBA)
+  let $removedMba :=  kk:removeCurrentEventoU($removeInsertedMBA)
+  let $insertMba := kk:insertcurrentEventoU($removedMba,$queue,$nextEvent,$nextEventName,$nextEventData,$currentEvent)
+  let $currentEmba := kk:dequeueExternalEvent1($insertMba)
+ 
+ let $executableContent :=  kk:getExecutableContents($currentEmba)
+
+(:let $firstresult :=   fn:for-each($executableContent, kk:runExecutableContentuA($currentEmba, $executableContent))
+
+let $firstresult := kk:runExecutableContentuA($currentEmba, $executableContent)
+let $changestatusmba := kk:changeCurrentStatusoU($firstresult)
+
+let $currentExternalEventmba := kk:removeCurrentExternalEventuA($changestatusmba)
+
+let $contentsevent := kk:getExecutableContentsEventless($currentExternalEventmba)
+let $final :=  kk:runExecutableContentuA($currentExternalEventmba, $contentsevent)
+
+let $result := kk:changeCurrentStatusEventlessuA($final) :)
+
+ (: let $loadedmba :=kk:loadNextExternalEvent($removeInsertedMBA,$queue,$nextEvent,$nextEventName,$nextEventData,$currentEvent)
+  let $mab :=  kk:tryptoupdate($dbName, $collectionName, $mbaName) :)
+  
+
+(:kk:changeCurrentStatus($dbName, $collectionName, $mbaName), kk:removeCurrentExternalEvent($dbName, $collectionName, $mbaName), kk:processEventlessTransitions($dbName, $collectionName, $mbaName) :)
+ 
+
+
+  return $executableContent
 
 };
 
@@ -765,6 +827,24 @@ return
 };
 
 
+
+
+declare updating function kk:dotheupdatetest($dbName,$collectionName, $mbaName)
+{
+  let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
+return 
+ replace node $mba with kk:donotUpdatetest($dbName,$collectionName, $mbaName)  
+};
+
+declare updating function kk:dotheupdatetestOLD($dbName,$collectionName, $mbaName)
+{
+  let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
+return 
+ replace node $mba with kk:donotUpdatetestOLD($dbName,$collectionName, $mbaName)  
+};
+
+
+
 declare function kk:removeCurrentEventoU($mba)
 {
 
@@ -791,6 +871,203 @@ return $copymba
 
   
 };
+
+
+declare function kk:loadNextExternalEventua($mba)
+{
+
+  let $rcemba := kk:removeCurrentEventua($mba)
+  let $insertEventmba := kk:insertEvent($rcemba)
+  let $dequeueEventmba := kk:dequeueExternalEventuA($mba)
+  return $dequeueEventmba
+};
+
+
+declare function kk:dequeueExternalEventuA($mba)
+{
+  
+  
+  
+  copy $copymba := $mba
+  modify
+  (
+      let $queue := mba:getExternalEventQueue($copymba)
+  return delete node ($queue/*)[1]
+)
+return $copymba
+};
+
+declare function kk:removeCurrentEventua($mba)
+{
+  
+  copy $copymba := $mba
+  modify
+  (
+    let $currentEvent := mba:getCurrentEvent($copymba)
+  return delete nodes $currentEvent/*
+)
+return $copymba
+};
+
+declare function kk:insertEvent($mba)
+{
+  let $queue := mba:getExternalEventQueue($mba)
+  let $nextEvent := ($queue/event)[1]
+  let $nextEventName := <name xmlns="">{fn:string($nextEvent/@name)}</name>
+  let $nextEventData := <data xmlns="">{$nextEvent/*}</data>
+  let $currentEvent := mba:getCurrentEvent($mba)
+  return
+  copy $insertEventmba := $mba 
+  modify (
+    
+     if ($nextEvent) then insert node $nextEventName into $currentEvent else (),
+    if ($nextEvent) then insert node $nextEventData into $currentEvent else ()
+  )
+  return $insertEventmba
+};
+
+declare function kk:donotUpdatetestOLD($dbName,$collectionName, $mbaName)
+{
+  let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
+  let $removeInsertedMBA := kk:removeFromInsertLog($mba)  
+ let $loadNExtEvent :=  kk:loadNextExternalEventua($removeInsertedMBA)
+  
+  (:
+  executablecontents
+let $firstresult := kk:runExecutableContentuA($currentEmba, $executableContent)
+let $changestatusmba := kk:changeCurrentStatusoU($firstresult)
+
+let $currentExternalEventmba := kk:removeCurrentExternalEventuA($changestatusmba)
+
+let $contentsevent := kk:getExecutableContentsEventless($currentExternalEventmba)
+let $final :=  kk:runExecutableContentuA($currentExternalEventmba, $contentsevent)
+
+let $result := kk:changeCurrentStatusEventlessuA($final)
+:)
+ (: let $loadedmba :=kk:loadNextExternalEvent($removeInsertedMBA,$queue,$nextEvent,$nextEventName,$nextEventData,$currentEvent)
+  let $mab :=  kk:tryptoupdate($dbName, $collectionName, $mbaName) :)
+  
+
+(:kk:changeCurrentStatus($dbName, $collectionName, $mbaName), kk:removeCurrentExternalEvent($dbName, $collectionName, $mbaName), kk:processEventlessTransitions($dbName, $collectionName, $mbaName) :)
+ 
+
+
+  return $loadNExtEvent
+
+};
+
+declare function kk:loadNextExternalEventuA($mba)
+{
+  copy $copymba := $mba
+  modify
+  (
+    let $queue := mba:getExternalEventQueue($mba)
+  let $nextEvent := ($queue/event)[1]
+  let $nextEventName := <name xmlns="">{fn:string($nextEvent/@name)}</name>
+  let $nextEventData := <data xmlns="">{$nextEvent/*}</data>
+  let $currentEvent := mba:getCurrentEvent($mba)
+  
+  return (
+    mba:removeCurrentEvent($copymba),
+    if ($nextEvent) then insert node $nextEventName into $currentEvent else (),
+    if ($nextEvent) then insert node $nextEventData into $currentEvent else (),
+    mba:dequeueExternalEvent($copymba)
+  )
+)
+return $copymba
+};
+
+declare function kk:donotUpdatetest($dbName,$collectionName, $mbaName)
+{
+  
+ let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
+  let $removeInsertedMBA := kk:removeFromInsertLog($mba)
+  let $queue := mba:getExternalEventQueue($removeInsertedMBA)
+  let $nextEvent := ($queue/event)[1]
+  let $nextEventName := <name xmlns="">{fn:string($nextEvent/@name)}</name>
+  let $nextEventData := <data xmlns="">{$nextEvent/*}</data>
+  let $currentEvent := mba:getCurrentEvent($removeInsertedMBA)
+  let $removedMba :=  kk:removeCurrentEventoU($removeInsertedMBA)
+  let $insertMba := kk:insertcurrentEventoU($removedMba,$queue,$nextEvent,$nextEventName,$nextEventData,$currentEvent)
+  let $currentEmba := kk:dequeueExternalEvent1($insertMba)
+  
+  let $executableContent :=  fn:trace(kk:getExecutableContents($currentEmba)) 
+  let $content :=  $executableContent[1]
+(:     let $foldresults := fold-left($executableContent, $currentEmba, 
+ 
+ function ($currentEmba, $content){ :)
+ let $scxml := mba:getSCXML($currentEmba)
+      
+      let $configuration := mba:getConfiguration($currentEmba)
+      let $dataModels := sc:selectDataModels($configuration)
+     let $update := 
+       typeswitch($content)
+          case element(sc:assign) return 
+            copy $copymba := $currentEmba
+              modify 
+              (
+            sc:assign($dataModels, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*)
+              )
+              return $copymba
+          case element(sync:newDescendant) return 
+               
+               let $name := $content/@name
+             let $level := $content/@level
+             let $parents := $content/@parents
+             let $collection := mba:getCollection($dbName, $collectionName)
+              let $nodelist := $content/*
+
+        
+        let $name := 
+          if ($name) then sync:eval($name, $dataModels) 
+          else functx:capitalize-first($level) || 
+            count($collection/mba:mba[@topLevel = $level])
+        
+        let $parents := 
+          if ($parents) then sync:eval($parents, $dataModels) else fn:string($currentEmba/@name)
+          
+       let $parentElements := 
+          for $p in $parents return mba:getMBA($dbName, $collectionName, $p)
+        
+            
+         let $new := mba:concretize($parentElements, $name, $level)
+               
+                
+
+        return  copy $parentElementscopy := $parentElements
+          modify 
+          (
+                insert node $new into 
+               $parentElementscopy[1]/mba:concretizations
+            ) 
+            
+            return $parentElementscopy
+
+
+      default return (  1 + '2')
+
+      
+      
+let $changestatusmba := kk:changeCurrentStatusoU($update)
+
+let $currentExternalEventmba := kk:removeCurrentExternalEventuA($changestatusmba)
+
+let $contentsevent := kk:getExecutableContentsEventless($currentExternalEventmba)
+
+(:
+let $foldfinal := fold-left($contentsevent, $currentExternalEventmba, function($mba, $content){ fn:trace(kk:runExecutableContentuA($mba, $content))})
+let $final :=  kk:runExecutableContentuA($currentExternalEventmba, $contentsevent)
+:)
+
+let $result := kk:changeCurrentStatusEventlessuA($contentsevent)
+
+
+  return $result
+
+
+};
+
+
 
   (:if ($nextEvent) then insert node $nextEventName into $currentEvent else (),
   
