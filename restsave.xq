@@ -1,4 +1,3 @@
-module namespace page = 'http://basex.org/kk/web-page';
 import module namespace kk = 'http://www.w3.org/2005/07/kk';
 import module namespace scx='http://www.w3.org/2005/07/scxml/extension/';
 import module namespace functx = 'http://www.functx.com';
@@ -26,7 +25,7 @@ import module namespace sync = 'http://www.dke.jku.at/MBA/Synchronization';
 declare
   %rest:path("/kktest/{$world}")
   %rest:GET
-  function page:hello2(
+  function local:hello2(
     $world as xs:string)
     as element(response)
 {
@@ -60,183 +59,95 @@ return http:send-request($request)
 declare
   %rest:path("/removeFromInsertLog/{$dbName}/{$collectionName}/{$mbaName}")
   %rest:GET
-  updating function page:removeFromInsertLog(
+  updating function local:removeFromInsertLog(
     $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string)
 {
 (:  let $dbName := 'myMBAse'
 let $collectionName := 'JohannesKeplerUniversity'
  let $mbaName := 'InformationSystems'
 :)
-try
-{
+let $string := string-join(($dbName,$collectionName,$mbaName), '/' )
+
+let $url := 'http://localhost:8984/'
+return
+
 
 
  kk:removeFromInsertLog($dbName, $collectionName, $mbaName),
-db:output(
-  <response>
-    <title>Positiv { $dbName }!</title>
-    <title>Hello to you { $collectionName }!</title>
-    <title>Hello to you { $mbaName }!</title>
-    <time>The current time is: { current-time() }</time>
-  </response>)
-}
-catch *
- {
-   (),db:output(
- 
-  <response>
-    <title>Hello to you { $dbName }!</title>
-    <title>Hello to you { $collectionName }!</title>
-    <title>Hello to you { $mbaName }!</title>
-    <time>The current time is: { current-time() }</time>
-  </response>)
-}
+ db:output(<rest:forward>/getNextExternalEvent/myMBAse/JohannesKeplerUniversity/InformationSystems</rest:forward>)
+
 };
 
 
 declare
   %rest:path("/getNextExternalEvent/{$dbName}/{$collectionName}/{$mbaName}")
   %rest:GET
-  updating function page:getNextExternalEvent(
+  updating function local:getNextExternalEvent(
     $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string)
 {
 (:  let $dbName := 'myMBAse'
 let $collectionName := 'JohannesKeplerUniversity'
  let $mbaName := 'InformationSystems'
 :)
-try
-{
+
 
 
  kk:getNextExternalEvent($dbName, $collectionName, $mbaName),
-db:output(
-  <response>
-    <title>Positiv { $dbName }!</title>
-    <title>Hello to you { $collectionName }!</title>
-    <title>Hello to you { $mbaName }!</title>
-    <time>The current time is: { current-time() }</time>
-  </response>)
-}
-catch *
- {
-   (),db:output(
- 
-  <response>
-    <title>Hello to you { $dbName }!</title>
-    <title>Hello to you { $collectionName }!</title>
-    <title>Hello to you { $mbaName }!</title>
-    <time>The current time is: { current-time() }</time>
-  </response>)
-}
+  db:output(<rest:forward>/tryptoupdate/myMBAse/JohannesKeplerUniversity/InformationSystems</rest:forward>)
+
 };
 
 declare
   %rest:path("/tryptoupdate/{$dbName}/{$collectionName}/{$mbaName}")
   %rest:GET
-  updating function page:tryptoupdate(
+  updating function local:tryptoupdate(
     $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string)
 {
 (:  let $dbName := 'myMBAse'
 let $collectionName := 'JohannesKeplerUniversity'
  let $mbaName := 'InformationSystems'
 :)
-try
-{
-
 
  kk:tryptoupdate($dbName, $collectionName, $mbaName),
-db:output(
-  <response>
-    <title>Positiv { $dbName }!</title>
-    <title>Hello to you { $collectionName }!</title>
-    <title>Hello to you { $mbaName }!</title>
-    <time>The current time is: { current-time() }</time>
-  </response>)
-}
-catch *
- {
-   (),db:output(
- 
-  <response>
-    <title>Hello to you { $dbName }!</title>
-    <title>Hello to you { $collectionName }!</title>
-    <title>Hello to you { $mbaName }!</title>
-    <time>The current time is: { current-time() }</time>
-  </response>)
-}
+  db:output(<rest:forward>/changeCurrentStatus/myMBAse/JohannesKeplerUniversity/InformationSystems</rest:forward>)
+
+
 };
 
 declare
   %rest:path("/changeCurrentStatus/{$dbName}/{$collectionName}/{$mbaName}")
   %rest:GET
-  updating function page:changeCurrentStatus(
+  updating function local:changeCurrentStatus(
     $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string)
 {
 (:  let $dbName := 'myMBAse'
 let $collectionName := 'JohannesKeplerUniversity'
  let $mbaName := 'InformationSystems'
 :)
-try
-{
 
 
  kk:changeCurrentStatus($dbName, $collectionName, $mbaName),
-db:output(
-  <response>
-    <title>Positiv { $dbName }!</title>
-    <title>Hello to you { $collectionName }!</title>
-    <title>Hello to you { $mbaName }!</title>
-    <time>The current time is: { current-time() }</time>
-  </response>)
-}
-catch *
- {
-   (),db:output(
- 
-  <response>
-    <title>Hello to you { $dbName }!</title>
-    <title>Hello to you { $collectionName }!</title>
-    <title>Hello to you { $mbaName }!</title>
-    <time>The current time is: { current-time() }</time>
-  </response>)
-}
+  db:output(<rest:forward>/removeCurrentExternalEvent/myMBAse/JohannesKeplerUniversity/InformationSystems</rest:forward>)
+
 };
 
 
 declare
   %rest:path("/removeCurrentExternalEvent/{$dbName}/{$collectionName}/{$mbaName}")
   %rest:GET
-  updating function page:removeCurrentExternalEvent(
+  updating function local:removeCurrentExternalEvent(
     $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string)
 {
 (:  let $dbName := 'myMBAse'
 let $collectionName := 'JohannesKeplerUniversity'
  let $mbaName := 'InformationSystems'
 :)
-try
-{
 
 
  kk:removeCurrentExternalEvent($dbName, $collectionName, $mbaName),
-db:output(
-  <response>
-    <title>Positiv { $dbName }!</title>
-    <title>Hello to you { $collectionName }!</title>
-    <title>Hello to you { $mbaName }!</title>
-    <time>The current time is: { current-time() }</time>
-  </response>)
-}
-catch *
- {
-   (),db:output(
- 
-  <response>
-    <title>Hello to you { $dbName }!</title>
-    <title>Hello to you { $collectionName }!</title>
-    <title>Hello to you { $mbaName }!</title>
-    <time>The current time is: { current-time() }</time>
-  </response>)
-}
+ db:output(<rest:forward>/processEventlessTransitions/myMBAse/JohannesKeplerUniversity/InformationSystems</rest:forward>)
+
+
 };
 
 
@@ -245,7 +156,7 @@ catch *
 declare
   %rest:path("/processEventlessTransitions/{$dbName}/{$collectionName}/{$mbaName}")
   %rest:GET
-  updating function page:processEventlessTransitions(
+  updating function local:processEventlessTransitions(
     $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string)
 {
 (:  let $dbName := 'myMBAse'
@@ -260,7 +171,7 @@ try
 db:output(
   <response>
     <title>Positiv { $dbName }!</title>
-    <title>Hello to you { $collectionName }!</title>
+    <title>processEventlessTransitions { $collectionName }!</title>
     <title>Hello to you { $mbaName }!</title>
     <time>The current time is: { current-time() }</time>
   </response>)
@@ -270,8 +181,8 @@ catch *
    (),db:output(
  
   <response>
-    <title>Hello to you { $dbName }!</title>
-    <title>Hello to you { $collectionName }!</title>
+    <title>Negativ { $dbName }!</title>
+    <title>processEventlessTransitions { $collectionName }!</title>
     <title>Hello to you { $mbaName }!</title>
     <time>The current time is: { current-time() }</time>
   </response>)
@@ -284,7 +195,7 @@ catch *
 declare
   %rest:path("/addEvent/{$dbName}/{$collectionName}/{$mbaName}")
   %rest:GET
-  updating function page:addEvent(
+  updating function local:addEvent(
     $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string)
 {
   let $dbName := 'myMBAse'
@@ -307,7 +218,7 @@ return mba:enqueueExternalEvent($mba, $externalEvent),db:output(
  
   <response>
     <title>Positiv { $dbName }!</title>
-    <title>Hello to you { $collectionName }!</title>
+    <title>addEvent { $collectionName }!</title>
     <title>Hello to you { $mbaName }!</title>
     <time>The current time is: { current-time() }</time>
   </response>)
@@ -317,8 +228,8 @@ catch *
    (),db:output(
  
   <response>
-    <title>Hello to you { $dbName }!</title>
-    <title>Hello to you { $collectionName }!</title>
+    <title>Negativ { $dbName }!</title>
+    <title>addEvent { $collectionName }!</title>
     <title>Hello to you { $mbaName }!</title>
     <time>The current time is: { current-time() }</time>
   </response>)
@@ -328,8 +239,22 @@ catch *
 http://localhost:8984/myMBAse/JohannesKeplerUniversity/InformationSystems/&lt;event name=\&quot;setDegree\&quot; xmlns=\&quot;\&quot;&gt;&quot; + &quot; &lt;degree xmlns=\&quot;\&quot;&gt;MSc&lt;/degree&gt;&quot; + &quot;&lt;/event&gt;
 
 
- %rest:GET updating function page:hello($dbName, $collectionName, $mbaName) {
+ %rest:GET updating function local:hello($dbName, $collectionName, $mbaName) {
 
 };
 :)
+declare variable $dbName := 'myMBAse';
+declare variable $collectionName := 'JohannesKeplerUniversity';
+declare variable $mbaName := 'InformationSystems';
 
+let $string := string-join(($dbName,$collectionName,$mbaName), '/' )
+
+let $url := 'http://localhost:8984/'
+
+
+
+(:
+let $f1  := doc(fn:concat($url, 'removeFromInsertLog/', $string )):)
+
+
+return mba:getMBA($dbName, $collectionName, $mbaName)

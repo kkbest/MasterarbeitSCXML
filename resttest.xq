@@ -14,14 +14,19 @@ declare variable $mbaName := 'InformationSystems';
 let $string := string-join(($dbName,$collectionName,$mbaName), '/' )
 
 let $url := 'http://localhost:8984/'
-(:  let $f1  := doc(fn:concat($url, 'removeFromInsertLog/', $string )) :)
-let $addEvent :=  doc(fn:concat($url, 'addEvent/', $string ))
+
+
+
 
 return mba:getMBA($dbName, $collectionName, $mbaName)
 
 
 
 (: 
+
+  let $f1  := doc(fn:concat($url, 'removeFromInsertLog/', $string ))
+
+let $addEvent :=  doc(fn:concat($url, 'addEvent/', $string ))
     let $string := string-join(($dbName,$collectionName,$mbaName), '/' )
   let $url := 'http://localhost:8984/'
   
