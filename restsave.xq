@@ -235,6 +235,53 @@ catch *
   </response>)
 }
 };
+
+
+
+declare
+  %rest:path("/addEvent/{$dbName}/{$collectionName}/{$mbaName}/{$value}")
+  %rest:GET
+  updating function local:addEventValue(
+    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $value as xs:string)
+{
+  let $dbName := 'myMBAse'
+let $collectionName := 'JohannesKeplerUniversity'
+ let $mbaName := 'InformationSystems'
+
+return 
+
+try
+{
+
+let $externalEvent := <event name="setDegree" xmlns="">
+<degree xmlns="">{$value}</degree>
+</event>
+ 
+ 
+let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
+
+return mba:enqueueExternalEvent($mba, $externalEvent),db:output(
+ 
+  <response>
+    <title>Positiv { $dbName }!</title>
+    <title>addEvent { $collectionName }!</title>
+    <title>Hello to you { $mbaName }!</title>
+    <time>The current time is: { current-time() }</time>
+  </response>)
+}
+catch *
+ {
+   (),db:output(
+ 
+  <response>
+    <title>Negativ { $dbName }!</title>
+    <title>addEvent { $collectionName }!</title>
+    <title>Hello to you { $mbaName }!</title>
+    <time>The current time is: { current-time() }</time>
+  </response>)
+}
+};
+
 (:
 http://localhost:8984/myMBAse/JohannesKeplerUniversity/InformationSystems/&lt;event name=\&quot;setDegree\&quot; xmlns=\&quot;\&quot;&gt;&quot; + &quot; &lt;degree xmlns=\&quot;\&quot;&gt;MSc&lt;/degree&gt;&quot; + &quot;&lt;/event&gt;
 

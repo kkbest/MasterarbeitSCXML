@@ -1070,7 +1070,7 @@ let $result := kk:changeCurrentStatusEventlessuA($contentsevent)
 
 declare function kk:dowithRest($dbName,$collectionName, $mbaName)
 {
-  let $string := string-join(($dbName,$collectionName,$mbaName), '/' )
+ (: let $string := string-join(($dbName,$collectionName,$mbaName), '/' )
   let $url := 'http://localhost:8984/'
   
   let $f1  := doc(fn:concat($url, 'removeFromInsertLog/', $string ))
@@ -1083,6 +1083,19 @@ declare function kk:dowithRest($dbName,$collectionName, $mbaName)
   let $f7  := doc(fn:concat($url, 'processEventlessTransitions/', $string ))
 
 return mba:getMBA($dbName, $collectionName, $mbaName)
+
+:)
+
+let $string := string-join(($dbName,$collectionName,$mbaName), '/' )
+
+let $url := 'http://localhost:8984/'
+
+
+
+
+(:let $f1  := doc(fn:concat($url, 'removeFromInsertLog/', $string )):)
+return doc('http://localhost:8984/removeFromInsertLog/myMBAse/JohannesKeplerUniversity/InformationSystems'),
+ mba:getMBA($dbName, $collectionName, $mbaName)
 
 
 };
