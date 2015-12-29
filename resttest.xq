@@ -9,19 +9,21 @@ import module namespace sync = 'http://www.dke.jku.at/MBA/Synchronization';
 
 declare variable $dbName := 'myMBAse';
 declare variable $collectionName := 'JohannesKeplerUniversity';
-declare variable $mbaName := 'InformationSystems';
+declare variable $mbaName := 'JohannesKeplerUniversity';
 
 let $string := string-join(($dbName,$collectionName,$mbaName), '/' )
 
 let $url := 'http://localhost:8984/'
 
 
+let $event := <a> <b>12123</b><b> asd</b></a>
 
-return kk:dowithRest($dbName,$collectionName, $mbaName)
+return  mba:getMBA($dbName, $collectionName, $mbaName)
+
 (:let $f1  := doc(fn:concat($url, 'removeFromInsertLog/', $string ))
 return doc('http://localhost:8984/removeFromInsertLog/myMBAse/JohannesKeplerUniversity/InformationSystems'),
  mba:getMBA($dbName, $collectionName, $mbaName)
-
+return kk:dowithRest($dbName,$collectionName, $mbaName)
 :)
 
 (:let $f1  := doc(fn:concat($url, 'removeFromInsertLog/', $string ))

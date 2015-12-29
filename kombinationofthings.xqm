@@ -38,6 +38,33 @@ declare updating function kk:initMBA($dbName,$collectionName,$mbaName as xs:stri
 
 };
 
+
+declare updating function kk:initMBARest($dbName,$collectionName,$mbaName as xs:string)
+{
+  
+  let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
+ let $scxml :=  mba:getSCXML($mba)
+  return  mba:init($mba)
+};
+
+
+declare updating function kk:initSCXMLRest($dbName,$collectionName,$mbaName as xs:string)
+{
+  
+  let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+let $scxml := mba:getSCXML($mba)
+
+let $configuration := mba:getConfiguration($mba)
+
+return
+  if (not ($configuration)) then 
+    mba:addCurrentStates($mba, sc:getInitialStates($scxml))
+  else ()
+
+
+};
+
+
 declare function kk:initComponents ($dbName,$collectionName,$mbaName as xs:string)
 {
   
@@ -219,7 +246,96 @@ return
       sync:sendDescendants($mba, $content/@event, $content/@level, $content/@inState, $content/@satisfying, $content/sc:param, $content/sc:content)
     case element(sync:newDescendant) return 
       sync:newDescendant($mba, $content/@name, $content/@level, $content/@parents, $content/*)
+    case element(sc:getValue) return
+            kk:getValue($dataModels, $content/@location, $content/@type,$content/@attr, $content/*)
+
     default return ()
+};
+
+
+declare updating function kk:getValue($dataModels as element()*,
+                                    $location   as xs:string,
+                                     $type       as xs:string?,
+                                      $attribute  as xs:string?,
+                                    $nodelist   as node()*
+                                     
+                                   ) {  
+
+(: add value to systemvariable and so on
+
+ $expression as xs:string?,
+                                   
+                                    $attribute  as xs:string?,
+                                    $nodelist   as node()*
+                                    :)       
+
+let $dataBindings :=
+    for $dataModel in $dataModels
+      for $data in $dataModel/sc:data
+        return map:entry($data/@id, $data)
+  
+  
+  let $declare :=
+    for $dataModel in $dataModels
+      for $data in $dataModel/sc:data
+        return 'declare variable $' || $data/@id || ' external; '
+  
+  let $declareNodeList :=
+    'declare variable $nodelist external; '
+  
+
+(: get the wanted value:)  
+  let $expression :=
+    if (not($location) or $location = '') 
+    then '() '
+    else $location
+    return       
+    
+    
+    
+    xquery:update(
+      scx:importModules() ||
+      fn:string-join($declare) ||
+      $declareNodeList ||
+      scx:builtInFunctionDeclarations() ||
+      'let $locations := ' || $location || ' ' || (
+      if ($expression) then
+        'let $newValues := ' || $expression || ' '
+      else 
+        'let $newValues := $nodelist ' 
+      ) ||
+      'return ' || (
+        if ($type = 'firstchild') then (
+          'for $l in $locations ' ||
+            'return insert node $newValues as first into $l '
+        ) else if ($type = 'lastchild') then (
+          'for $l in $locations ' ||
+            'return insert node $newValues as last into $l '
+        ) else if ($type = 'previoussibling') then (
+          'for $l in $locations ' ||
+            'return insert node $newValues before $l '
+        ) else if ($type = 'nextsibling') then (
+          'for $l in $locations ' ||
+            'return insert node $newValues after $l '
+        ) else if ($type = 'replace') then (
+          'for $l in $locations ' ||
+            'return replace node $l with $newValues '
+        ) else if ($type = 'delete') then (
+          'for $l in $locations ' ||
+            'return delete node $l '
+        ) else if ($type = 'addattribute') then (
+          'for $l in $locations ' ||
+            'return insert node attribute ' || $attribute || ' {$newValues} into $l '
+        ) else ( 
+          'for $l in $locations ' ||
+            'let $empty   := copy $c := $l modify(delete nodes $c/*) return $c ' ||
+            'let $emptier := copy $c := $empty modify(replace value of node $c with "") return $c ' ||
+            'let $newNode := copy $c := $emptier modify(insert nodes $newValues into $c) return $c ' ||
+            'return replace node $l with $newNode '
+        )
+      ), map:merge(($dataBindings, map:entry('nodelist', $nodelist)))
+    )
+    
 };
 
 declare updating function kk:changeCurrentStatus($dbName, $collectionName, $mbaName)
@@ -409,6 +525,13 @@ declare updating function kk:getandExecuteExecutablecontent($dbName, $collection
   for $content in kk:getExecutableContents($dbName, $collectionName, $mbaName)
   return kk:runExecutableContent($dbName, $collectionName, $mbaName, $content)
 };
+
+declare updating function kk:getandExecuteExecutablecontent($dbName, $collectionName, $mbaName,$counter)
+{
+  let $content := kk:getExecutableContents($dbName, $collectionName, $mbaName)
+  return kk:runExecutableContent($dbName, $collectionName, $mbaName, $content[$counter])
+};
+
 
 
 declare updating function kk:test($dbName,$collectionName,$mbaName)
