@@ -58,8 +58,9 @@ declare function local:log($datamodel, $event)
 
 
 
-(: Datamodel -> cook time , door_closed, timer:)
+(: Datamodel -> cook time , door_closed, timer
 let $scxml := doc('file:///C:\Program Files (x86)\BaseX\masterarbeit\test.scxml')/scxml
 let $datamodel := $scxml/datamodel
 let $events := $scxml/state/onentry
-return local:test($datamodel , $events,1)
+return local:test($datamodel , $events,1):)
+return 'Hallo'
