@@ -515,6 +515,9 @@ declare updating function mba:init($mba as element()) {
     else (),
     if (not ($mba/mba:concretizations)) then
       insert node <mba:concretizations/> into $mba
+    else (),
+    if (not ($scxml/sc:datamodel/sc:data[@id = '_response'])) then
+      insert node <sc:data id = "_response"/> into $scxml/sc:datamodel
     else ()
   )
 };

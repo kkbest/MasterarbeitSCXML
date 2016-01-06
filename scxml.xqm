@@ -138,6 +138,81 @@ declare updating function sc:assign($dataModels as element()*,
     )
 };
 
+
+
+
+declare updating function sc:getValue($dataModels as element()*,
+                                    $location   as xs:string,
+                                    $expression as xs:string?,
+                                    $type       as xs:string?,
+                                    $attribute  as xs:string?,
+                                    $nodelist   as node()*) {  
+  let $dataBindings :=
+    for $dataModel in $dataModels
+      for $data in $dataModel/sc:data
+        return map:entry($data/@id, $data)
+  
+  let $declare :=
+    for $dataModel in $dataModels
+      for $data in $dataModel/sc:data
+        return 'declare variable $' || $data/@id || ' external; '
+  
+  let $declareNodeList :=
+    'declare variable $nodelist external; '
+  
+  let $expression :=
+    if (not($location) or $location = '') 
+    then '() '
+    else $location
+  
+  let $location := '$_response'
+  return
+    xquery:update(
+      scx:importModules() ||
+      fn:string-join($declare) ||
+      $declareNodeList ||
+      scx:builtInFunctionDeclarations() ||
+      'let $locations := ' || $location || ' ' || (
+      if ($expression) then
+        'let $newValues := ' || $expression || ' '
+      else 
+        'let $newValues := $nodelist ' 
+      ) ||
+      'return ' || (
+        if ($type = 'firstchild') then (
+          'for $l in $locations ' ||
+            'return insert node $newValues as first into $l '
+        ) else if ($type = 'lastchild') then (
+          'for $l in $locations ' ||
+            'return insert node $newValues as last into $l '
+        ) else if ($type = 'previoussibling') then (
+          'for $l in $locations ' ||
+            'return insert node $newValues before $l '
+        ) else if ($type = 'nextsibling') then (
+          'for $l in $locations ' ||
+            'return insert node $newValues after $l '
+        ) else if ($type = 'replace') then (
+          'for $l in $locations ' ||
+            'return replace node $l with $newValues '
+        ) else if ($type = 'delete') then (
+          'for $l in $locations ' ||
+            'return delete node $l '
+        ) else if ($type = 'addattribute') then (
+          'for $l in $locations ' ||
+            'return insert node attribute ' || $attribute || ' {$newValues} into $l '
+        ) else ( 
+          'for $l in $locations ' ||
+            'let $empty   := copy $c := $l modify(delete nodes $c/*) return $c ' ||
+            'let $emptier := copy $c := $empty modify(replace value of node $c with "") return $c ' ||
+            'let $newNode := copy $c := $emptier modify(insert nodes $newValues into $c) return $c ' ||
+            'return replace node $l with $newNode '
+        )
+      ), map:merge(($dataBindings, map:entry('nodelist', $nodelist)))
+    )
+};
+
+
+
 declare function sc:selectEventlessTransitions($configuration as element()*,
                                                $dataModels    as element()*) 
     as element()* {
