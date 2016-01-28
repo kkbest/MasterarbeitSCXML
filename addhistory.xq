@@ -6,30 +6,38 @@ import module namespace sc = 'http://www.w3.org/2005/07/scxml';
 import module namespace sync = 'http://www.dke.jku.at/MBA/Synchronization';
 
 
-declare function local:hasHistoryValue($state) as xs:boolean
+declare function local:hasHistoryValue($state,$scxml) as xs:boolean
 {  
  fn:true() 
 };
 
-declare function local:addDescendantStatesToEnter($states                as element()*,
+declare function local:addDescendantStatesToEnter($scxml, $states                as element()*,
                                                $statesToEnter         as element()*,
                                                $statesForDefaultEntry as element()*,
                                                $cont) as item() {
+                                                '1' 
+                                               };
+                                               
+                                               
+declare function local:test($scxml, $states, $statesToEnter, $statesForDefaultEntry,$cont)   
+{                                            
   (: TODO: history states :)
   
- if (local:isHistoryState($states)) then
+ if (local:isHistoryState($states, $scxml)) then
  (
     let $results := 
-  if (local:hasHistoryValue($states)) then
+  if (local:hasHistoryValue($states, $scxml)) then
     
-    local:addDescendantStatesToEnter(s,statesToEnter,statesForDefaultEntry, defaultHistoryContent)
+    local:addDescendantStatesToEnter($scxml,$states,$statesToEnter,$statesForDefaultEntry, $cont)
   else
   
-  
-  return $results
+  '123'
    
    
-(:        if historyValue[state.id]:
+(:
+procedure addDescendantStatesToEnter(state,statesToEnter,statesForDefaultEntry, defaultHistoryContent):
+    if isHistoryState(state):
+        if historyValue[state.id]:
             for s in historyValue[state.id]:
                 addDescendantStatesToEnter(s,statesToEnter,statesForDefaultEntry, defaultHistoryContent)
             for s in historyValue[state.id]:
@@ -40,14 +48,41 @@ declare function local:addDescendantStatesToEnter($states                as elem
                 addDescendantStatesToEnter(s,statesToEnter,statesForDefaultEntry, defaultHistoryContent)
             for s in state.transition.target:     
                 addAncestorStatesToEnter(s, state.parent, statesToEnter, statesForDefaultEntry, defaultHistoryContent)
+    else:
+        statesToEnter.add(state)
+        if isCompoundState(state):
+            statesForDefaultEntry.add(state)
+            for s in state.initial.transition.target:
+                addDescendantStatesToEnter(s,statesToEnter,statesForDefaultEntry, defaultHistoryContent)
+            for s in state.initial.transition.target:    
+                addAncestorStatesToEnter(s, state, statesToEnter, statesForDefaultEntry, defaultHistoryContent)
+        else:
+            if isParallelState(state):
+                for child in getChildStates(state):
+                    if not statesToEnter.some(lambda s: isDescendant(s,child)):
+                        addDescendantStatesToEnter(child,statesToEnter,statesForDefaultEntry, defaultHistoryContent) 
 :) 
 
-)
+return '123')
  else
  (
   
   
+  (:
   
+    statesToEnter.add(state)
+        if isCompoundState(state):
+            statesForDefaultEntry.add(state)
+            for s in state.initial.transition.target:
+                addDescendantStatesToEnter(s,statesToEnter,statesForDefaultEntry, defaultHistoryContent)
+            for s in state.initial.transition.target:    
+                addAncestorStatesToEnter(s, state, statesToEnter, statesForDefaultEntry, defaultHistoryContent)
+        else:
+            if isParallelState(state):
+                for child in getChildStates(state):
+                    if not statesToEnter.some(lambda s: isDescendant(s,child)):
+                        addDescendantStatesToEnter(child,statesToEnter,statesForDefaultEntry, defaultHistoryContent) 
+                        :)
   
   let $results :=
     if (fn:empty($states)) then $cont($statesToEnter, $statesForDefaultEntry)
@@ -108,7 +143,7 @@ declare function local:addDescendantStatesToEnter($states                as elem
 };
 
 
-declare function local:isHistoryState($state)
+declare function local:isHistoryState($state,$scxml)
 {
   if($state = null) then
    fn:true

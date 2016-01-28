@@ -186,6 +186,7 @@ let $eventName    := $currentEvent/name
 let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 
+
 let $transitions := 
   if($eventName) then
     sc:selectTransitions($configuration, $dataModels, $eventName)
@@ -194,8 +195,15 @@ let $transitions :=
 let $contents :=
   for $t in $transitions
     return $t/*
+    
+    
+let $exitSet  := sc:computeExitSet($configuration, $transitions)
+let $entrySet := sc:computeEntrySet($transitions)
 
-return $contents
+let $exitContents := $exitSet/sc:onexit/*
+let $entryContents := $entrySet/sc:onentry/*
+
+return ($exitContents,$contents,$entryContents)
 };
 
 
@@ -214,12 +222,21 @@ let $transitions :=
   if($eventName) then
     sc:selectTransitions($configuration, $dataModels, $eventName)
   else ()
+
+
   
 let $contents :=
   for $t in $transitions
     return $t/*
 
-return $contents
+    
+let $exitSet  := sc:computeExitSet($configuration, $transitions)
+let $entrySet := sc:computeEntrySet($transitions)
+
+let $exitContents := $exitSet/sc:onexit/*
+let $entryContents := $entrySet/sc:onentry/*
+
+return ($exitContents,$contents,$entryContents)
 };
 
 declare updating function kk:runExecutableContent($dbName, $collectionName, $mbaName , $content)

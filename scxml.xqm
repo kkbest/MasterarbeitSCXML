@@ -406,6 +406,7 @@ declare function sc:computeExitSet($configuration as element()*,
   return $statesToExit
 };
 
+
 declare function sc:computeEntrySet($transitions as element()*) as element()* {
   if (fn:empty($transitions)) then ()
   else
