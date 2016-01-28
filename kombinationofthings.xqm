@@ -250,7 +250,7 @@ return
     case element(sc:getValue) return
         sc:getValue($dataModels, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*, $counter)
      case element(sc:log) return
-         sc:log($dataModels,$content/@expr,$counter)
+         sc:log($dataModels,$content/@expr,$content/*,$counter)
      case element(sc:script) return
            () (: TODO: has to be implementent:)
      case element(sc:send) return

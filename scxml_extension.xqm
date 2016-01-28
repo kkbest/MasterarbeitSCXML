@@ -34,8 +34,10 @@ declare function scx:importModules() as xs:string {
   let $importSyncNamespace :=
     'import module namespace sync = "http://www.dke.jku.at/MBA/Synchronization"; '
   
+ let $importscNamespace :=
+   'import module namespace sc = "http://www.w3.org/2005/07/scxml"; '
   return $importMbaNamespace ||
-         $importSyncNamespace
+         $importSyncNamespace || $importscNamespace
 };
 
 declare function scx:builtInFunctionDeclarations() as xs:string {

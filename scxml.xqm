@@ -181,45 +181,43 @@ declare updating function sc:getValue($dataModels as element()*,
         'let $newValues := $nodelist ' 
       ) ||
             'let $id := ' || $id || ' ' ||
-      'let $newNode := <response ref = "{$id}">{$newValues} </response>' ||
+            
+            'let $exists := fn:exists($mba/mba:topLevel/mba:elements/sc:scxml/sc:datamodel/sc:data[@id="_x"]/response/response[@ref=$id]) ' ||
+
+      'let $newNode := if ($exists) then 
+              (  $newValues)
+                else
+      (  <response ref = "{  $id }">{  $newValues} </response>)'
+      
+            ||
+      
+      
       'return ' || (
-        if ($type = 'firstchild') then (
-          'for $l in $locations ' ||
-            'return insert node $newValues as first into $l '
-        ) else if ($type = 'lastchild') then (
-          'for $l in $locations ' ||
-            'return insert node $newValues as last into $l '
-        ) else if ($type = 'previoussibling') then (
-          'for $l in $locations ' ||
-            'return insert node $newValues before $l '
-        ) else if ($type = 'nextsibling') then (
-          'for $l in $locations ' ||
-            'return insert node $newValues after $l '
-        ) else if ($type = 'replace') then (
-          'for $l in $locations ' ||
-            'return replace node $l with $newValues '
-        ) else if ($type = 'delete') then (
-          'for $l in $locations ' ||
-            'return delete node $l '
-        ) else if ($type = 'addattribute') then (
-          'for $l in $locations ' ||
-            'return insert node attribute ' || $attribute || ' {$newValues} into $l '
-        ) else ( 
-          'for $l in $locations ' ||
-          'return insert node $newNode into $l '
-        )
-      ), map:merge(($dataBindings, map:entry('nodelist', $nodelist)))
-    )
+        
+         
+         
+       ' if ($exists) then 
+ ( for $l in $locations ' ||
+ 
+ (:return insert node $newNode into $l/response/response[@ref=$id]:) '
+ return insert node $newNode into $l/response[@ref=$id]
+  )
+ else
+(  for $l in $locations
+ return insert node $newNode into $l) '
+        ), map:merge(($dataBindings, map:entry('nodelist', $nodelist)))
+      
+    )    
 };
 
 
 
 
 declare updating function sc:log($dataModels as element()*,
-                                     $expression as xs:string?,                               
+                                    $expression as xs:string?,
+                                    $nodelist   as node()*,
                                     $id as xs:string) {  
-     
-      let $dataBindings :=
+  let $dataBindings :=
     for $dataModel in $dataModels
       for $data in $dataModel/sc:data
         return map:entry($data/@id, $data)
@@ -244,22 +242,46 @@ declare updating function sc:log($dataModels as element()*,
       scx:importModules() ||
       fn:string-join($declare) ||
       $declareNodeList ||
+      scx:builtInFunctionDeclarations() ||
       'let $locations := ' || $location || ' ' || (
       if ($expression) then
-        'let $newValues := "' || $expression || '" '
+        'let $newValues :=  <log>' || $expression || ' </log> '
       else 
-        'let $newValues := '||' "' || '$nodelist ' || '" ' 
+        'let $newValues := $nodelist ' 
       ) ||
             'let $id := ' || $id || ' ' ||
-      'let $newNode := <response ref = "{$id}">{ $newValues} </response>' ||
+            
+            'let $exists := fn:exists($mba/mba:topLevel/mba:elements/sc:scxml/sc:datamodel/sc:data[@id="_x"]/response/response[@ref=$id]) ' ||
+
+      'let $newNode := if ($exists) then 
+              (  $newValues)
+                else
+      (  <response ref = "{  $id }">{  $newValues} </response>)'
+      
+            ||
+      
+      
       'return ' || (
-  
-          'for $l in $locations ' ||
-          'return insert node $newNode into $l '
-        )
+        
+         
+         
+       ' if ($exists) then 
+ ( for $l in $locations ' ||
+ 
+ (:return insert node $newNode into $l/response/response[@ref=$id]:) '
+ return insert node $newNode into $l/response[@ref=$id]
+  )
+ else
+(  for $l in $locations
+ return insert node $newNode into $l) '
+        ), map:merge(($dataBindings, map:entry('nodelist', $nodelist)))
       
     )
+    
 };
+
+
+
 
 
 
