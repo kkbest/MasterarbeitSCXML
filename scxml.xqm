@@ -146,7 +146,8 @@ declare updating function sc:getValue($dataModels as element()*,
                                     $expression as xs:string?,
                                     $type       as xs:string?,
                                     $attribute  as xs:string?,
-                                    $nodelist   as node()*) {  
+                                    $nodelist   as node()*,
+                                    $id as xs:string) {  
   let $dataBindings :=
     for $dataModel in $dataModels
       for $data in $dataModel/sc:data
@@ -164,8 +165,9 @@ declare updating function sc:getValue($dataModels as element()*,
     if (not($location) or $location = '') 
     then '() '
     else $location
+   
   
-  let $location := '$_response'
+  let $location := '$_x/' ||'response'
   return
     xquery:update(
       scx:importModules() ||
@@ -178,6 +180,8 @@ declare updating function sc:getValue($dataModels as element()*,
       else 
         'let $newValues := $nodelist ' 
       ) ||
+            'let $id := ' || $id || ' ' ||
+      'let $newNode := <response ref = "{$id}">{$newValues} </response>' ||
       'return ' || (
         if ($type = 'firstchild') then (
           'for $l in $locations ' ||
@@ -202,14 +206,61 @@ declare updating function sc:getValue($dataModels as element()*,
             'return insert node attribute ' || $attribute || ' {$newValues} into $l '
         ) else ( 
           'for $l in $locations ' ||
-            'let $empty   := copy $c := $l modify(delete nodes $c/*) return $c ' ||
-            'let $emptier := copy $c := $empty modify(replace value of node $c with "") return $c ' ||
-            'let $newNode := copy $c := $emptier modify(insert nodes $newValues into $c) return $c ' ||
-            'return replace node $l with $newNode '
+          'return insert node $newNode into $l '
         )
       ), map:merge(($dataBindings, map:entry('nodelist', $nodelist)))
     )
 };
+
+
+
+
+declare updating function sc:log($dataModels as element()*,
+                                     $expression as xs:string?,                               
+                                    $id as xs:string) {  
+     
+      let $dataBindings :=
+    for $dataModel in $dataModels
+      for $data in $dataModel/sc:data
+        return map:entry($data/@id, $data)
+  
+  let $declare :=
+    for $dataModel in $dataModels
+      for $data in $dataModel/sc:data
+        return 'declare variable $' || $data/@id || ' external; '
+  
+  let $declareNodeList :=
+    'declare variable $nodelist external; '
+  
+  let $expression :=
+    if (not($expression) or $expression = '') 
+    then '() '
+    else $expression
+   
+  
+  let $location := '$_x/' ||'response'
+  return
+    xquery:update(
+      scx:importModules() ||
+      fn:string-join($declare) ||
+      $declareNodeList ||
+      'let $locations := ' || $location || ' ' || (
+      if ($expression) then
+        'let $newValues := "' || $expression || '" '
+      else 
+        'let $newValues := '||' "' || '$nodelist ' || '" ' 
+      ) ||
+            'let $id := ' || $id || ' ' ||
+      'let $newNode := <response ref = "{$id}">{ $newValues} </response>' ||
+      'return ' || (
+  
+          'for $l in $locations ' ||
+          'return insert node $newNode into $l '
+        )
+      
+    )
+};
+
 
 
 

@@ -165,6 +165,10 @@ declare function mba:concretize($parents  as element()*,
           <name xmlns="">{$name}</name>
           <currentStatus xmlns=""/>
           <externalEventQueue xmlns=""/>
+          <response  xmlns="">
+               <counter xmlns="">1</counter>
+           </response>
+          <history xmlns=""/>
         </sc:data>
       into $c/mba:topLevel/mba:elements/sc:scxml[1]/sc:datamodel
     else ()
@@ -391,6 +395,8 @@ declare updating function mba:enqueueExternalEvent($mba   as element(),
   )
 };
 
+
+
 declare function mba:getDatabaseName($mba) {
   let $dbName := db:name($mba)
   
@@ -510,14 +516,15 @@ declare updating function mba:init($mba as element()) {
           <name xmlns="">{fn:string($mba/@name)}</name>
           <currentStatus xmlns=""/>
           <externalEventQueue xmlns=""/>
+          <response  xmlns="">
+               <counter xmlns="">1</counter>
+           </response>
+          <history xmlns=""/>
         </sc:data>
       into $scxml/sc:datamodel
     else (),
     if (not ($mba/mba:concretizations)) then
       insert node <mba:concretizations/> into $mba
-    else (),
-    if (not ($scxml/sc:datamodel/sc:data[@id = '_response'])) then
-      insert node <sc:data id = "_response"/> into $scxml/sc:datamodel
     else ()
   )
 };

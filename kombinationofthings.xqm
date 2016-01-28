@@ -231,6 +231,7 @@ let $scxml := mba:getSCXML($mba)
 
 let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
+let $counter :=  mba:getCurrentEvent($mba)/data/id/text()
 
 return 
   typeswitch($content)
@@ -247,7 +248,19 @@ return
     case element(sync:newDescendant) return 
       sync:newDescendant($mba, $content/@name, $content/@level, $content/@parents, $content/*)
     case element(sc:getValue) return
-            sc:getValue($dataModels, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*)
+        sc:getValue($dataModels, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*, $counter)
+     case element(sc:log) return
+         sc:log($dataModels,$content/@expr,$counter)
+     case element(sc:script) return
+           () (: TODO: has to be implementent:)
+     case element(sc:send) return
+           () (: TODO: has to be implementent:)
+      case element(sc:cancel) return
+           () (: TODO: has to be implementent:)
+       case element(sc:raise) return
+           () (: TODO: has to be implementent:)     
+     
+    
 
     default return ()
 };
@@ -1147,7 +1160,24 @@ declare function kk:getResult($dbName,$collectionName, $mbaName,$id)
 
 
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
-  return $mba//sc:data[@id = '_response']
+   return $mba/mba:topLevel/mba:elements/sc:scxml/sc:datamodel/sc:data[@id='_x']/response/response[@ref=$id]
+
+};
+
+
+declare function kk:getCounter($dbName,$collectionName,$mbaName)
+{
+    let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
+     return $mba/*/*/sc:scxml/sc:datamodel/sc:data[@id='_x']/response/counter/text()
+};
+
+declare updating function kk:updateCounter($dbName,$collectionName,$mbaName)
+{
+  
+    let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
+  let $oldValue :=   $mba/*/*/sc:scxml/sc:datamodel/sc:data[@id='_x']/response/counter/text()
+  let $newCounter := <counter>{$oldValue + 1}</counter>
+  return replace value of node   $mba/*/*/sc:scxml/sc:datamodel/sc:data[@id='_x']/response/counter with $newCounter
 };
 
 
