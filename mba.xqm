@@ -168,7 +168,7 @@ declare function mba:concretize($parents  as element()*,
           <response  xmlns="">
                <counter xmlns="">1</counter>
            </response>
-          <history xmlns=""/>
+          <historyStates xmlns=""/>
         </sc:data>
       into $c/mba:topLevel/mba:elements/sc:scxml[1]/sc:datamodel
     else ()
@@ -385,6 +385,14 @@ declare function mba:getExternalEventQueue($mba as element()) as element() {
   return $scxml/sc:datamodel/sc:data[@id = '_x']/externalEventQueue
 };
 
+
+declare function mba:getHistory($mba as element()) as element() {
+  let $scxml := mba:getSCXML($mba)
+  
+  return $scxml/sc:datamodel/sc:data[@id = '_x']/historyStates
+};
+
+
 declare updating function mba:enqueueExternalEvent($mba   as element(), 
                                                    $event as element()) {
   let $queue := mba:getExternalEventQueue($mba)
@@ -519,7 +527,7 @@ declare updating function mba:init($mba as element()) {
           <response  xmlns="">
                <counter xmlns="">1</counter>
            </response>
-          <history xmlns=""/>
+          <historyStates xmlns=""/>
         </sc:data>
       into $scxml/sc:datamodel
     else (),
