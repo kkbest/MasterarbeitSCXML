@@ -50,7 +50,7 @@ let $configuration := mba:getConfiguration($mba)
 
 return
   if (not ($configuration)) then 
-    mba:addCurrentStates($mba, sc:getInitialStates($scxml))
+    mba:addCurrentStates($mba, sc:getInitialStates($scxml,$scxml))
   else ()
 
 
@@ -69,7 +69,7 @@ let $scxml := mba:getSCXML($mba)
 let $configuration := mba:getConfiguration($mba)
 return
   if (not ($configuration)) then 
-    mba:addCurrentStates($mba, sc:getInitialStates($scxml))
+    mba:addCurrentStates($mba, sc:getInitialStates($scxml,$scxml))
   else ()
 };
 
@@ -113,7 +113,7 @@ let $dataModels := sc:selectDataModels($configuration)
 
 let $transitions := 
   if($eventName) then
-    sc:selectTransitions($configuration, $dataModels, $eventName)
+    sc:selectTransitions($configuration, $dataModels, $eventName,$scxml)
   else ()
   
 let $contents :=
@@ -121,8 +121,8 @@ let $contents :=
     return $t/*
     
     
-let $exitSet  := sc:computeExitSet($configuration, $transitions)
-let $entrySet := sc:computeEntrySet($transitions)
+let $exitSet  := sc:computeExitSet($configuration, $transitions,$scxml)
+let $entrySet := sc:computeEntrySet($transitions,$scxml)
 
 let $exitContents := $exitSet/sc:onexit/*
 let $entryContents := $entrySet/sc:onentry/*
@@ -194,11 +194,11 @@ let $dataModels := sc:selectDataModels($configuration)
 
 let $transitions := 
   if($eventName) then
-    sc:selectTransitions($configuration, $dataModels, $eventName)
+    sc:selectTransitions($configuration, $dataModels, $eventName,$scxml)
   else ()
 
-let $exitSet  := sc:computeExitSet($configuration, $transitions)
-let $entrySet := sc:computeEntrySet($transitions)
+let $exitSet  := sc:computeExitSet($configuration, $transitions,$scxml)
+let $entrySet := sc:computeEntrySet($transitions,$scxml)
 
 return (
   mba:removeCurrentStates($mba, $exitSet),
@@ -223,20 +223,8 @@ return mba:removeCurrentEvent($mba)
 
 
 
-(: getExecutableContentsEventless runExecutableContent changeCurrentStatusEventless :)
-declare updating function kk:runEventlessTransitions($dbName, $collectionName, $mbaName)
-{
-  let $executableContents := kk:getExecutableContentsEventless($dbName, $collectionName, $mbaName)
-  for $content in $executableContents
-  return kk:runExecutableContent($dbName, $collectionName, $mbaName, $content)
-};
 
 
-
-declare updating function kk:processEventlessTransitions($dbName, $collectionName, $mbaName)
-{
-  kk:runEventlessTransitions($dbName, $collectionName, $mbaName),kk:changeCurrentStatusEventless($dbName, $collectionName, $mbaName)
-};
 
 declare function kk:getExecutableContentsEventless($dbName, $collectionName, $mbaName)
 {
@@ -247,7 +235,7 @@ let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 
 let $transitions := 
-  sc:selectEventlessTransitions($configuration, $dataModels)
+  sc:selectEventlessTransitions($configuration, $dataModels,$scxml)
 
 let $contents :=
   for $t in $transitions
@@ -264,7 +252,7 @@ let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 
 let $transitions := 
-  sc:selectEventlessTransitions($configuration, $dataModels)
+  sc:selectEventlessTransitions($configuration, $dataModels,$scxml)
 
 let $contents :=
   for $t in $transitions
@@ -283,10 +271,10 @@ let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 
 let $transitions := 
-  sc:selectEventlessTransitions($configuration, $dataModels)
+  sc:selectEventlessTransitions($configuration, $dataModels,$scxml)
 
-let $exitSet  := sc:computeExitSet($configuration, $transitions)
-let $entrySet := sc:computeEntrySet($transitions)
+let $exitSet  := sc:computeExitSet($configuration, $transitions,$scxml)
+let $entrySet := sc:computeEntrySet($transitions,$scxml)
 
 return (
   mba:removeCurrentStates($mba, $exitSet),
@@ -304,6 +292,14 @@ declare updating function kk:getandExecuteExecutablecontent($dbName, $collection
 };
 
 
+
+(: getExecutableContentsEventless runExecutableContent changeCurrentStatusEventless :)
+declare updating function kk:getAndExecuteEventlessTransitions($dbName, $collectionName, $mbaName,$counter)
+{
+  let $executableContents := kk:getExecutableContentsEventless($dbName, $collectionName, $mbaName)
+  return kk:runExecutableContent($dbName, $collectionName, $mbaName, $executableContents[$counter])
+  
+};
 
 declare updating function kk:removeFromUpdateLog($dbName, $collectionName, $mbaName)
 {
@@ -422,10 +418,61 @@ let $dataModels := sc:selectDataModels($configuration)
 
 let $transitions := 
   if($eventName) then
-    sc:selectTransitions($configuration, $dataModels, $eventName)
+    sc:selectTransitions($configuration, $dataModels, $eventName,$scxml)
   else ()
   
-let $exitSet  := sc:computeExitSet($configuration, $transitions)
+let $exitSet  := sc:computeExitSet($configuration, $transitions,$scxml)
+
+(:TODO Anschauen exitOrder -> reverted Documentorder:)
+
+for $state in $exitSet 
+
+ for $h in $state/sc:history
+(:for $h in kk:getStateHistoryNodes($state):)
+return if ($h/type = 'deep') then 
+
+let $input := $configuration
+let $newNode :=  <history ref = "{$h/@id}"> $input</history>
+return 
+insert node $newNode into mba:getHistory($mba)
+
+else
+let $input := sc:getDescendantStates($state)
+let $newNode :=  <history ref =  "{$h/@id}"> $input</history>
+return
+insert node $newNode into mba:getHistory($mba)
+
+ (:the list of all immediate children of s that are members of the current configuration:) 
+ (: executeContent and delete from configuration probably later but could be done at least for executecontent :)
+ (: for h in s.history do history:)
+(:vermutlich müss mann da replace machen.. aber vorerst mal:)
+
+(:if(kk:getHistory/@type = 'deep') then
+insert node  <history ref="stateid"> 
+              $configuration </history>into $history (: of all atomic descendants of s that are members in the current configuration :)       :)
+};
+
+
+declare updating function kk:exitStatesE($dbName,$collectionName,$mbaName)
+{
+  
+  
+  
+let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+let $scxml := mba:getSCXML($mba)
+
+let $currentEvent := mba:getCurrentEvent($mba)
+let $eventName    := $currentEvent/name
+
+let $configuration := mba:getConfiguration($mba)
+let $dataModels := sc:selectDataModels($configuration)
+
+let $transitions := 
+  if($eventName) then
+    sc:selectTransitions($configuration, $dataModels, $eventName,$scxml)
+  else ()
+  
+let $exitSet  := sc:computeExitSet($configuration, $transitions,$scxml)
 
 (:TODO Anschauen exitOrder -> reverted Documentorder:)
 
@@ -473,10 +520,10 @@ let $dataModels := sc:selectDataModels($configuration)
 let $history := mba:getHistory($mba)
 let $transitions := 
   if($eventName) then
-    sc:selectTransitions($configuration, $dataModels, $eventName)
+    sc:selectTransitions($configuration, $dataModels, $eventName,$scxml)
   else ()
   
-let $entrySet  := sc:computeEntrySet($transitions)
+let $entrySet  := sc:computeEntrySet($transitions,$scxml)
 
 return ()
 
@@ -518,21 +565,12 @@ let $dataModels := sc:selectDataModels($configuration)
 let $history := mba:getHistory($mba)
 let $transitions := 
   if($eventName) then
-    sc:selectTransitions($configuration, $dataModels, $eventName)
+    sc:selectTransitions($configuration, $dataModels, $eventName,$scxml)
   else ()
   
-let $entrySet  := sc:computeEntrySet($transitions)
+let $entrySet  := sc:computeEntrySet($transitions,$scxml)
 
 return ()
-
-
-
-(: add to configuration -> I do that later :)
-(:dataBinding ? :)
-(:exeCuteContent of onEntry
-
-and of Defaultentry and Defaulthistorycontent:)
-
 
 
 (: :)

@@ -287,7 +287,7 @@ declare updating function sc:log($dataModels as element()*,
 
 
 declare function sc:selectEventlessTransitions($configuration as element()*,
-                                               $dataModels    as element()*) 
+                                               $dataModels    as element()*, $scxml) 
     as element()* {
       
   let $atomicStates :=
@@ -322,12 +322,13 @@ declare function sc:selectEventlessTransitions($configuration as element()*,
           return $transitions[1]
     return $transitions
   
-  return sc:removeConflictingTransitions($configuration, $enabledTransitions)  
+  return sc:removeConflictingTransitions($configuration, $enabledTransitions, $scxml)  
 };
 
 declare function sc:selectTransitions($configuration as element()*,
                                       $dataModels as element()*,
-                                      $event as xs:string) as element()* {
+                                      $event as xs:string, 
+                                    $scxml) as element()* {
   
   let $atomicStates :=
     $configuration[sc:isAtomicState(.)]
@@ -362,20 +363,20 @@ declare function sc:selectTransitions($configuration as element()*,
                            )]
       return $transitions[1]
   
-  return sc:removeConflictingTransitions($configuration, $enabledTransitions)
+  return sc:removeConflictingTransitions($configuration, $enabledTransitions, $scxml)
 };
 
 declare function sc:removeConflictingTransitions($configuration as element()*,
-                                                 $transitions as element()*)
+                                                 $transitions as element()*, $scxml)
     as element()*{
   let $enabledTransitions := functx:distinct-nodes($transitions)
   
   let $filteredTransitions := fn:fold-left(?, (),
     function($filteredTransitions, $t1) {
-      let $exitSetT1 := sc:computeExitSet($configuration, ($t1))
+      let $exitSetT1 := sc:computeExitSet($configuration, ($t1), $scxml)
       let $t2 := ($filteredTransitions[
         some $s in $exitSetT1 satisfies 
-        functx:index-of-node(sc:computeExitSet($configuration, .), $s)
+        functx:index-of-node(sc:computeExitSet($configuration, .,$scxml ), $s)
       ])[1]
       let $filteredTransitions :=
         if ($t2) then (
@@ -396,10 +397,10 @@ declare function sc:removeConflictingTransitions($configuration as element()*,
 };
 
 declare function sc:computeExitSet($configuration as element()*,
-                                   $transitions as element()*) as element()*{
+                                   $transitions as element()*, $scxml) as element()*{
   let $statesToExit := 
     for $t in $transitions 
-      let $domain := sc:getTransitionDomain($t)
+      let $domain := sc:getTransitionDomain($t, $scxml)
       for $s in $configuration
         return if (sc:isDescendant($s, $domain)) then $s else ()
   
@@ -407,12 +408,12 @@ declare function sc:computeExitSet($configuration as element()*,
 };
 
 
-declare function sc:computeEntrySet($transitions as element()*) as element()* {
+declare function sc:computeEntrySet($transitions as element()*,$scxml) as element()* {
   if (fn:empty($transitions)) then ()
   else
     let $statesToEnterStart := 
       for $t in $transitions
-        return sc:getTargetStates($t)
+        return sc:getTargetStates($transitions,$scxml)
     
     let $stateLists :=
       map:merge((
@@ -435,7 +436,7 @@ declare function sc:computeEntrySet($transitions as element()*) as element()* {
         }
         
         return
-          sc:addDescendantStatesToEnter($s, $statesToEnter, $statesForDefaultEntry, $f)
+          sc:addDescendantStatesToEnter($s, $statesToEnter, $statesForDefaultEntry, $f,$scxml)
       }
     )
     
@@ -444,7 +445,7 @@ declare function sc:computeEntrySet($transitions as element()*) as element()* {
     let $stateLists := 
       (
        for $t in $transitions
-         let $ancestor := sc:getTransitionDomain($t)
+         let $ancestor := sc:getTransitionDomain($t,$scxml)
          let $addAncestors := fn:fold-left(?, $stateLists,
            function($stateListsResult, $s) {
              let $statesToEnter := 
@@ -460,11 +461,11 @@ declare function sc:computeEntrySet($transitions as element()*) as element()* {
              }
              
              return
-               sc:addAncestorStatesToEnter($s, $ancestor, $statesToEnter, $statesForDefaultEntry, $f)
+               sc:addAncestorStatesToEnter($s, $ancestor, $statesToEnter, $statesForDefaultEntry, $f, $scxml)
            }
          )
          
-         for $s in sc:getTargetStates($t)
+         for $s in sc:getTargetStates($t,$scxml)
            return $addAncestors($s)
       )
     
@@ -476,7 +477,7 @@ declare function sc:computeEntrySet($transitions as element()*) as element()* {
 };
 
 
-declare function sc:addDescendantStatesToEnter($state as element()) as item() {
+declare function sc:addDescendantStatesToEnter($state as element(),$scxml) as item() {
   (: TODO: history states :)
   
   let $f := function($statesToEnter, $statesForDefaultEntry) { 
@@ -486,23 +487,40 @@ declare function sc:addDescendantStatesToEnter($state as element()) as item() {
     ))
   }
   
-  return sc:addDescendantStatesToEnter($state, (), (), $f)
+  return sc:addDescendantStatesToEnter($state, (), (), $f,$scxml)
 };
 
 declare function sc:addDescendantStatesToEnter($states                as element()*,
                                                $statesToEnter         as element()*,
                                                $statesForDefaultEntry as element()*,
-                                               $cont) as item() {
-  (: TODO: history states :)
+                                               $cont,$scxml) as item() {
+  (: I need SCXML:)
+  
+  
+  (: TODO: history states 
+  
+  1. Check if history State
+  2. Check if state already got someStuff 
+  3. addDescendantState to Enter
+  4. add AncestorSTatetoEnter:)
+  
+  
   
   let $results :=
     if (fn:empty($states)) then $cont($statesToEnter, $statesForDefaultEntry)
+  (:  else if (sc:isHistoryState($states[1])) then
+    (
+      (:let $history := sc:getHistory($states[1]):)
+      return
+      sc:addDescendantStatesToEnter(
+        $states[position() > 1], ($statesToEnter, $states[1]), $statesForDefaultEntry, $cont,$scxml
+      )):)
     else if (sc:isAtomicState($states[1])) then
       sc:addDescendantStatesToEnter(
-        $states[position() > 1], ($statesToEnter, $states[1]), $statesForDefaultEntry, $cont
+        $states[position() > 1], ($statesToEnter, $states[1]), $statesForDefaultEntry, $cont,$scxml
       )
     else if (sc:isCompoundState($states[1])) then
-       let $initialStates := sc:getInitialStates($states[1])
+       let $initialStates := sc:getInitialStates($states[1],$scxml)
        return sc:addDescendantStatesToEnter(
          $initialStates[1], 
          ($statesToEnter, $states[1]), 
@@ -518,11 +536,11 @@ declare function sc:addDescendantStatesToEnter($states                as element
                  $initialStates[position() > 1], 
                  $statesToEnter2,
                  $statesForDefaultEntry2,
-                 $cont
+                 $cont,$scxml
                )
              }
-           )
-         }
+           ,$scxml)
+         },$scxml
        )
     else if (sc:isParallelState($states[1])) then
        let $childStates := sc:getChildStates($states[1])
@@ -542,10 +560,10 @@ declare function sc:addDescendantStatesToEnter($states                as element
                sc:addDescendantStatesToEnter($states[position() > 1],
                                              $statesToEnter2,
                                              $statesForDefaultEntry2,
-                                             $cont)
-             }
+                                             $cont,$scxml)
+             }, $scxml
            )
-         }
+         }, $scxml
        )
     else ()
   
@@ -553,7 +571,7 @@ declare function sc:addDescendantStatesToEnter($states                as element
 };
 
 declare function sc:addAncestorStatesToEnter($state as element(),
-                                             $ancestor as element()) as item() {
+                                             $ancestor as element(), $scxml) as item() {
   let $f := function($statesToEnter, $statesForDefaultEntry) { 
     map:merge((
       map:entry('statesToEnter', $statesToEnter),
@@ -561,20 +579,20 @@ declare function sc:addAncestorStatesToEnter($state as element(),
     ))
   }
   
-  return sc:addAncestorStatesToEnter($state, $ancestor, (), (), $f)
+  return sc:addAncestorStatesToEnter($state, $ancestor, (), (), $f, $scxml)
 };
 
 declare function sc:addAncestorStatesToEnter($states as element()*,
                                              $ancestor as element(),
                                              $statesToEnter as element()*,
                                              $statesForDefaultEntry as element()*,
-                                             $cont) as item() {
+                                             $cont, $scxml) as item() {
   let $properAncestors :=
     for $s in $states return sc:getProperAncestors($s, $ancestor)
   
   let $results :=
     if (fn:empty($properAncestors)) then $cont($statesToEnter, $statesForDefaultEntry)
-    else sc:foldAncestorStatesToEnter ($properAncestors,
+    else sc:foldAncestorStatesToEnter ($scxml, $properAncestors,
                                        $statesToEnter,
                                        $statesForDefaultEntry,
                                        $cont)
@@ -585,7 +603,7 @@ declare function sc:addAncestorStatesToEnter($states as element()*,
 declare function sc:foldAncestorStatesToEnter($states as element()*,
                                               $statesToEnter as element()*,
                                               $statesForDefaultEntry as element()*,
-                                              $cont) as item() {
+                                              $cont, $scxml) as item() {
   let $results := 
     if (fn:empty($states)) then  $cont($statesToEnter, $statesForDefaultEntry)
     else if (sc:isParallelState($states[1])) then
@@ -606,28 +624,28 @@ declare function sc:foldAncestorStatesToEnter($states as element()*,
               sc:foldAncestorStatesToEnter($states[position() > 1],
                                            $statesToEnter2,
                                            $statesForDefaultEntry2,
-                                           $cont)
+                                           $cont,$scxml)
             }
-          )
+          ,$scxml )
         }
-      )
+      ,$scxml)
     else sc:foldAncestorStatesToEnter(
       $states[position() > 1],
       ($statesToEnter, $states[1]), 
       $statesForDefaultEntry, 
-      $cont
+      $cont, $scxml
     )
   
   return $results
 };
 
-declare function sc:getInitialStates($state) as element()* {
+declare function sc:getInitialStates($state,$scxml) as element()* {
   if ($state/@initial) then 
     for $s in fn:tokenize($state/@initial, '\s')
       return $state//*[@id = $s]
   else (
     for $transition in $state/sc:initial/sc:transition
-      return sc:getEffectiveTargetStates($transition)
+      return sc:getEffectiveTargetStates($transition,$scxml)
   )
 };
 
@@ -646,25 +664,33 @@ declare function sc:isParallelState($state as element()) as xs:boolean {
   fn:exists($state/self::sc:parallel)
 };
 
+declare function sc:isHistoryState($state as element()) as xs:boolean {  
+  fn:exists($state/self::sc:history)
+};
+
+declare function sc:isFinalState($state as element()) as xs:boolean {  
+  fn:exists($state/self::sc:final)
+};
+
 declare function sc:getChildStates($state as element()) as element()* {
   $state/*[self::sc:state or self::sc:parallel]
 };
 
 declare function sc:getDescendantStates($state as element()) as element()* {
-  $state//*[self::sc:state or self::sc:parallel]
+  $state//*[self::sc:state or self::sc:parallel or self::sc:final]
 };
 
-declare function sc:getTargetStates($transition as element()) as element()* {
+declare function sc:getTargetStates($transition as element(),$scxml) as element()* {
   if (not($transition/@target)) then () 
   else 
     for $state in fn:tokenize($transition/@target, '\s')
-      return $transition/ancestor::sc:scxml//*[@id = $state]
+      return $scxml//*[@id = $state]
 };
 
-declare function sc:getEffectiveTargetStates($transition as element()) as element()* {
+declare function sc:getEffectiveTargetStates($transition as element(),$scxml) as element()* {
   (: TODO: history states :)
   
-   sc:getTargetStates($transition)
+   sc:getTargetStates($transition,$scxml)
 };
 
 declare function sc:getSourceState($transition as element()) as element() {  
@@ -675,8 +701,8 @@ declare function sc:isInternalTransition($transition as element()) as xs:boolean
   fn:exists($transition/@type='internal')
 };
 
-declare function sc:getTransitionDomain($transition as element()) as element() {
-  let $targetStates := sc:getTargetStates($transition)
+declare function sc:getTransitionDomain($transition as element(), $scxml) as element() {
+  let $targetStates := sc:getTargetStates($transition, $scxml)
   let $sourceState :=  sc:getSourceState($transition) 
   
   return
@@ -759,7 +785,7 @@ declare function sc:getSpecializedTransitions($transition as element(),
       default return ()
   
   let $originalTargetStates :=
-    sc:getTargetStates($transition)
+    sc:getTargetStates($transition,$scxml)
     
   let $scxmlOriginalTargetStates :=
     for $s in $originalTargetStates return
