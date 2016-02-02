@@ -73,6 +73,8 @@ return
   else ()
 };
 
+
+
 declare function kk:getupdatedMBAS($dbName, $collectionName)
 {
   let $document := db:open($dbName, 'collections.xml')
@@ -125,41 +127,9 @@ let $entrySet := sc:computeEntrySet($transitions)
 let $exitContents := $exitSet/sc:onexit/*
 let $entryContents := $entrySet/sc:onentry/*
 
-return ($exitContents,$contents,$entryContents)
+return  ($exitContents,$contents,$entryContents)
 };
 
-
-declare function kk:getExecutableContents($mba)
-{
-
-let $scxml := mba:getSCXML($mba)
-
-let $currentEvent := mba:getCurrentEvent($mba)
-let $eventName    := $currentEvent/name
-
-let $configuration := mba:getConfiguration($mba)
-let $dataModels := sc:selectDataModels($configuration)
-
-let $transitions := 
-  if($eventName) then
-    sc:selectTransitions($configuration, $dataModels, $eventName)
-  else ()
-
-
-  
-let $contents :=
-  for $t in $transitions
-    return $t/*
-
-    
-let $exitSet  := sc:computeExitSet($configuration, $transitions)
-let $entrySet := sc:computeEntrySet($transitions)
-
-let $exitContents := $exitSet/sc:onexit/*
-let $entryContents := $entrySet/sc:onentry/*
-
-return ($exitContents,$contents,$entryContents)
-};
 
 declare updating function kk:runExecutableContent($dbName, $collectionName, $mbaName , $content)
 {
@@ -435,6 +405,7 @@ declare function kk:getStateHistoryNodes($state)
 };
 
 
+
 declare updating function kk:exitStates($dbName,$collectionName,$mbaName)
 {
   
@@ -449,7 +420,6 @@ let $eventName    := $currentEvent/name
 let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 
-let $history := mba:getHistory($mba)
 let $transitions := 
   if($eventName) then
     sc:selectTransitions($configuration, $dataModels, $eventName)
@@ -459,29 +429,34 @@ let $exitSet  := sc:computeExitSet($configuration, $transitions)
 
 (:TODO Anschauen exitOrder -> reverted Documentorder:)
 
-for $state in $exitSet  
+for $state in $exitSet 
 
-for $h in kk:getStateHistoryNodes($state)
+ for $h in $state/sc:history
+(:for $h in kk:getStateHistoryNodes($state):)
+return if ($h/type = 'deep') then 
+
+let $newNode :=  <history ref = "{$h/@id}"> asdf</history>
 return 
+insert node $newNode into mba:getHistory($mba)
 
-(: for h in s.history do history:)
-(:vermutlich müss mann da replace machen.. aber vorerst mal:)
-if(kk:getHistory/@type = 'deep') then
-insert node  <history ref="stateid"> 
-              $configuration </history>into $history (: of all atomic descendants of s that are members in the current configuration :)
 else
-
-insert node  <history ref="stateid"> 
-              $configuration </history>into $history
+let $newNode :=  <history ref =  "{$h/@id}"> asdf</history>
+return
+insert node $newNode into mba:getHistory($mba)
 
  (:the list of all immediate children of s that are members of the current configuration:) 
  (: executeContent and delete from configuration probably later but could be done at least for executecontent :)
-        
+ (: for h in s.history do history:)
+(:vermutlich müss mann da replace machen.. aber vorerst mal:)
+
+(:if(kk:getHistory/@type = 'deep') then
+insert node  <history ref="stateid"> 
+              $configuration </history>into $history (: of all atomic descendants of s that are members in the current configuration :)       :)
 };
 
 
 
-declare updating function kk:entryStates($dbName,$collectionName,$mbaName)
+declare updating function kk:enterStatesI($dbName,$collectionName,$mbaName)
 {
   
   
@@ -523,3 +498,78 @@ and of Defaultentry and Defaulthistorycontent:)
         
         
 };
+
+
+
+declare updating function kk:enterStates($dbName,$collectionName,$mbaName)
+{
+  
+  
+  
+let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+let $scxml := mba:getSCXML($mba)
+
+let $currentEvent := mba:getCurrentEvent($mba)
+let $eventName    := $currentEvent/name
+
+let $configuration := mba:getConfiguration($mba)
+let $dataModels := sc:selectDataModels($configuration)
+
+let $history := mba:getHistory($mba)
+let $transitions := 
+  if($eventName) then
+    sc:selectTransitions($configuration, $dataModels, $eventName)
+  else ()
+  
+let $entrySet  := sc:computeEntrySet($transitions)
+
+return ()
+
+
+
+(: add to configuration -> I do that later :)
+(:dataBinding ? :)
+(:exeCuteContent of onEntry
+
+and of Defaultentry and Defaulthistorycontent:)
+
+
+
+(: :)
+
+(: is it a Final State ? :)
+(: if yes enqueue new internal Event and depending on add parallelFinalStates
+
+   
+   First, compute the list of all the states that will be entered as a result of taking the transitions in enabledTransitions. Add them to statesToInvoke so that invoke processing can be done at the start of the next macrostep. Convert statesToEnter to a list and sort it in entryOrder. For each state s in the list, first add s to the current configuration. Then if we are using late binding, and this is the first time we have entered s, initialize its data model. Then execute any onentry handlers. If s's initial state is being entered by default, execute any executable content in the initial transition. If a history state in s was the target of a transition, and s has not been entered before, execute the content inside the history state's default transition. Finally, if s is a final state, generate relevant Done events. If we have reached a top-level final state, set running to false as a signal to stop processing.
+
+procedure enterStates(enabledTransitions):
+    statesToEnter = new OrderedSet()
+    statesForDefaultEntry = new OrderedSet()
+    // initialize the temporary table for default content in history states
+    defaultHistoryContent = new HashTable() 
+    computeEntrySet(enabledTransitions, statesToEnter, statesForDefaultEntry, defaultHistoryContent) 
+   
+    for s in statesToEnter.toList().sort(entryOrder):
+         if binding == "late" and s.isFirstEntry:
+            initializeDataModel(datamodel.s,doc.s)
+            s.isFirstEntry = false
+        for content in s.onentry.sort(documentOrder):
+            executeContent(content)
+        if statesForDefaultEntry.isMember(s):
+            executeContent(s.initial.transition)
+        if defaultHistoryContent[s.id]:
+            executeContent(defaultHistoryContent[s.id]) 
+        if isFinalState(s):
+            if isSCXMLElement(s.parent):
+                running = false
+            else:
+                parent = s.parent
+                grandparent = parent.parent
+                internalQueue.enqueue(new Event("done.state." + parent.id, s.donedata))
+                if isParallelState(grandparent):
+                    if getChildStates(grandparent).every(isInFinalState):
+                        internalQueue.enqueue(new Event("done.state." + grandparent.id))     
+        :)
+};
+

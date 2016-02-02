@@ -428,7 +428,8 @@ if ($counter < $max) then
    db:output(<rest:forward>{fn:concat('/trytoupdate/', string-join(($dbName,$collectionName,$mbaName,$counterneu, $return), '/' ))}</rest:forward>))
  else
   (kk:getandExecuteExecutablecontent($dbName, $collectionName, $mbaName , $counter),
-   db:output(<rest:forward>{fn:concat('/changeCurrentStatus/', string-join(($dbName,$collectionName,$mbaName, $return), '/' ))}</rest:forward>)) 
+   db:output(<rest:forward>{fn:concat('/changeCurrentStatus/', string-join(($dbName,$collectionName,$mbaName, $return), '/' ))}</rest:forward>),
+ insert node mba:getConfiguration(mba:getMBA($dbName,$collectionName,$mbaName)) into mba:getMBA($dbName,$collectionName,$mbaName)/katharina/1 )
    
 };
 
@@ -443,6 +444,7 @@ declare
 
 
  kk:changeCurrentStatus($dbName, $collectionName, $mbaName),
+  insert node mba:getConfiguration(mba:getMBA($dbName,$collectionName,$mbaName)) into mba:getMBA($dbName,$collectionName,$mbaName)/katharina/2,
     db:output(<rest:forward>{fn:concat('/removeCurrentExternalEvent/', string-join(($dbName,$collectionName,$mbaName, $return), '/' ))}</rest:forward>)
 
 };
@@ -458,6 +460,7 @@ declare
 
 
  kk:removeCurrentExternalEvent($dbName, $collectionName, $mbaName),
+  insert node mba:getConfiguration(mba:getMBA($dbName,$collectionName,$mbaName)) into mba:getMBA($dbName,$collectionName,$mbaName)/katharina/3,
      db:output(<rest:forward>{fn:concat('/processEventlessTransitions/', string-join(($dbName,$collectionName,$mbaName, $return), '/' ))}</rest:forward>)
 
 };

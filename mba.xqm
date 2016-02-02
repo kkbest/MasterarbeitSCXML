@@ -386,10 +386,13 @@ declare function mba:getExternalEventQueue($mba as element()) as element() {
 };
 
 
-declare function mba:getHistory($mba as element()) as element() {
+declare function mba:getHistory($mba as element()) {
   let $scxml := mba:getSCXML($mba)
   
-  return $scxml/sc:datamodel/sc:data[@id = '_x']/historyStates
+  return if(fn:empty( $scxml/sc:datamodel/sc:data[@id = '_x']/historyStates)) then 
+  ()
+  else
+   $scxml/sc:datamodel/sc:data[@id = '_x']/historyStates
 };
 
 
