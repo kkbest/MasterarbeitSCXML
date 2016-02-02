@@ -50,7 +50,7 @@ let $configuration := mba:getConfiguration($mba)
 
 return
   if (not ($configuration)) then 
-    mba:addCurrentStates($mba, sc:getInitialStates($scxml,$scxml))
+    mba:addCurrentStates($mba, sc:getInitialStates($scxml))
   else ()
 
 
@@ -69,7 +69,7 @@ let $scxml := mba:getSCXML($mba)
 let $configuration := mba:getConfiguration($mba)
 return
   if (not ($configuration)) then 
-    mba:addCurrentStates($mba, sc:getInitialStates($scxml,$scxml))
+    mba:addCurrentStates($mba, sc:getInitialStates($scxml))
   else ()
 };
 
@@ -113,7 +113,7 @@ let $dataModels := sc:selectDataModels($configuration)
 
 let $transitions := 
   if($eventName) then
-    sc:selectTransitions($configuration, $dataModels, $eventName,$scxml)
+    sc:selectTransitions($configuration, $dataModels, $eventName)
   else ()
   
 let $contents :=
@@ -121,8 +121,8 @@ let $contents :=
     return $t/*
     
     
-let $exitSet  := sc:computeExitSet($configuration, $transitions,$scxml)
-let $entrySet := sc:computeEntrySet($transitions,$scxml)
+let $exitSet  := sc:computeExitSet($configuration, $transitions)
+let $entrySet := sc:computeEntrySet($transitions)
 
 let $exitContents := $exitSet/sc:onexit/*
 let $entryContents := $entrySet/sc:onentry/*
@@ -194,11 +194,11 @@ let $dataModels := sc:selectDataModels($configuration)
 
 let $transitions := 
   if($eventName) then
-    sc:selectTransitions($configuration, $dataModels, $eventName,$scxml)
+    sc:selectTransitions($configuration, $dataModels, $eventName)
   else ()
 
-let $exitSet  := sc:computeExitSet($configuration, $transitions,$scxml)
-let $entrySet := sc:computeEntrySet($transitions,$scxml)
+let $exitSet  := sc:computeExitSet($configuration, $transitions)
+let $entrySet := sc:computeEntrySet($transitions)
 
 return (
   mba:removeCurrentStates($mba, $exitSet),
@@ -235,7 +235,7 @@ let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 
 let $transitions := 
-  sc:selectEventlessTransitions($configuration, $dataModels,$scxml)
+  sc:selectEventlessTransitions($configuration, $dataModels)
 
 let $contents :=
   for $t in $transitions
@@ -252,7 +252,7 @@ let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 
 let $transitions := 
-  sc:selectEventlessTransitions($configuration, $dataModels,$scxml)
+  sc:selectEventlessTransitions($configuration, $dataModels)
 
 let $contents :=
   for $t in $transitions
@@ -271,10 +271,10 @@ let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 
 let $transitions := 
-  sc:selectEventlessTransitions($configuration, $dataModels,$scxml)
+  sc:selectEventlessTransitions($configuration, $dataModels)
 
-let $exitSet  := sc:computeExitSet($configuration, $transitions,$scxml)
-let $entrySet := sc:computeEntrySet($transitions,$scxml)
+let $exitSet  := sc:computeExitSet($configuration, $transitions)
+let $entrySet := sc:computeEntrySet($transitions)
 
 return (
   mba:removeCurrentStates($mba, $exitSet),
@@ -418,10 +418,10 @@ let $dataModels := sc:selectDataModels($configuration)
 
 let $transitions := 
   if($eventName) then
-    sc:selectTransitions($configuration, $dataModels, $eventName,$scxml)
+    sc:selectTransitions($configuration, $dataModels, $eventName)
   else ()
   
-let $exitSet  := sc:computeExitSet($configuration, $transitions,$scxml)
+let $exitSet  := sc:computeExitSet($configuration, $transitions)
 
 (:TODO Anschauen exitOrder -> reverted Documentorder:)
 
@@ -432,13 +432,13 @@ for $state in $exitSet
 return if ($h/type = 'deep') then 
 
 let $input := $configuration
-let $newNode :=  <history ref = "{$h/@id}"> $input</history>
+let $newNode :=  <history ref = "{$h/@id}">{$input}</history>
 return 
 insert node $newNode into mba:getHistory($mba)
 
 else
 let $input := sc:getDescendantStates($state)
-let $newNode :=  <history ref =  "{$h/@id}"> $input</history>
+let $newNode :=  <history ref =  "{$h/@id}">{$input}</history>
 return
 insert node $newNode into mba:getHistory($mba)
 
@@ -469,10 +469,10 @@ let $dataModels := sc:selectDataModels($configuration)
 
 let $transitions := 
   if($eventName) then
-    sc:selectTransitions($configuration, $dataModels, $eventName,$scxml)
+    sc:selectTransitions($configuration, $dataModels, $eventName)
   else ()
   
-let $exitSet  := sc:computeExitSet($configuration, $transitions,$scxml)
+let $exitSet  := sc:computeExitSet($configuration, $transitions)
 
 (:TODO Anschauen exitOrder -> reverted Documentorder:)
 
@@ -520,10 +520,10 @@ let $dataModels := sc:selectDataModels($configuration)
 let $history := mba:getHistory($mba)
 let $transitions := 
   if($eventName) then
-    sc:selectTransitions($configuration, $dataModels, $eventName,$scxml)
+    sc:selectTransitions($configuration, $dataModels, $eventName)
   else ()
   
-let $entrySet  := sc:computeEntrySet($transitions,$scxml)
+let $entrySet  := sc:computeEntrySet($transitions)
 
 return ()
 
@@ -565,10 +565,10 @@ let $dataModels := sc:selectDataModels($configuration)
 let $history := mba:getHistory($mba)
 let $transitions := 
   if($eventName) then
-    sc:selectTransitions($configuration, $dataModels, $eventName,$scxml)
+    sc:selectTransitions($configuration, $dataModels, $eventName)
   else ()
   
-let $entrySet  := sc:computeEntrySet($transitions,$scxml)
+let $entrySet  := sc:computeEntrySet($transitions)
 
 return ()
 

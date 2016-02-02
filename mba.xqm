@@ -513,7 +513,7 @@ declare updating function mba:removeCurrentEvent($mba as element()) {
 
 declare updating function mba:init($mba as element()) {
   let $scxml := mba:getSCXML($mba)
-  let $initialStates := sc:getInitialStates($scxml,$scxml)
+  let $initialStates := sc:getInitialStates($scxml)
   
   return (
     if (not ($scxml/sc:datamodel/sc:data[@id = '_event'])) then
