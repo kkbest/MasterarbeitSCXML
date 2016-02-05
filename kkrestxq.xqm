@@ -55,7 +55,7 @@ declare variable $mbaName := 'InformationSystems';
 
       <h3>Adding Event 2</h3>
       <p>This allows one to add Prepared and own events to Event Queue</p>
-      <form method="post" action="form1">
+      <form method="post" action="addEvent">
         <p>Your dbName:<br />
         <input name="dbName" size="50"></input> <br />
                 Your collectionName:<br />
@@ -94,7 +94,7 @@ declare variable $mbaName := 'InformationSystems';
 
 
 declare
-  %rest:path("/form1")
+  %rest:path("/addEvent")
   %rest:POST
   %rest:form-param("message","{$message}", "(no message)")
     %rest:form-param("event","{$event}", "(no event)")
@@ -103,7 +103,7 @@ declare
 %rest:form-param("collectionName","{$collectionName}", "(no collectionName)")
 %rest:form-param("mbaName","{$mbaName}", "(no mbaName)")
   %rest:header-param("User-Agent", "{$agent}")
-updating  function page:hello-postman(
+updating  function page:addEvent(
     $message as xs:string,
     $agent   as xs:string*, 
   $event, $addText, $dbName, $collectionName, $mbaName)
@@ -121,7 +121,7 @@ let $externalEvent :=
          return 
          <event name="{$event}" xmlns="">
             <degree xmlns="">{$addText}</degree>
-            <id>{kk:getCounter($dbName, $collectionName, $mbaName)}</id>
+            <id>{mba:getCounter( $mba )}</id>
       </event>
 
     case "addSchool" 
@@ -129,26 +129,26 @@ let $externalEvent :=
       return
        <event name="{$event}" xmlns="">
           <name xmlns="">{$addText}</name>
-          <id>{kk:getCounter($dbName, $collectionName, $mbaName)}</id>
+          <id>{mba:getCounter( $mba )}</id>
         </event>
         
        case "addDegree"
              return
               <event name="{$event}" xmlns="">
           <text xmlns="">{$addText}</text>
-          <id>{kk:getCounter($dbName, $collectionName, $mbaName)}</id>
+          <id>{mba:getCounter( $mba )}</id>
         </event>
         case "removeDegree"
               return
        <event name="{$event}" xmlns="">
           <text xmlns="">{$addText}</text>
-          <id>{kk:getCounter($dbName, $collectionName, $mbaName)}</id>
+          <id>{mba:getCounter( $mba )}</id>
         </event>
          case "addCourse"
                return
        <event name="{$event}" xmlns="">
          <name xmlns="">{$addText}</name>
-          <id>{kk:getCounter($dbName, $collectionName, $mbaName)}</id>
+          <id>{mba:getCounter( $mba )}</id>
         </event>
        
    default
@@ -158,7 +158,7 @@ let $externalEvent :=
 return 
    copy $c := fn:parse-xml-fragment(fn:replace($addText, '"', "'"))/*
    modify
-   insert node <id>{kk:getCounter($dbName, $collectionName, $mbaName)}</id>  into $c
+   insert node <id>{mba:getCounter( $mba )}</id>  into $c
    return $c
    
       
@@ -167,7 +167,7 @@ db:output(<response>
   <result> added Eevent</result>
     <addText> {$addText}</addText>
   <parse> {fn:replace($addText, '"', "'") }</parse>
-  <counter> {kk:getCounter($dbName, $collectionName, $mbaName)}</counter>
+  <counter> {mba:getCounter( mba:getMBA($dbName, $collectionName, $mbaName) )}</counter>
 </response>)
    
    (: return  :)
@@ -192,7 +192,7 @@ declare
 
 let $externalEvent := <event name="setDegree" xmlns="">
 <degree xmlns="">{$value}</degree>
-<id>{kk:getCounter($dbName, $collectionName, $mbaName)}</id>
+<id>{mba:getCounter(mba:getMBA($dbName, $collectionName, $mbaName))}</id>
 </event>
  
 let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
@@ -203,7 +203,7 @@ return mba:enqueueExternalEvent($mba, $externalEvent),kk:updateCounter($dbName,$
 db:output(<response> 
   <result> added Eevent</result>
   <value> {$value}</value> 
-  <counter> {kk:getCounter($dbName, $collectionName, $mbaName)}</counter>
+  <counter> {mba:getCounter(mba:getMBA($dbName, $collectionName, $mbaName))}</counter>
 </response>)
 
 
@@ -265,55 +265,22 @@ kk:initSCXMLRest($dbName,$collectionName,$mbaName)
 };
 
 
-declare
-  %rest:path("/enterStatesI/{$dbName}/{$collectionName}/{$mbaName}")
-  %rest:GET
-  updating function page:enterStatesI(
-    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string)
-{
-
-
-let $url := 'http://pagehost:8984/'
-return
-
-kk:enterStatesI($dbName,$collectionName,$mbaName)
-,
- db:output(<rest:forward>{fn:concat('/removeFromUpdateLog/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>)
-
-};
-
-
-declare
-  %rest:path("/removeFromUpdateLog/{$dbName}/{$collectionName}/{$mbaName}")
-  %rest:GET
-  updating function page:removeFromUpdateLog(
-    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string)
-{
-
-
-let $url := 'http://pagehost:8984/'
-return
-
-kk:removeFromUpdateLog($dbName,$collectionName,$mbaName)
-
-(: enter First intial States .. vlt alreade in Init SCXML :)
-};
 
 
 
 
 declare
-  %rest:path("/macroStep/{$dbName}/{$collectionName}/{$mbaName}")
+  %rest:path("/startProcess/{$dbName}/{$collectionName}/{$mbaName}")
   %rest:GET
-  updating function page:macroStep(
+  updating function page:startProcess(
     $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string)
 {
 
-
-
+(: maybee some inital Things:)
+(: move Forward to Eventless Transitions :)
 
  kk:removeFromInsertLog($dbName, $collectionName, $mbaName),
-  db:output(<rest:forward>{fn:concat('/getNextExternalEvent/', string-join(($dbName,$collectionName,$mbaName,'false'), '/' ))}</rest:forward>)
+  db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>)
 
 };
 
@@ -321,144 +288,97 @@ declare
 
 
 declare
-  %rest:path("/getNextExternalEvent/{$dbName}/{$collectionName}/{$mbaName}/{$return}")
+  %rest:path("/internalTransitions/{$dbName}/{$collectionName}/{$mbaName}")
   %rest:GET
-  updating function page:getNextExternalEvent(
-    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $return as xs:string)
+  updating function page:internalTransitions(
+    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string)
 {
 
+let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+let $scxml := mba:getSCXML($mba)
 
- kk:getNextExternalEvent($dbName, $collectionName, $mbaName),
- 
-  db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,'0', $return), '/' ))}</rest:forward>)
+let $configuration := mba:getConfiguration($mba)
+let $dataModels := sc:selectDataModels($configuration)
 
-};
+let $enabledTransitions := sc:selectEventlessTransitions($configuration,$dataModels)
 
 
-declare
-  %rest:path("/trytoupdate/{$dbName}/{$collectionName}/{$mbaName}/{$counter}/{$return}")
-  %rest:GET
-  updating function page:tryptoupdaterec(
-    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $counter as xs:integer, $return as xs:string)
-{
+return if (fn:empty($enabledTransitions)) then 
 
-let $max := fn:count(kk:getExecutableContents($dbName, $collectionName, $mbaName))
-let $counterneu := $counter + 1
+let $internalEvent := mba:getInternalEventQueue($mba)/*
 return
+if(fn:empty($internalEvent)) then
 
+( kk:getNextExternalEvent($dbName, $collectionName, $mbaName),db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,'0','external'), '/' ))}</rest:forward>))
+ 
+else
+(kk:getNextInternalEvent($dbName, $collectionName, $mbaName), db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,'0','internal'), '/' ))}</rest:forward>))
+else
+( (), db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,'0','eventless'), '/' ))}</rest:forward>))
 
-if ($counter <= $max) then
- (kk:getandExecuteExecutablecontent($dbName, $collectionName, $mbaName , $counter),
-   db:output(<rest:forward>{fn:concat('/trytoupdate/', string-join(($dbName,$collectionName,$mbaName,$counterneu, $return), '/' ))}</rest:forward>))
- else
-  (kk:getandExecuteExecutablecontent($dbName, $collectionName, $mbaName , $counter),
-   db:output(<rest:forward>{fn:concat('/changeCurrentStatus/', string-join(($dbName,$collectionName,$mbaName, $return), '/' ))}</rest:forward>)) 
-   
-};
-
-
-declare
-  %rest:path("/changeCurrentStatus/{$dbName}/{$collectionName}/{$mbaName}/{$return}")
-  %rest:GET
-  updating function page:changeCurrentStatus(
-    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $return as xs:string)
-{
-
-
-
- kk:changeCurrentStatus($dbName, $collectionName, $mbaName),
-    db:output(<rest:forward>{fn:concat('/removeCurrentExternalEvent/', string-join(($dbName,$collectionName,$mbaName, $return), '/' ))}</rest:forward>)
-
-};
-
-
-declare
-  %rest:path("/removeCurrentExternalEvent/{$dbName}/{$collectionName}/{$mbaName}/{$return}")
-  %rest:GET
-  updating function page:removeCurrentExternalEvent(
-    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $return)
-{
-
-
-
- kk:removeCurrentExternalEvent($dbName, $collectionName, $mbaName),
-     db:output(<rest:forward>{fn:concat('/processEventlessTransitions/', string-join(($dbName,$collectionName,$mbaName, $return), '/' ))}</rest:forward>)
 
 };
 
 
 
-
 declare
-  %rest:path("/processEventlessTransitions/{$dbName}/{$collectionName}/{$mbaName}/{$return}")
-  %rest:GET
-  updating function page:processEventlessTransitions(
-    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $return)
-{
-
-(: again ExitStates, run..  EnterSTates:)
-
-
-  kk:processEventlessTransitions($dbName, $collectionName, $mbaName),
-     db:output(<rest:forward>{fn:concat('/changecurrentStatusEventless/', string-join(($dbName,$collectionName,$mbaName, $return), '/' ))}</rest:forward>)
-
-};
-
-declare
-  %rest:path("/changeCurrentStatusEventless/{$dbName}/{$collectionName}/{$mbaName}/{$return}")
-  %rest:GET
-  updating function page:changecurrentStatusEventless(
-    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $return)
-{
-
-(: again ExitStates, run..  EnterSTates:)
-
-kk:changeCurrentStatusEventless($dbName, $collectionName, $mbaName),
-     db:output(<rest:forward>{fn:concat('/changecurrentStatusEventless/', string-join(($dbName,$collectionName,$mbaName, $return), '/' ))}</rest:forward>)
-
-};
-  
-
-
-
-
-declare
-  %rest:path("/microstep/{$dbName}/{$collectionName}/{$mbaName}/{$counter}/{$return}")
+  %rest:path("/microstep/{$dbName}/{$collectionName}/{$mbaName}/{$counter}/{$transType}")
   %rest:GET
   updating function page:microstep(
-    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $counter as xs:integer, $return as xs:string)
+    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $counter as xs:integer, $transType as xs:string)
 {
 
-let $max := fn:count(kk:getExecutableContents($dbName, $collectionName, $mbaName))
+let $content := switch($transType)
+case('external')
+  return kk:getExecutableContents($dbName, $collectionName, $mbaName)
+case('internal')
+  return kk:getExecutableContentsEventless($dbName, $collectionName, $mbaName)
+case('eventless')
+  return kk:getExecutableContentsEventless($dbName, $collectionName, $mbaName)
+default
+  return ()
+  
+  
+let $max := fn:count($content)
 let $counterneu := $counter + 1
 return
 
+(:EnterStates with Content or transitions.. to Check:)
 
 if ($counter = 0) then 
 (
 kk:exitStates($dbName,$collectionName,$mbaName),
-   db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counterneu, $return), '/' ))}</rest:forward>)
+   db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counterneu,$transType), '/' ))}</rest:forward>)
 )
 else if ($counter <= $max) then
- (kk:getandExecuteExecutablecontent($dbName, $collectionName, $mbaName , $counter),
-   db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counterneu, $return), '/' ))}</rest:forward>))
+ (kk:executeExecutablecontent($dbName, $collectionName, $mbaName, $content, $counter),
+   db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counterneu, $transType), '/' ))}</rest:forward>))
  else
-  (kk:getandExecuteExecutablecontent($dbName, $collectionName, $mbaName , $counter),
-   db:output(<rest:forward>{fn:concat('/enterStates/', string-join(($dbName,$collectionName,$mbaName, $return), '/' ))}</rest:forward>)) 
+  (kk:enterStates($dbName, $collectionName, $mbaName),
+   db:output(<rest:forward>{fn:concat('/controller/', string-join(($dbName,$collectionName,$mbaName, $transType), '/' ))}</rest:forward>)) 
    
 };
 
 
-
-
-
 declare
-  %rest:path("/enterStates/{$dbName}/{$collectionName}/{$mbaName}/{$return}")
+  %rest:path("/controller/{$dbName}/{$collectionName}/{$mbaName}/{$transType}")
   %rest:GET
-  updating function page:enterStates(
-    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $return as xs:string)
+  updating function page:controller(
+    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $transType as xs:string)
 {
-  
-    kk:enterStates($dbName, $collectionName, $mbaName),
-   db:output(<rest:forward>{fn:concat('/changeCurrentStatus/', string-join(($dbName,$collectionName,$mbaName,$return), '/' ))}</rest:forward>)
+
+(:maybe not necessary
+-> :)
+ 
+ if($transType != 'external') then
+
+   ( kk:changeCurrentStatus($dbName,$collectionName,$mbaName),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
+   else
+   kk:changeCurrentStatus($dbName,$collectionName,$mbaName)
+    
+    
 };
+
+
+
+

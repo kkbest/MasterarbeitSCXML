@@ -165,6 +165,7 @@ declare function mba:concretize($parents  as element()*,
           <name xmlns="">{$name}</name>
           <currentStatus xmlns=""/>
           <externalEventQueue xmlns=""/>
+          <internalEventQueue xmlns=""/>
           <response  xmlns="">
                <counter xmlns="">1</counter>
            </response>
@@ -385,6 +386,13 @@ declare function mba:getExternalEventQueue($mba as element()) as element() {
   return $scxml/sc:datamodel/sc:data[@id = '_x']/externalEventQueue
 };
 
+declare function mba:getInternalEventQueue($mba as element()) as element() {
+  let $scxml := mba:getSCXML($mba)
+  
+  return $scxml/sc:datamodel/sc:data[@id = '_x']/internalEventQueue
+};
+
+
 
 declare function mba:getHistory($mba as element()) {
   let $scxml := mba:getSCXML($mba)
@@ -399,6 +407,16 @@ declare function mba:getHistory($mba as element()) {
 declare updating function mba:enqueueExternalEvent($mba   as element(), 
                                                    $event as element()) {
   let $queue := mba:getExternalEventQueue($mba)
+  
+  return (
+    insert node $event into $queue,
+    mba:markAsUpdated($mba)
+  )
+};
+
+declare updating function mba:enqueueInternalEvent($mba   as element(), 
+                                                   $event as element()) {
+  let $queue := mba:getInternalEventQueue($mba)
   
   return (
     insert node $event into $queue,
@@ -484,6 +502,13 @@ declare updating function mba:dequeueExternalEvent($mba as element()) {
   return delete node ($queue/*)[1]
 };
 
+declare updating function mba:dequeueInternalEvent($mba as element()) {
+  let $queue := mba:getInternalEventQueue($mba)
+  
+  return delete node ($queue/*)[1]
+};
+
+
 declare function mba:getCurrentEvent($mba as element()) as element() {
   let $scxml := mba:getSCXML($mba)
   
@@ -504,6 +529,40 @@ declare updating function mba:loadNextExternalEvent($mba as element()) {
     mba:dequeueExternalEvent($mba)
   )
 };
+
+
+
+declare function mba:getCounter($mba)
+{
+       $mba/*/*/sc:scxml/sc:datamodel/sc:data[@id='_x']/response/counter/text()
+};
+
+
+
+
+declare updating function mba:loadNextInternalEvent($mba as element()) {
+  let $queue := mba:getInternalEventQueue($mba)
+  let $nextEvent := ($queue/event)[1]
+  let $nextEventName := <name xmlns="">{fn:string($nextEvent/@name)}</name>
+  let $nextEventData := <data xmlns="">{$nextEvent/*}</data>
+let $counter := 
+if(fn:empty( mba:getCurrentEvent($mba)/data/id/text())) then 
+mba:getCounter($mba) -1 
+
+else
+ mba:getCurrentEvent($mba)/data/id/text()
+  let $currentEvent := mba:getCurrentEvent($mba)
+  
+  return (
+    mba:removeCurrentEvent($mba),
+    if ($nextEvent) then insert node $nextEventName into $currentEvent else (),
+    if ($nextEvent) then insert node $nextEventData into $currentEvent else (),
+    mba:dequeueExternalEvent($mba)
+  )
+};
+
+
+(:TODO loadNextInternalEvent:)
 
 declare updating function mba:removeCurrentEvent($mba as element()) {
   let $currentEvent := mba:getCurrentEvent($mba)
@@ -527,6 +586,7 @@ declare updating function mba:init($mba as element()) {
           <name xmlns="">{fn:string($mba/@name)}</name>
           <currentStatus xmlns=""/>
           <externalEventQueue xmlns=""/>
+          <internalEventQueue xmlns=""/>
           <response  xmlns="">
                <counter xmlns="">1</counter>
            </response>

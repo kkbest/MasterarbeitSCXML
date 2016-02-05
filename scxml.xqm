@@ -282,10 +282,6 @@ declare updating function sc:log($dataModels as element()*,
 
 
 
-
-
-
-
 declare function sc:selectEventlessTransitions($configuration as element()*,
                                                $dataModels    as element()*) 
     as element()* {
@@ -508,13 +504,37 @@ declare function sc:addDescendantStatesToEnter($states                as element
   
   let $results :=
     if (fn:empty($states)) then $cont($statesToEnter, $statesForDefaultEntry)
-  (:  else if (sc:isHistoryState($states[1])) then
+   else if (sc:isHistoryState($states[1])) then
     (
-      (:let $history := sc:getHistory($states[1]):)
-      return
+      (:TODO anschauen:)
+      let $history := sc:getHistoryStates($states[1])
+      return if (fn:empty(history))
+      then
+      (:default history:)
+      ( )
+      else
       sc:addDescendantStatesToEnter(
-        $states[position() > 1], ($statesToEnter, $states[1]), $statesForDefaultEntry, $cont
-      )):)
+         $history[1], 
+         ($statesToEnter, $states[1]), 
+         ($statesForDefaultEntry, $states[1]),
+         function($statesToEnter1, $statesForDefaultEntry1) {
+           sc:addAncestorStatesToEnter(
+             $history[1],
+             $states[1]/parent::*,
+             $statesToEnter1,
+             $statesForDefaultEntry1,
+             function($statesToEnter2, $statesForDefaultEntry2) {
+               sc:addDescendantStatesToEnter(
+                 $history[position() > 1], 
+                 $statesToEnter2,
+                 $statesForDefaultEntry2,
+                 $cont
+               )
+             }
+           )
+         }
+       ) 
+ )
     else if (sc:isAtomicState($states[1])) then
       sc:addDescendantStatesToEnter(
         $states[position() > 1], ($statesToEnter, $states[1]), $statesForDefaultEntry, $cont
@@ -638,6 +658,18 @@ declare function sc:foldAncestorStatesToEnter($states as element()*,
   return $results
 };
 
+
+declare function sc:isInFinalState($state)
+{
+  if (sc:isCompoundState($state)) then
+  fn:true
+  else if (sc:isParallelState($state)) then
+  fn:true
+  else
+  fn:false
+  
+};
+
 declare function sc:getInitialStates($state) as element()* {
   if ($state/@initial) then 
     for $s in fn:tokenize($state/@initial, '\s')
@@ -646,6 +678,15 @@ declare function sc:getInitialStates($state) as element()* {
     for $transition in $state/sc:initial/sc:transition
       return sc:getEffectiveTargetStates($transition)
   )
+};
+
+declare function sc:getHistoryStates($state) as element()*
+{
+    
+for $s in $state/ancestor::sc:scxml//historyStates/history[@ref=$state/@id]/state
+return $state/ancestor::sc:scxml//*[@id=$s/@ref]
+
+  
 };
 
 declare function sc:isCompoundState($state as element()) as xs:boolean {
@@ -671,8 +712,9 @@ declare function sc:isFinalState($state as element()) as xs:boolean {
   fn:exists($state/self::sc:final)
 };
 
+
 declare function sc:getChildStates($state as element()) as element()* {
-  $state/*[self::sc:state or self::sc:parallel]
+  $state/*[self::sc:state or self::sc:parallel or self::sc:final]
 };
 
 declare function sc:getDescendantStates($state as element()) as element()* {
@@ -687,8 +729,17 @@ declare function sc:getTargetStates($transition as element()) as element()* {
 };
 
 declare function sc:getEffectiveTargetStates($transition as element()) as element()* {
-  (: TODO: history states :)
+  (: TODO: history states 
   
+  if there is a history state add history state values
+  
+  if not add values from s.transitions
+ 
+ else add target.s
+ :)
+   
+    
+    
    sc:getTargetStates($transition)
 };
 

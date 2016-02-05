@@ -48,11 +48,11 @@ let $scxml := mba:getSCXML($mba)
 
 let $configuration := mba:getConfiguration($mba)
 
+(: TODO if not initialState enter First State:)
 return
   if (not ($configuration)) then 
     mba:addCurrentStates($mba, sc:getInitialStates($scxml))
   else ()
-
 
 };
 
@@ -98,6 +98,13 @@ let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
 return mba:loadNextExternalEvent($mba)
 };
 
+
+declare updating function kk:getNextInternalEvent($dbName,$collectionName,$mbaName)
+{
+let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
+return mba:loadNextInternalEvent($mba)
+};
+
 declare function kk:getExecutableContents($dbName, $collectionName, $mbaName)
 {
 
@@ -140,7 +147,11 @@ let $scxml := mba:getSCXML($mba)
 
 let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
-let $counter :=  mba:getCurrentEvent($mba)/data/id/text()
+let $counter := 
+if(fn:empty( mba:getCurrentEvent($mba)/data/id/text())) then 
+mba:getCounter($mba) -1 
+else
+ mba:getCurrentEvent($mba)/data/id/text()
 
 return 
   typeswitch($content)
@@ -160,15 +171,24 @@ return
         sc:getValue($dataModels, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*, $counter)
      case element(sc:log) return
          sc:log($dataModels,$content/@expr,$content/*,$counter)
+   case element(sc:raise) return
+          let $event := <event name="{$content/@event}" xmlns=""></event>           
+           return mba:enqueueInternalEvent($mba,$event)
+   
      case element(sc:script) return
            () (: TODO: has to be implementent:)
      case element(sc:send) return
-           () (: TODO: has to be implementent:)
+           () (: see sendDescendants External ?  TODO: has to be implementent:)
+           (: use addEvent:)
       case element(sc:cancel) return
            () (: TODO: has to be implementent:)
-       case element(sc:raise) return
-           () (: TODO: has to be implementent:)     
+        case element(sc:if) return
+     () (:TODO has d:)
      
+     case element(sc:foreach) return
+           () (: TODO: has to be implementent:)     
+           case element(sc:raise) return
+           () (: TODO: has to be implementent:)     
     
 
     default return ()
@@ -293,6 +313,14 @@ declare updating function kk:getandExecuteExecutablecontent($dbName, $collection
 
 
 
+declare updating function kk:executeExecutablecontent($dbName, $collectionName, $mbaName,$content,$counter)
+{
+  kk:runExecutableContent($dbName, $collectionName, $mbaName, $content[$counter])
+};
+
+
+
+
 (: getExecutableContentsEventless runExecutableContent changeCurrentStatusEventless :)
 declare updating function kk:getAndExecuteEventlessTransitions($dbName, $collectionName, $mbaName,$counter)
 {
@@ -380,6 +408,10 @@ declare function kk:getCounter($dbName,$collectionName,$mbaName)
      return $mba/*/*/sc:scxml/sc:datamodel/sc:data[@id='_x']/response/counter/text()
 };
 
+
+
+
+
 declare updating function kk:updateCounter($dbName,$collectionName,$mbaName)
 {
   
@@ -431,16 +463,13 @@ for $state in $exitSet
 (:for $h in kk:getStateHistoryNodes($state):)
 return if ($h/type = 'deep') then 
 
-let $input := $configuration
-let $newNode :=  <history ref = "{$h/@id}">{$input}</history>
-return 
-insert node $newNode into mba:getHistory($mba)
+for $i in  $configuration/ancestor-or-self::*/@id
+return insert node <history ref = "{$h/@id}"><state ref="{$i}"/></history> into mba:getHistory($mba)
 
 else
-let $input := sc:getDescendantStates($state)
-let $newNode :=  <history ref =  "{$h/@id}">{$input}</history>
-return
-insert node $newNode into mba:getHistory($mba)
+for $i in  $configuration/ancestor-or-self::*/@id
+return insert node <history ref = "{$h/@id}"><state ref="{$i}"/></history> into mba:getHistory($mba)
+
 
  (:the list of all immediate children of s that are members of the current configuration:) 
  (: executeContent and delete from configuration probably later but could be done at least for executecontent :)
@@ -571,6 +600,8 @@ let $transitions :=
 let $entrySet  := sc:computeEntrySet($transitions)
 
 return ()
+
+
 
 
 (: :)
