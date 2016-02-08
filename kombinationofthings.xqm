@@ -48,10 +48,17 @@ let $scxml := mba:getSCXML($mba)
 
 let $configuration := mba:getConfiguration($mba)
 
+
 (: TODO if not initialState enter First State:)
 return
   if (not ($configuration)) then 
-    mba:addCurrentStates($mba, sc:getInitialStates($scxml))
+  
+  let $initialState :=  sc:getInitialStates($scxml)
+  return if(fn:empty($initialState)) then 
+   
+      mba:addCurrentStates($mba, $scxml//sc:state[1])
+  else 
+    mba:addCurrentStates($mba, $initialState)
   else ()
 
 };
@@ -187,9 +194,6 @@ return
      
      case element(sc:foreach) return
            () (: TODO: has to be implementent:)     
-           case element(sc:raise) return
-           () (: TODO: has to be implementent:)     
-    
 
     default return ()
 };
