@@ -166,6 +166,7 @@ declare function mba:concretize($parents  as element()*,
           <currentStatus xmlns=""/>
           <externalEventQueue xmlns=""/>
           <internalEventQueue xmlns=""/>
+          <statesToInvoke xmlns=""/>
           <response  xmlns="">
                <counter xmlns="">1</counter>
            </response>
@@ -587,6 +588,7 @@ declare updating function mba:init($mba as element()) {
           <currentStatus xmlns=""/>
           <externalEventQueue xmlns=""/>
           <internalEventQueue xmlns=""/>
+          <statesToInvoke xmlns=""/>
           <response  xmlns="">
                <counter xmlns="">1</counter>
            </response>

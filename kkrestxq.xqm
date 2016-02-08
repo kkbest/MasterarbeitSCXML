@@ -211,6 +211,32 @@ db:output(<response>
 
 
 
+declare
+  %rest:path("/addEvent/{$dbName}/{$collectionName}/{$mbaName}/{$event}")
+  %rest:GET
+  updating function page:addEvent(
+    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $event as xs:string)
+{
+
+ let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
+ let $externalEvent :=
+   copy $c := fn:parse-xml-fragment(fn:replace($event, '"', "'"))/*
+   modify
+   insert node <id>{mba:getCounter( $mba )}</id>  into $c
+   return $c
+   
+      
+  return mba:enqueueExternalEvent($mba, $externalEvent),kk:updateCounter($dbName,$collectionName,$mbaName),
+db:output(<response> 
+  <result> added Eevent</result>
+    <addText> {$event}</addText>
+  <counter> {mba:getCounter( mba:getMBA($dbName, $collectionName, $mbaName) )}</counter>
+</response>)
+
+
+};
+
+
 
 (:
 this function returns a Result for an mba with an certain Id
@@ -347,14 +373,14 @@ return
 
 if ($counter = 0) then 
 (
-kk:exitStates($dbName,$collectionName,$mbaName),
+kk:exitStates($dbName,$collectionName,$mbaName,$transType),
    db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counterneu,$transType), '/' ))}</rest:forward>)
 )
 else if ($counter <= $max) then
  (kk:executeExecutablecontent($dbName, $collectionName, $mbaName, $content, $counter),
    db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counterneu, $transType), '/' ))}</rest:forward>))
  else
-  (kk:enterStates($dbName, $collectionName, $mbaName),
+  (kk:enterStates($dbName, $collectionName, $mbaName,$transType),
    db:output(<rest:forward>{fn:concat('/controller/', string-join(($dbName,$collectionName,$mbaName, $transType), '/' ))}</rest:forward>)) 
    
 };
@@ -369,12 +395,25 @@ declare
 
 (:maybe not necessary
 -> :)
+
  
+ let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+let $scxml := mba:getSCXML($mba)
+
+let $configuration := mba:getConfiguration($mba)
+let $dataModels := sc:selectDataModels($configuration)
+return 
  if($transType != 'external') then
 
    ( kk:changeCurrentStatus($dbName,$collectionName,$mbaName),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
    else
+   if(fn:empty(sc:selectEventlessTransitions($configuration,$dataModels)) and fn:empty(mba:getInternalEventQueue($mba)/*)) then 
+   
    kk:changeCurrentStatus($dbName,$collectionName,$mbaName)
+   
+   else
+    ( kk:changeCurrentStatus($dbName,$collectionName,$mbaName),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
+
     
     
 };
