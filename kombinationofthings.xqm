@@ -136,10 +136,27 @@ let $contents :=
     
     
 let $exitSet  := sc:computeExitSet($configuration, $transitions)
+let $exitContents := $exitSet/sc:onexit/*
+
+(: TODO entryContents erweitern:)
+
 let $entrySet := sc:computeEntrySet($transitions)
 
-let $exitContents := $exitSet/sc:onexit/*
-let $entryContents := $entrySet/sc:onentry/*
+
+let $onentry := $entrySet/sc:onentry/*
+
+(: there has to be done more
+
+ for content in s.onentry.sort(documentOrder):
+            executeContent(content)
+        if statesForDefaultEntry.isMember(s):
+            executeContent(s.initial.transition)
+        if defaultHistoryContent[s.id]:
+            executeContent(defaultHistoryContent[s.id]) 
+            
+            :)
+
+let $entryContents := $onentry
 
 return  ($exitContents,$contents,$entryContents)
 };
@@ -550,7 +567,7 @@ if (sc:isFinalState($state)) then
                  
           let $allinFinalState :=   $grandparent
              where every $childState in sc:getChildStates($grandparent)
-             satisfies sc:isInFinalState($childState)
+             satisfies sc:isInFinalState($childState,$configuration)
           
           return
           if(fn:empty($allinFinalState)) then 
