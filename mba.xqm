@@ -563,7 +563,7 @@ else
 };
 
 
-(:TODO loadNextInternalEvent:)
+
 
 declare updating function mba:removeCurrentEvent($mba as element()) {
   let $currentEvent := mba:getCurrentEvent($mba)
@@ -576,7 +576,29 @@ declare updating function mba:init($mba as element()) {
   let $initialStates := sc:getInitialStates($scxml)
   
   return (
-    if (not ($scxml/sc:datamodel/sc:data[@id = '_event'])) then
+  
+  if (not ($scxml/sc:datamodel)) then 
+  
+  ( insert node
+   <sc:datamodel>
+    <sc:data id = "_event"/> 
+      <sc:data id = "_x">
+          <db xmlns="">{mba:getDatabaseName($mba)}</db>
+          <collection xmlns="">{mba:getCollectionName($mba)}</collection>
+          <name xmlns="">{fn:string($mba/@name)}</name>
+          <currentStatus xmlns=""/>
+          <externalEventQueue xmlns=""/>
+          <internalEventQueue xmlns=""/>
+          <statesToInvoke xmlns=""/>
+          <response  xmlns="">
+               <counter xmlns="">1</counter>
+           </response>
+          <historyStates xmlns=""/>
+        </sc:data>
+   </sc:datamodel> into $scxml
+ )
+   else
+   ( if (not ($scxml/sc:datamodel/sc:data[@id = '_event'])) then
       insert node <sc:data id = "_event"/> into $scxml/sc:datamodel
     else (),
     if (not ($scxml/sc:datamodel/sc:data[@id = '_x'])) then
@@ -599,6 +621,6 @@ declare updating function mba:init($mba as element()) {
     if (not ($mba/mba:concretizations)) then
       insert node <mba:concretizations/> into $mba
     else ()
-  )
+  ))
 };
 
