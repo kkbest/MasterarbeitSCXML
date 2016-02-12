@@ -49,7 +49,7 @@ let $scxml := mba:getSCXML($mba)
 let $configuration := mba:getConfiguration($mba)
 
 
-(: TODO if not initialState enter First State:)
+(: if not initialState enter First State  :)
 return
   if (not ($configuration)) then 
   
@@ -58,7 +58,7 @@ return
    
       mba:addCurrentStates($mba, $scxml//sc:state[1])
   else 
-    mba:addCurrentStates($mba, $initialState)
+    mba:addCurrentStates($mba, sc:computeEntrySetInit($scxml))
   else ()
 
 };
@@ -162,6 +162,17 @@ return  ($exitContents,$contents,$entryContents)
 };
 
 
+declare function kk:getExecutableContentsEnter()
+{
+  'asdf'
+  
+
+
+};
+
+
+
+
 declare updating function kk:runExecutableContent($dbName, $collectionName, $mbaName , $content)
 {
 
@@ -202,6 +213,7 @@ return
      case element(sc:script) return
            () (: TODO: has to be implementent:)
      case element(sc:send) return
+     (:can also be a raise:)
            () (: see sendDescendants External ?  TODO: has to be implementent:)
            (: use addEvent:)
       case element(sc:cancel) return
@@ -257,6 +269,9 @@ declare updating function kk:removeCurrentExternalEvent($dbName, $collectionName
 let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
 
 return mba:removeCurrentEvent($mba)
+
+
+
 
 };
 

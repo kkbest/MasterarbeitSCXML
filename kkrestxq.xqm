@@ -286,9 +286,35 @@ return
 
 kk:initSCXMLRest($dbName,$collectionName,$mbaName)
 ,
- db:output(<rest:forward>{fn:concat('/enterStatesI/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>)
+ db:output(<rest:forward>{fn:concat('/enterStatesInit/', string-join(($dbName,$collectionName,$mbaName,'1'), '/' ))}</rest:forward>)
 
 };
+
+
+declare
+  %rest:path("/enterStatesInit/{$dbName}/{$collectionName}/{$mbaName}/{$counter}")
+  %rest:GET
+  updating function page:enterInitalStates(
+    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $counter)
+{
+
+let $counterneu := $counter +1
+  let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+let $scxml := mba:getSCXML($mba)
+let $initStates :=  mba:getConfiguration($mba)
+
+let $content := $initStates/sc:onentry/*
+let $max := fn:count($content)
+
+return
+if ($counter <= $max) then  
+ ( kk:runExecutableContent($dbName, $collectionName, $mbaName, $content[$counter]), 
+ db:output(<rest:forward>{fn:concat('/enterStatesInit/', string-join(($dbName,$collectionName,$mbaName,$counterneu), '/' ))}</rest:forward>))
+ else
+ kk:runExecutableContent($dbName, $collectionName, $mbaName, $content[$counter])
+};
+
+
 
 
 
@@ -358,7 +384,7 @@ let $content := switch($transType)
 case('external')
   return kk:getExecutableContents($dbName, $collectionName, $mbaName)
 case('internal')
-  return kk:getExecutableContentsEventless($dbName, $collectionName, $mbaName)
+  return kk:getExecutableContents($dbName, $collectionName, $mbaName)
 case('eventless')
   return kk:getExecutableContentsEventless($dbName, $collectionName, $mbaName)
 default
