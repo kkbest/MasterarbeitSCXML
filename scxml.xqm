@@ -475,7 +475,12 @@ declare function sc:computeEntrySet($transitions as element()*) as element()* {
 
 declare function sc:computeEntrySetInit($scxml) as element()* {
 
-    let $statesToEnterStart :=  sc:getInitialStates($scxml)
+  let $statesToEnterStart :=   if(fn:empty(sc:getInitialStates($scxml))) then 
+   
+    $scxml//sc:state[1]
+    else
+    sc:getInitialStates($scxml)
+    
     
     let $stateLists :=
       map:merge((
@@ -506,7 +511,7 @@ declare function sc:computeEntrySetInit($scxml) as element()* {
    
     let $stateLists := 
       (
-       for $s in sc:getInitialStates($scxml)
+       for $s in $statesToEnterStart
          let $ancestor := $s
          let $addAncestors := fn:fold-left(?, $stateLists,
            function($stateListsResult, $s) {
@@ -527,7 +532,7 @@ declare function sc:computeEntrySetInit($scxml) as element()* {
            }
          )
          
-         for $s in sc:getInitialStates($scxml)
+         for $s in $statesToEnterStart
            return $addAncestors($s)
       )
     
@@ -809,13 +814,15 @@ return $state/ancestor::sc:scxml//*[@id=$s/@ref]
 
 declare function sc:isCompoundState($state as element()) as xs:boolean {
   ( fn:exists($state/sc:state) or
-    fn:exists($state/sc:parallel) ) and
+    fn:exists($state/sc:parallel) or
+    fn:exists($state/sc:final )) and
   fn:exists($state/self::sc:state)
 };
 
 declare function sc:isAtomicState($state as element()) as xs:boolean {
   empty($state/sc:state) and
-  empty($state/sc:parallel)
+  empty($state/sc:parallel) and
+  empty($state/sc:final)
 };
 
 declare function sc:isParallelState($state as element()) as xs:boolean {  

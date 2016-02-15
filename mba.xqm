@@ -326,7 +326,7 @@ declare function mba:getConfiguration($mba as element()) as element()* {
           return $scxml//sc:initial[./parent::sc:scxml/@name = $s/@state or
                                     ./parent::sc:state/@id = $s/@state]
         case element(state)
-          return $scxml//sc:state[$s/@ref = ./@id]
+          return ($scxml//sc:state[$s/@ref = ./@id],$scxml//sc:final[$s/@ref = ./@id])
         default return ()
    else ()
 };
@@ -393,6 +393,13 @@ declare function mba:getInternalEventQueue($mba as element()) as element() {
   return $scxml/sc:datamodel/sc:data[@id = '_x']/internalEventQueue
 };
 
+declare function mba:getCurrentTransition($mba as element()) as element() {
+  let $scxml := mba:getSCXML($mba)
+  
+  return $scxml/sc:datamodel/sc:data[@id = '_x']/currentTransition
+};
+
+
 
 
 declare function mba:getHistory($mba as element()) {
@@ -424,6 +431,18 @@ declare updating function mba:enqueueInternalEvent($mba   as element(),
     mba:markAsUpdated($mba)
   )
 };
+
+
+declare updating function mba:enqueueTransitions($mba   as element(), 
+                                                   $transitions as element()*) {
+  let $queue := mba:getCurrentTransition($mba)
+  
+  return (
+    replace node $queue/* with $transitions
+
+  )
+};
+
 
 
 
@@ -558,7 +577,7 @@ else
     mba:removeCurrentEvent($mba),
     if ($nextEvent) then insert node $nextEventName into $currentEvent else (),
     if ($nextEvent) then insert node $nextEventData into $currentEvent else (),
-    mba:dequeueExternalEvent($mba)
+    mba:dequeueInternalEvent($mba)
   )
 };
 
@@ -610,6 +629,7 @@ declare updating function mba:init($mba as element()) {
           <currentStatus xmlns=""/>
           <externalEventQueue xmlns=""/>
           <internalEventQueue xmlns=""/>
+          <currentTransition xmlns=""/>
           <statesToInvoke xmlns=""/>
           <response  xmlns="">
                <counter xmlns="">1</counter>

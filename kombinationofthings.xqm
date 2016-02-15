@@ -36,7 +36,7 @@ declare updating function kk:initMBARest($dbName,$collectionName,$mbaName as xs:
   
   let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
  let $scxml :=  mba:getSCXML($mba)
-  return  mba:init($mba)
+  return  mba:init($mba), kk:removeFromUpdateLog($dbName,$collectionName,$mbaName)
 };
 
 
@@ -53,15 +53,12 @@ let $configuration := mba:getConfiguration($mba)
 return
   if (not ($configuration)) then 
   
-  let $initialState :=  sc:getInitialStates($scxml)
-  return if(fn:empty($initialState)) then 
-   
-      mba:addCurrentStates($mba, $scxml//sc:state[1])
-  else 
+
     mba:addCurrentStates($mba, sc:computeEntrySetInit($scxml))
   else ()
 
 };
+
 
 
 
@@ -162,11 +159,76 @@ return  ($exitContents,$contents,$entryContents)
 };
 
 
-declare function kk:getExecutableContentsEnter()
+declare function kk:getExecutableContentsEnter($dbName, $collectionName, $mbaName)
 {
-  'asdf'
   
+let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+let $scxml := mba:getSCXML($mba)
 
+let $currentEvent := mba:getCurrentEvent($mba)
+let $eventName    := $currentEvent/name
+
+let $configuration := mba:getConfiguration($mba)
+let $dataModels := sc:selectDataModels($configuration)
+
+
+let $transitions := 
+  if($eventName) then
+    sc:selectTransitions($configuration, $dataModels, $eventName)
+  else ()
+  
+let $contents :=
+  for $t in $transitions
+    return $t/*
+    
+
+let $entrySet := sc:computeEntrySet($transitions)
+
+
+let $onentry := $entrySet/sc:onentry/*
+
+
+let $defaultEntrycontent := 
+for $s in $entrySet 
+return $s
+
+
+let $HistoryContent := 
+for $s in $entrySet 
+return 
+if(fn:empty (sc:getHistoryStates($s))) then 
+ $s/*
+else
+()
+
+
+return ($onentry,$defaultEntrycontent, $HistoryContent)
+  
+(:
+
+ statesToEnter = new OrderedSet()
+    statesForDefaultEntry = new OrderedSet()
+    // initialize the temporary table for default content in history states
+    defaultHistoryContent = new HashTable() 
+    computeEntrySet(enabledTransitions, statesToEnter, statesForDefaultEntry, defaultHistoryContent) 
+   
+    for s in statesToEnter.toList().sort(entryOrder):
+        configuration.add(s)
+        statesToInvoke.add(s)
+        if binding == "late" and s.isFirstEntry:
+            initializeDataModel(datamodel.s,doc.s)
+            s.isFirstEntry = false
+            
+            
+        for content in s.onentry.sort(documentOrder):
+            executeContent(content)
+        if statesForDefaultEntry.isMember(s):
+            executeContent(s.initial.transition)
+        if defaultHistoryContent[s.id]:
+            executeContent(defaultHistoryContent[s.id]) 
+        
+ 
+ :)
 
 };
 
@@ -259,6 +321,27 @@ return (
 )
 
 };
+
+
+
+declare updating function kk:changeCurrentStatus($mba,$transitions)
+{
+
+
+let $scxml := mba:getSCXML($mba)
+
+let $configuration := mba:getConfiguration($mba)
+
+let $exitSet  := sc:computeExitSet($configuration, $transitions)
+let $entrySet := sc:computeEntrySet($transitions)
+
+return (
+  mba:removeCurrentStates($mba, $exitSet),
+  mba:addCurrentStates($mba, $entrySet)
+)
+
+};
+
 
 
 
@@ -562,10 +645,13 @@ case('eventless')
 return sc:selectEventlessTransitions($configuration, $dataModels)
 default
 return ()  
+ 
   
-let $entrySet  := sc:computeEntrySet($transitions)
+let $entrySet  := if($type = 'init') then
+sc:computeEntrySetInit($scxml)
+else sc:computeEntrySet($transitions)
 
-for $state in  sc:computeEntrySet($transitions)
+for $state in  $entrySet
 return
 if (sc:isFinalState($state)) then 
   
@@ -574,7 +660,7 @@ if (sc:isFinalState($state)) then
   
    let $parent:= $state/parent::*
    let $grandparent := $parent/parent::*
-   let $eventname := "done.state" + $parent/@id
+   let $eventname := "done.state." || $parent/@id
    let $event := <event name="{$eventname}">  </event> (:TODO donedata:)
 
    return 

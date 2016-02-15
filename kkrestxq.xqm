@@ -286,19 +286,19 @@ return
 
 kk:initSCXMLRest($dbName,$collectionName,$mbaName)
 ,
- db:output(<rest:forward>{fn:concat('/enterStatesInit/', string-join(($dbName,$collectionName,$mbaName,'1'), '/' ))}</rest:forward>)
+ db:output(<rest:forward>{fn:concat('/executeInit/', string-join(($dbName,$collectionName,$mbaName,0), '/' ))}</rest:forward>)
 
 };
 
 
 declare
-  %rest:path("/enterStatesInit/{$dbName}/{$collectionName}/{$mbaName}/{$counter}")
+  %rest:path("/executeInit/{$dbName}/{$collectionName}/{$mbaName}/{$icounter}")
   %rest:GET
   updating function page:enterInitalStates(
-    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $counter)
+    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $icounter as xs:integer)
 {
 
-let $counterneu := $counter +1
+let $icounterneu := $icounter +1
   let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
 let $scxml := mba:getSCXML($mba)
 let $initStates :=  mba:getConfiguration($mba)
@@ -307,15 +307,33 @@ let $content := $initStates/sc:onentry/*
 let $max := fn:count($content)
 
 return
-if ($counter <= $max) then  
- ( kk:runExecutableContent($dbName, $collectionName, $mbaName, $content[$counter]), 
- db:output(<rest:forward>{fn:concat('/enterStatesInit/', string-join(($dbName,$collectionName,$mbaName,$counterneu), '/' ))}</rest:forward>))
+
+if ($icounter <= $max) then  
+ ( kk:runExecutableContent($dbName, $collectionName, $mbaName, $content[$icounter]), 
+ db:output(<rest:forward>{fn:concat('/executeInit/', string-join(($dbName,$collectionName,$mbaName,$icounterneu), '/' ))}</rest:forward>))
  else
- kk:runExecutableContent($dbName, $collectionName, $mbaName, $content[$counter])
+ ( kk:runExecutableContent($dbName, $collectionName, $mbaName, $content[$icounter]), 
+ db:output(<rest:forward>{fn:concat('/enterStatesInit/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>))
+ 
+  
+ 
 };
 
+declare
+  %rest:path("/enterStatesInit/{$dbName}/{$collectionName}/{$mbaName}")
+  %rest:GET
+  updating function page:enterStatesInit(
+    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string)
+{
 
+(: maybee some inital Things:)
+(: move Forward to Eventless Transitions :)
 
+kk:enterStates($dbName,$collectionName,$mbaName,'init')
+,
+  db:output(<rest:forward>{fn:concat('/startProcess/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) 
+
+};
 
 
 
@@ -366,7 +384,7 @@ if(fn:empty($internalEvent)) then
 else
 (kk:getNextInternalEvent($dbName, $collectionName, $mbaName), db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,'0','internal'), '/' ))}</rest:forward>))
 else
-( (), db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,'0','eventless'), '/' ))}</rest:forward>))
+( (), db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,'0', 'eventless'), '/' ))}</rest:forward>))
 
 
 };
@@ -379,6 +397,23 @@ declare
   updating function page:microstep(
     $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $counter as xs:integer, $transType as xs:string)
 {
+  
+ 
+let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+let $scxml := mba:getSCXML($mba)
+
+let $configuration := mba:getConfiguration($mba)
+let $dataModels := sc:selectDataModels($configuration)
+
+let $currentEvent := mba:getCurrentEvent($mba)
+
+let $eventName    :=
+if (fn:empty($currentEvent/name)) then  'test'
+else
+$currentEvent/name
+
+
+
 
 let $content := switch($transType)
 case('external')
@@ -393,11 +428,11 @@ default
   
 let $max := fn:count($content)
 let $counterneu := $counter + 1
-return
 
 (:EnterStates with Content or transitions.. to Check:)
 
-if ($counter = 0) then 
+
+return if ($counter = 0) then 
 (
 kk:exitStates($dbName,$collectionName,$mbaName,$transType),
    db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counterneu,$transType), '/' ))}</rest:forward>)
@@ -422,24 +457,59 @@ declare
 (:maybe not necessary
 -> :)
 
- 
+
+ let $transitions := 'asdf'
  let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
 let $scxml := mba:getSCXML($mba)
 
 let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 return 
+ 
+(: 
+ if($transType != 'external') then
+
+   ( kk:changeCurrentStatus($mba,$transitions),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
+
+
+  
+  
+   else
+
+
+  if(fn:empty(sc:selectEventlessTransitions($configuration,$dataModels)) and fn:empty(mba:getInternalEventQueue($mba)/*)) then 
+   
+   kk:changeCurrentStatus($mba,$transitions)
+   
+   else
+    ( kk:changeCurrentStatus($mba,$transitions),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
+
+  :)  
+   
+    
+
+    
+ 
  if($transType != 'external') then
 
    ( kk:changeCurrentStatus($dbName,$collectionName,$mbaName),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
+   
+
+  
    else
-   if(fn:empty(sc:selectEventlessTransitions($configuration,$dataModels)) and fn:empty(mba:getInternalEventQueue($mba)/*)) then 
+
+  if(fn:empty(sc:selectEventlessTransitions($configuration,$dataModels)) and fn:empty(mba:getInternalEventQueue($mba)/*)) then 
    
    kk:changeCurrentStatus($dbName,$collectionName,$mbaName)
+
+
    
    else
     ( kk:changeCurrentStatus($dbName,$collectionName,$mbaName),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
+    
 
+
+ 
     
     
 };
