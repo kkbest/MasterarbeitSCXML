@@ -139,8 +139,9 @@ let $exitContents := $exitSet/sc:onexit/*
 
 let $entrySet := sc:computeEntrySet($transitions)
 
+let $new := functx:distinct-deep($entrySet)
 
-let $onentry := $entrySet/sc:onentry/*
+let $onentry := $new/sc:onentry/*
 
 (: there has to be done more
 
@@ -292,7 +293,7 @@ return
 
 
 
-
+(:
 declare updating function kk:changeCurrentStatus($dbName, $collectionName, $mbaName)
 {
 
@@ -320,25 +321,20 @@ return (
   mba:addCurrentStates($mba, $entrySet)
 )
 
-};
+};:)
 
 
 
-declare updating function kk:changeCurrentStatus($mba,$transitions)
+declare updating function kk:changeCurrentStatus($mba,$entrySet,$exitSet)
 {
 
 
-let $scxml := mba:getSCXML($mba)
-
-let $configuration := mba:getConfiguration($mba)
-
-let $exitSet  := sc:computeExitSet($configuration, $transitions)
-let $entrySet := sc:computeEntrySet($transitions)
-
-return (
+ (
   mba:removeCurrentStates($mba, $exitSet),
   mba:addCurrentStates($mba, $entrySet)
 )
+
+
 
 };
 
@@ -631,25 +627,11 @@ let $eventName    := $currentEvent/name
 let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 
-let $transitions := 
-switch($type)
-case ('external')
-return
 
-  if($eventName) then
-    sc:selectTransitions($configuration, $dataModels, $eventName)
-  else ()
-case('internal')
-return sc:selectTransitions($configuration, $dataModels, $eventName)
-case('eventless')
-return sc:selectEventlessTransitions($configuration, $dataModels)
-default
-return ()  
- 
   
 let $entrySet  := if($type = 'init') then
 sc:computeEntrySetInit($scxml)
-else sc:computeEntrySet($transitions)
+else mba:getCurrentEntrySet($mba)
 
 for $state in  $entrySet
 return
@@ -666,20 +648,15 @@ if (sc:isFinalState($state)) then
    return 
      if(sc:isParallelState($grandparent)) then 
                  
-          let $allinFinalState :=   $grandparent
-             where every $childState in sc:getChildStates($grandparent)
-             satisfies sc:isInFinalState($childState,$configuration)
+        if (every $s in sc:getChildStates($grandparent) satisfies sc:isInFinalState($s,$configuration,$entrySet)) then
           
-          return
-          if(fn:empty($allinFinalState)) then 
-           ()
-          else
-
-           let $parallelEventName := "done.state" + $grandparent/@id
+          let $parallelEventName := "done.state." || $grandparent/@id
             let $parallelEvent := <event name="{$parallelEventName}">  </event> 
             return
           (mba:enqueueInternalEvent($mba,$event),mba:enqueueInternalEvent($mba,$parallelEvent))
 
+else
+  mba:enqueueInternalEvent($mba,$event)    
     
    else
       mba:enqueueInternalEvent($mba,$event)                 

@@ -330,8 +330,8 @@ declare
 (: move Forward to Eventless Transitions :)
 
 kk:enterStates($dbName,$collectionName,$mbaName,'init')
-,
-  db:output(<rest:forward>{fn:concat('/startProcess/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) 
+ 
+,  db:output(<rest:forward>{fn:concat('/startProcess/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) 
 
 };
 
@@ -379,15 +379,61 @@ let $internalEvent := mba:getInternalEventQueue($mba)/*
 return
 if(fn:empty($internalEvent)) then
 
-( kk:getNextExternalEvent($dbName, $collectionName, $mbaName),db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,'0','external'), '/' ))}</rest:forward>))
+( kk:getNextExternalEvent($dbName, $collectionName, $mbaName),db:output(<rest:forward>{fn:concat('/transitions/', string-join(($dbName,$collectionName,$mbaName,'0','external'), '/' ))}</rest:forward>))
  
 else
-(kk:getNextInternalEvent($dbName, $collectionName, $mbaName), db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,'0','internal'), '/' ))}</rest:forward>))
+(kk:getNextInternalEvent($dbName, $collectionName, $mbaName), db:output(<rest:forward>{fn:concat('/transitions/', string-join(($dbName,$collectionName,$mbaName,'0','internal'), '/' ))}</rest:forward>))
 else
-( (), db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,'0', 'eventless'), '/' ))}</rest:forward>))
+( (), db:output(<rest:forward>{fn:concat('/transitions/', string-join(($dbName,$collectionName,$mbaName,'0', 'eventless'), '/' ))}</rest:forward>))
 
 
 };
+
+
+declare
+  %rest:path("/transitions/{$dbName}/{$collectionName}/{$mbaName}/{$counter}/{$transType}")
+  %rest:GET
+  updating function page:internalTransitions(
+    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $counter, $transType as xs:string)
+{
+
+let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+let $scxml := mba:getSCXML($mba)
+
+let $configuration := mba:getConfiguration($mba)
+let $dataModels := sc:selectDataModels($configuration)
+
+let $currentEvent := mba:getCurrentEvent($mba)
+
+let $eventName    :=
+$currentEvent/name
+
+let $transitions := 
+(
+switch($transType)
+case('external')
+ return 
+  sc:selectTransitions($configuration, $dataModels, $eventName)
+case('internal')
+return 
+  sc:selectTransitions($configuration, $dataModels, $eventName)
+case('eventless')
+  return 
+  sc:selectEventlessTransitions($configuration, $dataModels)
+default
+  return ()
+)
+
+let $entrySet := sc:computeEntrySet($transitions)
+
+let $exitSet := sc:computeExitSet($configuration,$transitions)
+
+
+return 
+(mba:updatecurrentEntrySet($mba, $entrySet),mba:updatecurrentExitSet($mba, $exitSet), db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counter,$transType), '/' ))}</rest:forward>))
+
+};
+
 
 
 
@@ -405,12 +451,7 @@ let $scxml := mba:getSCXML($mba)
 let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 
-let $currentEvent := mba:getCurrentEvent($mba)
 
-let $eventName    :=
-if (fn:empty($currentEvent/name)) then  'test'
-else
-$currentEvent/name
 
 
 
@@ -458,36 +499,36 @@ declare
 -> :)
 
 
- let $transitions := 'asdf'
  let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+  let $entrySet := mba:getCurrentEntrySet($mba)
+  
+  let $exitSet := mba:getCurrentExitSet($mba)
 let $scxml := mba:getSCXML($mba)
 
 let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 return 
  
-(: 
+
  if($transType != 'external') then
 
-   ( kk:changeCurrentStatus($mba,$transitions),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
+   ( kk:changeCurrentStatus($mba,$entrySet,$exitSet),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
 
-
-  
-  
    else
 
 
   if(fn:empty(sc:selectEventlessTransitions($configuration,$dataModels)) and fn:empty(mba:getInternalEventQueue($mba)/*)) then 
    
-   kk:changeCurrentStatus($mba,$transitions)
+   (kk:changeCurrentStatus($mba,$entrySet,$exitSet), db:output(
+     <response><trans> { $transType}</trans></response>
+   ) )
    
    else
-    ( kk:changeCurrentStatus($mba,$transitions),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
+    ( kk:changeCurrentStatus($mba,$entrySet,$exitSet),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
 
-  :)  
    
     
-
+(:
     
  
  if($transType != 'external') then
@@ -507,6 +548,7 @@ return
    else
     ( kk:changeCurrentStatus($dbName,$collectionName,$mbaName),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
     
+:)
 
 
  

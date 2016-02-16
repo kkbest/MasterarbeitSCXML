@@ -323,9 +323,12 @@ declare function sc:selectEventlessTransitions($configuration as element()*,
 
 declare function sc:selectTransitions($configuration as element()*,
                                       $dataModels as element()*,
-                                      $event as xs:string 
+                                      $event
                                     ) as element()* {
   
+ if (fn:empty($event)) then 
+  ()
+ else
   let $atomicStates :=
     $configuration[sc:isAtomicState(.)]
   
@@ -409,7 +412,7 @@ declare function sc:computeEntrySet($transitions as element()*) as element()* {
   else
     let $statesToEnterStart := 
       for $t in $transitions
-        return sc:getTargetStates($transitions)
+        return sc:getTargetStates($t)
     
     let $stateLists :=
       map:merge((
@@ -532,7 +535,6 @@ declare function sc:computeEntrySetInit($scxml) as element()* {
            }
          )
          
-         for $s in $statesToEnterStart
            return $addAncestors($s)
       )
     
@@ -768,12 +770,14 @@ declare function sc:foldAncestorStatesToEnter($states as element()*,
 };
 
 
-declare function sc:isInFinalState($state,$configuration)
+declare function sc:isInFinalState($state,$configuration,$entrySet)
 {
   
-  
+ 
+   
+    
  if (sc:isCompoundState($state)) then 
-    if(fn:empty(sc:getChildStates($state)[functx:is-node-in-sequence(.,$configuration) and sc:isFinalState($state)])) then
+     if(fn:empty(sc:getChildStates($state)[functx:is-node-in-sequence(.,($configuration,$entrySet)) and sc:isFinalState(.)])) then
       fn:false()
     else
      fn:true()
