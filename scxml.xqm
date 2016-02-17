@@ -41,7 +41,10 @@ declare function sc:matchesEventDescriptors($eventName        as xs:string,
                                             $eventDescriptors as xs:string*)
     as xs:boolean {
   some $descriptor in $eventDescriptors satisfies
-    fn:matches($eventName, '^' || $descriptor)
+  
+   ( fn:matches($descriptor || '|' || $eventName ,'^((([a-zA-Z]+)\.\*\|\3\.[a-zA-Z]+)|(\*\|[a-zA-Z]+)|((([a-zA-Z]|\.)+)\|(\6))|(([a-zA-Z]+)\|\10\.[a-zA-Z]+))$')
+     or $eventDescriptors = "*" or     fn:matches($eventName, '^' || $descriptor || '$')
+ )
 };
 
 (:~
@@ -347,10 +350,10 @@ declare function sc:selectTransitions($configuration as element()*,
     for $state in $atomicStates 
       for $s in ($state, sc:getProperAncestors($state))
         let $transitions :=
-          $s/sc:transition[sc:matchesEventDescriptors(
+          $s/sc:transition[(sc:matchesEventDescriptors(
                              $event,
                              fn:tokenize(@event, '\s')
-                           ) and (
+                           ) or @event="*") and (
                              not(@cond) or
                              xquery:eval(
                                scx:importModules() ||
@@ -588,7 +591,7 @@ declare function sc:addDescendantStatesToEnter($states                as element
     (
       (:TODO anschauen:)
       let $history := sc:getHistoryStates($states[1])
-      return if (fn:empty(history))
+      return if (fn:empty($history))
       then
       (:default history
       HistoryContent will be done in ExcecuteContent:)
@@ -622,7 +625,7 @@ declare function sc:addDescendantStatesToEnter($states                as element
        )
        
        
-      ( )
+      
       else
       sc:addDescendantStatesToEnter(
          $history[1], 

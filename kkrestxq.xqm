@@ -373,6 +373,8 @@ let $dataModels := sc:selectDataModels($configuration)
 let $enabledTransitions := sc:selectEventlessTransitions($configuration,$dataModels)
 
 
+
+
 return if (fn:empty($enabledTransitions)) then 
 
 let $internalEvent := mba:getInternalEventQueue($mba)/*
@@ -497,7 +499,6 @@ declare
 
 (:maybe not necessary
 -> :)
-
 
  let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
   let $entrySet := mba:getCurrentEntrySet($mba)

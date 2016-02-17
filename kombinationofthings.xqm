@@ -266,7 +266,7 @@ return
     case element(sync:newDescendant) return 
       sync:newDescendant($mba, $content/@name, $content/@level, $content/@parents, $content/*)
     case element(sc:getValue) return
-        sc:getValue($dataModels, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*, $counter)
+        sc:getValue($dataModels, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*,$counter)
      case element(sc:log) return
          sc:log($dataModels,$content/@expr,$content/*,$counter)
    case element(sc:raise) return
@@ -376,7 +376,32 @@ let $contents :=
   for $t in $transitions
     return $t/*
 
-return $contents
+    
+let $exitSet  := sc:computeExitSet($configuration, $transitions)
+let $exitContents := $exitSet/sc:onexit/*
+
+(: TODO entryContents erweitern:)
+
+let $entrySet := sc:computeEntrySet($transitions)
+
+let $new := functx:distinct-deep($entrySet)
+
+let $onentry := $new/sc:onentry/*
+
+(: there has to be done more
+
+ for content in s.onentry.sort(documentOrder):
+            executeContent(content)
+        if statesForDefaultEntry.isMember(s):
+            executeContent(s.initial.transition)
+        if defaultHistoryContent[s.id]:
+            executeContent(defaultHistoryContent[s.id]) 
+            
+            :)
+
+let $entryContents := $onentry
+
+return  ($exitContents,$contents,$entryContents)
 };
 
 declare function kk:getExecutableContentsEventless($mba)
