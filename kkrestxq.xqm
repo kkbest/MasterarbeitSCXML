@@ -301,9 +301,10 @@ declare
 let $icounterneu := $icounter +1
   let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
 let $scxml := mba:getSCXML($mba)
-let $initStates :=  mba:getConfiguration($mba)
+let $content := 
 
-let $content := $initStates/sc:onentry/*
+for $s in mba:getConfiguration($mba)
+return ($s/sc:onentry/*,$s/sc:initial/sc:transition/*)
 let $max := fn:count($content)
 
 return
@@ -330,9 +331,9 @@ declare
 (: move Forward to Eventless Transitions :)
 
 kk:enterStates($dbName,$collectionName,$mbaName,'init')
- 
-,  db:output(<rest:forward>{fn:concat('/startProcess/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) 
 
+(:,  db:output(<rest:forward>{fn:concat('/startProcess/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) 
+:)
 };
 
 
@@ -496,9 +497,11 @@ declare
   updating function page:controller(
     $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $transType as xs:string)
 {
-
+ 
+ 
 (:maybe not necessary
 -> :)
+
 
  let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
   let $entrySet := mba:getCurrentEntrySet($mba)
@@ -508,9 +511,11 @@ let $scxml := mba:getSCXML($mba)
 
 let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
-return 
- 
 
+
+return 
+  kk:changeCurrentStatus($mba,$entrySet,$exitSet)
+ (:
  if($transType != 'external') then
 
    ( kk:changeCurrentStatus($mba,$entrySet,$exitSet),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
@@ -527,10 +532,9 @@ return
    else
     ( kk:changeCurrentStatus($mba,$entrySet,$exitSet),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
 
-   
-    
-(:
-    
+ 
+:)
+  (:
  
  if($transType != 'external') then
 

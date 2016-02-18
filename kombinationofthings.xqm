@@ -133,15 +133,23 @@ let $contents :=
     
     
 let $exitSet  := sc:computeExitSet($configuration, $transitions)
-let $exitContents := $exitSet/sc:onexit/*
 
+let $onExit := for $s in $exitSet
+return $s/sc:onexit/reverse(*)
+
+
+let $exitContents := $onExit
+
+
+                  
 (: TODO entryContents erweitern:)
 
+
 let $entrySet := sc:computeEntrySet($transitions)
+let $onentry := 
+for $s in $entrySet
+return $s/sc:onentry/*
 
-let $new := functx:distinct-deep($entrySet)
-
-let $onentry := $new/sc:onentry/*
 
 (: there has to be done more
 
@@ -254,7 +262,13 @@ else
 return 
   typeswitch($content)
     case element(sc:assign) return 
+    
+    if (not(fn:empty($dataModels/sc:data[@id=substring($content/@location,2)]))) then 
+     (:  sc:selectDataModels($configuration)/sc:data[@id="degree"] :)
       sc:assign($dataModels, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*)
+      else
+           let $event := <event name="error" xmlns=""></event>           
+           return mba:enqueueInternalEvent($mba,$event)
     case element(sync:assignAncestor) return
       sync:assignAncestor($mba, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*, $content/@level)
     case element(sync:sendAncestor) return 
@@ -277,8 +291,9 @@ return
            () (: TODO: has to be implementent:)
      case element(sc:send) return
      (:can also be a raise:)
-           () (: see sendDescendants External ?  TODO: has to be implementent:)
-           (: use addEvent:)
+            (: see sendDescendants External ?  TODO: has to be implementent:)
+           (: use addEvent:)()
+           
       case element(sc:cancel) return
            () (: TODO: has to be implementent:)
         case element(sc:if) return
@@ -378,17 +393,24 @@ let $contents :=
 
     
 let $exitSet  := sc:computeExitSet($configuration, $transitions)
-let $exitContents := $exitSet/sc:onexit/*
+
+let $onExit := for $s in $exitSet
+return $s/sc:onexit/reverse(*)
+
+ 
 
 (: TODO entryContents erweitern:)
 
 let $entrySet := sc:computeEntrySet($transitions)
 
-let $new := functx:distinct-deep($entrySet)
 
-let $onentry := $new/sc:onentry/*
+let $entrySet := sc:computeEntrySet($transitions)
+let $onentry := 
+for $s in $entrySet
+return $s/sc:onentry/*
 
-(: there has to be done more
+
+(: TODO  there has to be done more
 
  for content in s.onentry.sort(documentOrder):
             executeContent(content)
@@ -400,6 +422,7 @@ let $onentry := $new/sc:onentry/*
             :)
 
 let $entryContents := $onentry
+let $exitContents := $onExit
 
 return  ($exitContents,$contents,$entryContents)
 };
@@ -642,6 +665,7 @@ return insert node <history ref = "{$h/@id}">{$insert}</history> into mba:getHis
 
 declare updating function kk:enterStates($dbName,$collectionName,$mbaName,$type)
 {
+ 
   
 let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
 let $scxml := mba:getSCXML($mba)

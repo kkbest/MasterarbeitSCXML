@@ -150,7 +150,7 @@ declare updating function sc:getValue($dataModels as element()*,
                                     $type       as xs:string?,
                                     $attribute  as xs:string?,
                                     $nodelist   as node()*,
-                                    $id as xs:string) {  
+                                    $id ) {  
   let $dataBindings :=
     for $dataModel in $dataModels
       for $data in $dataModel/sc:data
@@ -219,7 +219,7 @@ declare updating function sc:getValue($dataModels as element()*,
 declare updating function sc:log($dataModels as element()*,
                                     $expression as xs:string?,
                                     $nodelist   as node()*,
-                                    $id as xs:string) {  
+                                    $id ) {  
   let $dataBindings :=
     for $dataModel in $dataModels
       for $data in $dataModel/sc:data
@@ -307,21 +307,38 @@ declare function sc:selectEventlessTransitions($configuration as element()*,
     for $state in $atomicStates 
       let $transitions :=  
         for $s in ($state, sc:getProperAncestors($state))
-          let $transitions :=
-            $s/sc:transition[(not(@event) or @event = '') and (
-                               not(@cond) or @cond = '' or
-                               xquery:eval(
-                                 scx:importModules() ||
-                                 fn:string-join($declare) || 
-                                 scx:builtInFunctionDeclarations() ||
-                                 'return ' || @cond, 
-                                 map:merge($dataBindings)
-                               )
-                             )]
-          return $transitions[1]
-    return $transitions
+   
+     let $transitions :=
+        
+        
+         for $t in $s/sc:transition
+         let $evaluation := try
+         {
+            xquery:eval(scx:importModules() ||
+                        fn:string-join($declare) || 
+                        scx:builtInFunctionDeclarations() ||
+                       'return ' || $t/@cond, 
+                       map:merge($dataBindings))
+         } 
+         catch *
+         {
+           fn:false()
+         }
+         return
+         
+         if(((not($t/@event) or $t/@event = '')  and (not($t/@cond) or $t/@cond = '' or
+                                 $evaluation )) )then 
+                           $t
+                       
+                           
+                           else
+                           ()
+                            
+      return $transitions[1]
+      
+        return $transitions
   
-  return sc:removeConflictingTransitions($configuration, $enabledTransitions)  
+  return sc:removeConflictingTransitions($configuration, reverse($enabledTransitions))
 };
 
 declare function sc:selectTransitions($configuration as element()*,
@@ -349,23 +366,38 @@ declare function sc:selectTransitions($configuration as element()*,
   let $enabledTransitions :=
     for $state in $atomicStates 
       for $s in ($state, sc:getProperAncestors($state))
-        let $transitions :=
-          $s/sc:transition[(sc:matchesEventDescriptors(
+       let $transitions :=
+        
+        
+         for $t in $s/sc:transition
+         let $evaluation := try
+         {
+            xquery:eval(scx:importModules() ||
+                        fn:string-join($declare) || 
+                        scx:builtInFunctionDeclarations() ||
+                       'return ' || $t/@cond, 
+                       map:merge($dataBindings))
+         } 
+         catch *
+         {
+           fn:false()
+         }
+         return
+         
+         if((sc:matchesEventDescriptors(
                              $event,
-                             fn:tokenize(@event, '\s')
-                           ) or @event="*") and (
-                             not(@cond) or
-                             xquery:eval(
-                               scx:importModules() ||
-                               fn:string-join($declare) || 
-                               scx:builtInFunctionDeclarations() ||
-                               'return ' || @cond, 
-                               map:merge($dataBindings)
-                             )
-                           )]
+                             fn:tokenize($t/@event, '\s')
+                           ) and (not($t/@cond) or
+                                 $evaluation )) )then 
+                           $t
+                       
+                           
+                           else
+                           ()
+                            
       return $transitions[1]
   
-  return sc:removeConflictingTransitions($configuration, $enabledTransitions)
+  return sc:removeConflictingTransitions($configuration, reverse($enabledTransitions))
 };
 
 declare function sc:removeConflictingTransitions($configuration as element()*,
@@ -472,7 +504,7 @@ declare function sc:computeEntrySet($transitions as element()*) as element()* {
       )
     
     let $statesToEnter := 
-      if (not (fn:empty($stateLists))) then map:get($stateLists, 'statesToEnter')
+      if (not (fn:empty($stateLists))) then map:get($stateLists[1], 'statesToEnter')
       else ()
     
     return $statesToEnter
@@ -898,7 +930,7 @@ declare function sc:getTransitionDomain($transition as element()) as element() {
   let $sourceState :=  sc:getSourceState($transition) 
   
   return
-    if (empty($targetStates)) then $sourceState 
+    if (empty($targetStates)) then ($sourceState) 
     else if (sc:isInternalTransition($transition) and
              sc:isCompoundState($sourceState) and 
              (every $s in $targetStates satisfies sc:isDescendant($s, $sourceState)))
