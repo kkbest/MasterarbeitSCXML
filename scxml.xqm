@@ -598,12 +598,10 @@ declare function sc:addDescendantStatesToEnter($state as element()) as item() {
 
 
 
-
-
-
 declare function sc:addDescendantStatesToEnter($states                as element()*,
                                                $statesToEnter         as element()*,
                                                $statesForDefaultEntry as element()*,
+                                               
                                                $cont) as item() {
   (: I need SCXML:)
   
@@ -627,7 +625,7 @@ declare function sc:addDescendantStatesToEnter($states                as element
       then
       (:default history
       HistoryContent will be done in ExcecuteContent:)
-      
+    (:  let $content := $states[1]/sc:transition/*:)
       let $defaultTransitionsStates := 
        for $t in $states[1]/sc:transition
      return sc:getEffectiveTargetStates($t) (: TODO check if effective or normal:)
@@ -636,19 +634,22 @@ declare function sc:addDescendantStatesToEnter($states                as element
       
        return sc:addDescendantStatesToEnter(
          $defaultTransitionsStates[1], 
-         ($statesToEnter, $states[1]), 
+         ($statesToEnter), 
          ($statesForDefaultEntry, $states[1]),
+         
          function($statesToEnter1, $statesForDefaultEntry1) {
            sc:addAncestorStatesToEnter(
              $defaultTransitionsStates[1],
              $states[1],
              $statesToEnter1,
              $statesForDefaultEntry1,
+            
              function($statesToEnter2, $statesForDefaultEntry2) {
                sc:addDescendantStatesToEnter(
                  $defaultTransitionsStates[position() > 1], 
                  $statesToEnter2,
                  $statesForDefaultEntry2,
+                 
                  $cont
                )
              }
@@ -661,8 +662,9 @@ declare function sc:addDescendantStatesToEnter($states                as element
       else
       sc:addDescendantStatesToEnter(
          $history[1], 
-         ($statesToEnter, $states[1]), 
+         ($statesToEnter), 
          ($statesForDefaultEntry, $states[1]),
+          
          function($statesToEnter1, $statesForDefaultEntry1) {
            sc:addAncestorStatesToEnter(
              $history[1],
@@ -674,6 +676,7 @@ declare function sc:addDescendantStatesToEnter($states                as element
                  $history[position() > 1], 
                  $statesToEnter2,
                  $statesForDefaultEntry2,
+                 
                  $cont
                )
              }
@@ -691,6 +694,7 @@ declare function sc:addDescendantStatesToEnter($states                as element
          $initialStates[1], 
          ($statesToEnter, $states[1]), 
          ($statesForDefaultEntry, $states[1]),
+       
          function($statesToEnter1, $statesForDefaultEntry1) {
            sc:addAncestorStatesToEnter(
              $initialStates[1],
@@ -702,6 +706,7 @@ declare function sc:addDescendantStatesToEnter($states                as element
                  $initialStates[position() > 1], 
                  $statesToEnter2,
                  $statesForDefaultEntry2,
+                  
                  $cont
                )
              }
@@ -717,15 +722,18 @@ declare function sc:addDescendantStatesToEnter($states                as element
          $childStatesNotAdded[1], 
          ($statesToEnter, $states[1]), 
          $statesForDefaultEntry,
+         
          function($statesToEnter1, $statesForDefaultEntry1) {
            sc:addDescendantStatesToEnter(
              $childStatesNotAdded[position() > 1], 
              $statesToEnter1,
              $statesForDefaultEntry1,
+             
              function($statesToEnter2, $statesForDefaultEntry2) {
                sc:addDescendantStatesToEnter($states[position() > 1],
                                              $statesToEnter2,
                                              $statesForDefaultEntry2,
+                                              
                                              $cont)
              }           )
          }
@@ -780,11 +788,13 @@ declare function sc:foldAncestorStatesToEnter($states as element()*,
         $childStatesNotAdded[1], 
         ($statesToEnter, $states[1]), 
         $statesForDefaultEntry,
+      
         function($statesToEnter1, $statesForDefaultEntry1) {
           sc:addDescendantStatesToEnter(
             $childStatesNotAdded[position() > 1], 
             $statesToEnter1,
             $statesForDefaultEntry1,
+          
             function($statesToEnter2, $statesForDefaultEntry2) {
               sc:foldAncestorStatesToEnter($states[position() > 1],
                                            $statesToEnter2,
@@ -838,7 +848,8 @@ declare function sc:getInitialStates($state) as element()* {
       return $state//*[@id = $s]
   else (
     for $transition in $state/sc:initial/sc:transition
-      return sc:getEffectiveTargetStates($transition)
+      return  sc:getTargetStates($transition)
+
   )
 };
 
@@ -906,7 +917,7 @@ declare function sc:getEffectiveTargetStates($transition as element()) as elemen
    if(fn:empty(sc:getHistoryStates($state))) then 
    
      for $t in $state/sc:transition
-     return sc:getEffectiveTargetStates($t)
+     return (sc:getEffectiveTargetStates($t))
      else
       sc:getHistoryStates($state)
    else 
