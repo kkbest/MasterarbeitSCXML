@@ -54,7 +54,7 @@ return
   if (not ($configuration)) then 
   
 
-    mba:addCurrentStates($mba, sc:computeEntrySetInit($scxml))
+    mba:addCurrentStates($mba, map:get(sc:computeEntryInit($scxml)[1],'statesToEnter'))
   else ()
 
 };
@@ -115,24 +115,22 @@ declare function kk:getExecutableContents($dbName, $collectionName, $mbaName)
 let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
 let $scxml := mba:getSCXML($mba)
 
-let $currentEvent := mba:getCurrentEvent($mba)
-let $eventName    := $currentEvent/name
-
 let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 
 
 let $transitions := 
-  if($eventName) then
-    sc:selectTransitions($configuration, $dataModels, $eventName)
-  else ()
+ mba:getCurrentTransitionsQueue($mba)/*
   
 let $contents :=
   for $t in $transitions
     return $t/*
     
     
-let $exitSet  := sc:computeExitSet($configuration, $transitions)
+
+
+let $exitSet := sc:computeExitSet($configuration,$transitions)
+
 
 let $onExit := for $s in $exitSet
 return $s/sc:onexit/reverse(*)
@@ -145,7 +143,12 @@ let $exitContents := $onExit
 (: TODO entryContents erweitern:)
 
 
-let $entrySet := sc:computeEntrySet($transitions)
+let $entrySet := if (not (fn:empty(sc:computeEntry($transitions)))) then 
+ map:get(sc:computeEntry($transitions)[1],'statesToEnter')
+ else
+ ()
+
+
 let $onentry := 
 for $s in $entrySet
 return $s/sc:onentry/*
@@ -191,7 +194,10 @@ let $contents :=
     return $t/*
     
 
-let $entrySet := sc:computeEntrySet($transitions)
+let $entrySet := if (not (fn:empty(sc:computeEntry($transitions)))) then 
+ map:get(sc:computeEntry($transitions)[1],'statesToEnter')
+ else
+ ()
 
 
 let $onentry := $entrySet/sc:onentry/*
@@ -384,15 +390,21 @@ let $scxml := mba:getSCXML($mba)
 let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 
+
+
 let $transitions := 
-  sc:selectEventlessTransitions($configuration, $dataModels)
+ mba:getCurrentTransitionsQueue($mba)/*
+      
+
 
 let $contents :=
   for $t in $transitions
     return $t/*
 
-    
-let $exitSet  := sc:computeExitSet($configuration, $transitions)
+
+let $exitSet :=  sc:computeExitSet($configuration,$transitions)
+
+
 
 let $onExit := for $s in $exitSet
 return $s/sc:onexit/reverse(*)
@@ -401,10 +413,12 @@ return $s/sc:onexit/reverse(*)
 
 (: TODO entryContents erweitern:)
 
-let $entrySet := sc:computeEntrySet($transitions)
 
+let $entrySet := if (not (fn:empty(sc:computeEntry($transitions)))) then 
+ map:get(sc:computeEntry($transitions)[1],'statesToEnter')
+ else
+ ()
 
-let $entrySet := sc:computeEntrySet($transitions)
 let $onentry := 
 for $s in $entrySet
 return $s/sc:onentry/*
@@ -457,7 +471,10 @@ let $transitions :=
   sc:selectEventlessTransitions($configuration, $dataModels)
 
 let $exitSet  := sc:computeExitSet($configuration, $transitions)
-let $entrySet := sc:computeEntrySet($transitions)
+let $entrySet := if (not (fn:empty(sc:computeEntry($transitions)))) then 
+ map:get(sc:computeEntry($transitions)[1],'statesToEnter')
+ else
+ ()
 
 return (
   mba:removeCurrentStates($mba, $exitSet),
@@ -677,10 +694,16 @@ let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 
 
+let $transitions := 
+ mba:getCurrentTransitionsQueue($mba)/*
   
 let $entrySet  := if($type = 'init') then
-sc:computeEntrySetInit($scxml)
-else mba:getCurrentEntrySet($mba)
+map:get(sc:computeEntryInit($scxml),'statesToEnter')
+else 
+if (not (fn:empty(sc:computeEntry($transitions)))) then 
+ map:get(sc:computeEntry($transitions)[1],'statesToEnter')
+ else
+ ()
 
 for $state in  $entrySet
 return

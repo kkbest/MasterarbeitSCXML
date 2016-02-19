@@ -168,6 +168,7 @@ declare function mba:concretize($parents  as element()*,
           <internalEventQueue xmlns=""/>
           <currentEntrySet xmlns=""/>
           <currentExitSet xmlns=""/>
+          <currentTransitions xmlns=""/>
           <statesToInvoke xmlns=""/>
           <response  xmlns="">
                <counter xmlns="">1</counter>
@@ -394,7 +395,7 @@ declare function mba:getInternalEventQueue($mba as element()) as element() {
   
   return $scxml/sc:datamodel/sc:data[@id = '_x']/internalEventQueue
 };
-
+(:
 declare function mba:getCurrentEntrySet($mba as element()) as node()* {
   let $scxml := mba:getSCXML($mba)
   
@@ -422,8 +423,12 @@ declare function mba:getCurrentExitQueue($mba as element()) as node()* {
   let $scxml := mba:getSCXML($mba)
   return $scxml/sc:datamodel/sc:data[@id = '_x']/currentExitSet
 };
+:)
 
-
+declare function mba:getCurrentTransitionsQueue($mba as element()) as node()* {
+  let $scxml := mba:getSCXML($mba)
+  return $scxml/sc:datamodel/sc:data[@id = '_x']/currentTransitions
+};
 
 
 
@@ -457,7 +462,7 @@ declare updating function mba:enqueueInternalEvent($mba   as element(),
   )
 };
 
-
+(:
 declare updating function mba:updatecurrentEntrySet($mba   as element(), 
                                                    $entrySet as element()*) {
   let $queue := mba:getCurrentEntryQueue($mba)
@@ -490,6 +495,20 @@ insert node $exitSet into $queue
 else
  replace node $queue with <currentExitSet xmlns="" > {$exitSet}</currentExitSet>
 };
+
+:)
+declare updating function mba:updatecurrentTransitions($mba   as element(), 
+                                                   $transitions ) {
+  let $queue := mba:getCurrentTransitionsQueue($mba)
+  
+return
+    
+    if (fn:empty($queue/*)) then
+insert node $transitions into $queue
+else
+ replace node $queue with <currentTransitions xmlns="" > {$transitions}</currentTransitions>
+};
+
 
 
 
@@ -661,6 +680,7 @@ declare updating function mba:init($mba as element()) {
           <internalEventQueue xmlns=""/>
          <currentEntrySet xmlns=""/>
          <currentExitSet xmlns=""/>
+         <currentTransitions xmlns=""/>
           <statesToInvoke xmlns=""/>
           <response  xmlns="">
                <counter xmlns="">1</counter>
@@ -684,6 +704,7 @@ declare updating function mba:init($mba as element()) {
           <internalEventQueue xmlns=""/>
           <currentEntrySet xmlns=""/>
           <currentExitSet xmlns=""/>
+          <currentTransitions xmlns=""/>
           <statesToInvoke xmlns=""/>
           <response  xmlns="">
                <counter xmlns="">1</counter>

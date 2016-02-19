@@ -301,10 +301,15 @@ declare
 let $icounterneu := $icounter +1
   let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
 let $scxml := mba:getSCXML($mba)
-let $content := 
+let $content1 := 
 
 for $s in mba:getConfiguration($mba)
 return ($s/sc:onentry/*,$s/sc:initial/sc:transition/*)
+
+
+let $content2 :=map:get(sc:computeEntryInit($scxml),'historyContent')
+let $content := ($content1,$content2)
+
 let $max := fn:count($content)
 
 return
@@ -332,8 +337,8 @@ declare
 
 kk:enterStates($dbName,$collectionName,$mbaName,'init')
 
-(:,  db:output(<rest:forward>{fn:concat('/startProcess/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) 
-:)
+,  db:output(<rest:forward>{fn:concat('/startProcess/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) 
+
 };
 
 
@@ -427,13 +432,18 @@ default
   return ()
 )
 
-let $entrySet := sc:computeEntrySet($transitions)
+let $entrySet := 
+if (not (fn:empty(sc:computeEntry($transitions)))) then 
+ map:get(sc:computeEntry($transitions)[1],'statesToEnter')
+ else
+ ()
+
 
 let $exitSet := sc:computeExitSet($configuration,$transitions)
 
 
 return 
-(mba:updatecurrentEntrySet($mba, $entrySet),mba:updatecurrentExitSet($mba, $exitSet), db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counter,$transType), '/' ))}</rest:forward>))
+(mba:updatecurrentTransitions($mba,$transitions), db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counter,$transType), '/' ))}</rest:forward>))
 
 };
 
@@ -450,12 +460,6 @@ declare
  
 let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
 let $scxml := mba:getSCXML($mba)
-
-let $configuration := mba:getConfiguration($mba)
-let $dataModels := sc:selectDataModels($configuration)
-
-
-
 
 
 
@@ -491,6 +495,9 @@ else if ($counter <= $max) then
 };
 
 
+
+
+
 declare
   %rest:path("/controller/{$dbName}/{$collectionName}/{$mbaName}/{$transType}")
   %rest:GET
@@ -504,21 +511,32 @@ declare
 
 
  let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
-  let $entrySet := mba:getCurrentEntrySet($mba)
-  
-  let $exitSet := mba:getCurrentExitSet($mba)
+ 
+ let $transitions := 
+ mba:getCurrentTransitionsQueue($mba)/*
+ 
+ 
+let $configuration := mba:getConfiguration($mba)
+ 
+let $exitSet :=  sc:computeExitSet($configuration,$transitions)
+
+let $entrySet := if (not (fn:empty(sc:computeEntry($transitions)))) then 
+ map:get(sc:computeEntry($transitions)[1],'statesToEnter')
+ else
+ ()
+
 let $scxml := mba:getSCXML($mba)
 
 let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 
+  
 
 return 
-  kk:changeCurrentStatus($mba,$entrySet,$exitSet)
- (:
+
  if($transType != 'external') then
 
-   ( kk:changeCurrentStatus($mba,$entrySet,$exitSet),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
+   (kk:changeCurrentStatus($mba,$entrySet,$exitSet) ,db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
 
    else
 
@@ -533,9 +551,8 @@ return
     ( kk:changeCurrentStatus($mba,$entrySet,$exitSet),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
 
  
-:)
-  (:
- 
+(:
+
  if($transType != 'external') then
 
    ( kk:changeCurrentStatus($dbName,$collectionName,$mbaName),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )

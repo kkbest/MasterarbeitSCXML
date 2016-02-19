@@ -442,7 +442,7 @@ declare function sc:computeExitSet($configuration as element()*,
 };
 
 
-declare function sc:computeEntrySet($transitions as element()*) as element()* {
+declare function sc:computeEntry($transitions as element()*) {
   if (fn:empty($transitions)) then ()
   else
     let $statesToEnterStart := 
@@ -452,7 +452,8 @@ declare function sc:computeEntrySet($transitions as element()*) as element()* {
     let $stateLists :=
       map:merge((
         map:entry('statesToEnter', ()),
-        map:entry('statesForDefaultEntry', ())
+        map:entry('statesForDefaultEntry', ()),
+         map:entry('historyContent',())  
       ))
       
     let $addDescendants := fn:fold-left(?, $stateLists,
@@ -461,16 +462,19 @@ declare function sc:computeEntrySet($transitions as element()*) as element()* {
           map:get($stateListsResult, 'statesToEnter')
         let $statesForDefaultEntry := 
           map:get($stateListsResult, 'statesForDefaultEntry')
+           let $historyContent := 
+          map:get($stateListsResult, 'historyContent')  
           
-        let $f := function($statesToEnter, $statesForDefaultEntry) { 
+        let $f := function($statesToEnter, $statesForDefaultEntry,$historyContent) { 
           map:merge((
             map:entry('statesToEnter', $statesToEnter),
-            map:entry('statesForDefaultEntry', $statesForDefaultEntry)
+            map:entry('statesForDefaultEntry', $statesForDefaultEntry),
+         map:entry('historyContent',$historyContent)  
           ))
         }
         
         return
-          sc:addDescendantStatesToEnter($s, $statesToEnter, $statesForDefaultEntry, $f)
+          sc:addDescendantStatesToEnter($s, $statesToEnter, $statesForDefaultEntry, $f, $historyContent)
       }
     )
     
@@ -486,16 +490,19 @@ declare function sc:computeEntrySet($transitions as element()*) as element()* {
                map:get($stateListsResult, 'statesToEnter')
              let $statesForDefaultEntry := 
                map:get($stateListsResult, 'statesForDefaultEntry')
+                let $historyContent := 
+          map:get($stateListsResult, 'historyContent')  
               
-             let $f := function($statesToEnter, $statesForDefaultEntry) { 
+             let $f := function($statesToEnter, $statesForDefaultEntry,$historyContent) { 
                map:merge((
                  map:entry('statesToEnter', $statesToEnter),
-                 map:entry('statesForDefaultEntry', $statesForDefaultEntry)
+                 map:entry('statesForDefaultEntry', $statesForDefaultEntry),
+                 map:entry('historyContent', $historyContent)
                ))
              }
              
              return
-               sc:addAncestorStatesToEnter($s, $ancestor, $statesToEnter, $statesForDefaultEntry, $f)
+               sc:addAncestorStatesToEnter($s, $ancestor, $statesToEnter, $statesForDefaultEntry, $f, $historyContent)
            }
          )
          
@@ -504,14 +511,15 @@ declare function sc:computeEntrySet($transitions as element()*) as element()* {
       )
     
     let $statesToEnter := 
-      if (not (fn:empty($stateLists))) then map:get($stateLists[1], 'statesToEnter')
+      if (not (fn:empty($stateLists))) then $stateLists
       else ()
     
     return $statesToEnter
 };
 
 
-declare function sc:computeEntrySetInit($scxml) as element()* {
+
+declare function sc:computeEntryInit($scxml) {
 
   let $statesToEnterStart :=   if(fn:empty(sc:getInitialStates($scxml))) then 
    
@@ -523,7 +531,8 @@ declare function sc:computeEntrySetInit($scxml) as element()* {
     let $stateLists :=
       map:merge((
         map:entry('statesToEnter', ()),
-        map:entry('statesForDefaultEntry', ())
+        map:entry('statesForDefaultEntry', ()),
+         map:entry('historyContent',())  
       ))
       
     let $addDescendants := fn:fold-left(?, $stateLists,
@@ -532,16 +541,18 @@ declare function sc:computeEntrySetInit($scxml) as element()* {
           map:get($stateListsResult, 'statesToEnter')
         let $statesForDefaultEntry := 
           map:get($stateListsResult, 'statesForDefaultEntry')
-          
-        let $f := function($statesToEnter, $statesForDefaultEntry) { 
+         let $historyContent := 
+          map:get($stateListsResult, 'historyContent')  
+        let $f := function($statesToEnter, $statesForDefaultEntry, $historyContent) { 
           map:merge((
             map:entry('statesToEnter', $statesToEnter),
-            map:entry('statesForDefaultEntry', $statesForDefaultEntry)
+            map:entry('statesForDefaultEntry', $statesForDefaultEntry),
+            map:entry('historyContent', $historyContent)
           ))
         }
         
         return
-          sc:addDescendantStatesToEnter($s, $statesToEnter, $statesForDefaultEntry, $f)
+          sc:addDescendantStatesToEnter($s, $statesToEnter, $statesForDefaultEntry, $f,())
       }
     )
     
@@ -557,16 +568,18 @@ declare function sc:computeEntrySetInit($scxml) as element()* {
                map:get($stateListsResult, 'statesToEnter')
              let $statesForDefaultEntry := 
                map:get($stateListsResult, 'statesForDefaultEntry')
-              
-             let $f := function($statesToEnter, $statesForDefaultEntry) { 
+               let $historyContent := 
+          map:get($stateListsResult, 'historyContent')  
+             let $f := function($statesToEnter, $statesForDefaultEntry, $historyContent) { 
                map:merge((
                  map:entry('statesToEnter', $statesToEnter),
-                 map:entry('statesForDefaultEntry', $statesForDefaultEntry)
+                 map:entry('statesForDefaultEntry', $statesForDefaultEntry),
+                 map:entry('historyContent', $historyContent)
                ))
              }
              
              return
-               sc:addAncestorStatesToEnter($s, $ancestor, $statesToEnter, $statesForDefaultEntry, $f)
+               sc:addAncestorStatesToEnter($s, $ancestor, $statesToEnter, $statesForDefaultEntry, $f,$historyContent)
            }
          )
          
@@ -574,7 +587,7 @@ declare function sc:computeEntrySetInit($scxml) as element()* {
       )
     
     let $statesToEnter := 
-      if (not (fn:empty($stateLists))) then map:get($stateLists[1], 'statesToEnter')
+      if (not (fn:empty($stateLists))) then $stateLists
       else ()
     
     return $statesToEnter
@@ -584,14 +597,15 @@ declare function sc:computeEntrySetInit($scxml) as element()* {
 declare function sc:addDescendantStatesToEnter($state as element()) as item() {
   (: TODO: history states :)
   
-  let $f := function($statesToEnter, $statesForDefaultEntry) { 
+  let $f := function($statesToEnter, $statesForDefaultEntry, $historyContent) { 
     map:merge((
       map:entry('statesToEnter', $statesToEnter),
-      map:entry('statesForDefaultEntry', $statesForDefaultEntry)
+      map:entry('statesForDefaultEntry', $statesForDefaultEntry),
+       map:entry('historyContent', $historyContent)
     ))
   }
   
-  return sc:addDescendantStatesToEnter($state, (), (), $f)
+  return sc:addDescendantStatesToEnter($state, (), (), $f,())
 };
 
 
@@ -602,7 +616,8 @@ declare function sc:addDescendantStatesToEnter($states                as element
                                                $statesToEnter         as element()*,
                                                $statesForDefaultEntry as element()*,
                                                
-                                               $cont) as item() {
+                                               $cont,
+                                             $historyContent) as item() {
   (: I need SCXML:)
   
   
@@ -611,22 +626,28 @@ declare function sc:addDescendantStatesToEnter($states                as element
   1. Check if history State
   2. Check if state already got someStuff 
   3. addDescendantState to Enter
-  4. add AncestorSTatetoEnter:)
+  4. add AncestorSTatetoEnter
+  :)
   
-  
-  
+
   let $results :=
-    if (fn:empty($states)) then $cont($statesToEnter, $statesForDefaultEntry)
+    if (fn:empty($states)) then
+   $cont($statesToEnter, $statesForDefaultEntry, $historyContent)
    else if (sc:isHistoryState($states[1])) then
     (
+ 
       (:TODO anschauen:)
+      
+      let $test := fn:trace($states[1],"isHistoryState")
       let $history := sc:getHistoryStates($states[1])
       return if (fn:empty($history))
       then
+      let $test := fn:trace($states[1],"no history exists")
       (:default history
       HistoryContent will be done in ExcecuteContent:)
-    (:  let $content := $states[1]/sc:transition/*:)
-      let $defaultTransitionsStates := 
+      
+      let $historyContent := ($historyContent,$states[1]/sc:transition/*)
+       let $defaultTransitionsStates := 
        for $t in $states[1]/sc:transition
      return sc:getEffectiveTargetStates($t) (: TODO check if effective or normal:)
       
@@ -637,83 +658,88 @@ declare function sc:addDescendantStatesToEnter($states                as element
          ($statesToEnter), 
          ($statesForDefaultEntry, $states[1]),
          
-         function($statesToEnter1, $statesForDefaultEntry1) {
+         function($statesToEnter1, $statesForDefaultEntry1, $historyContent1) {
            sc:addAncestorStatesToEnter(
              $defaultTransitionsStates[1],
              $states[1],
              $statesToEnter1,
              $statesForDefaultEntry1,
-            
-             function($statesToEnter2, $statesForDefaultEntry2) {
+           
+             function($statesToEnter2, $statesForDefaultEntry2, $historyContent2) {
                sc:addDescendantStatesToEnter(
                  $defaultTransitionsStates[position() > 1], 
                  $statesToEnter2,
                  $statesForDefaultEntry2,
                  
-                 $cont
+                 $cont,$historyContent2
                )
-             }
+             },  $historyContent1
            )
-         }
+         },$historyContent
        )
        
        
       
       else
+      
+      let $test := fn:trace($states[1],"thereisaHistory")
+      return
       sc:addDescendantStatesToEnter(
          $history[1], 
          ($statesToEnter), 
          ($statesForDefaultEntry, $states[1]),
           
-         function($statesToEnter1, $statesForDefaultEntry1) {
+         function($statesToEnter1, $statesForDefaultEntry1,$historyContent1) {
            sc:addAncestorStatesToEnter(
              $history[1],
              $states[1]/parent::*,
              $statesToEnter1,
              $statesForDefaultEntry1,
-             function($statesToEnter2, $statesForDefaultEntry2) {
+             function($statesToEnter2, $statesForDefaultEntry2,$historyContent2) {
                sc:addDescendantStatesToEnter(
                  $history[position() > 1], 
                  $statesToEnter2,
                  $statesForDefaultEntry2,
                  
-                 $cont
+                 $cont,$historyContent2
                )
-             }
+             },$historyContent1
            )
-         }
+         },$historyContent
        ) 
  )
     else if (sc:isAtomicState($states[1])) then
-      sc:addDescendantStatesToEnter(
-        $states[position() > 1], ($statesToEnter, $states[1]), $statesForDefaultEntry, $cont
+           sc:addDescendantStatesToEnter(
+        $states[position() > 1], ($statesToEnter, $states[1]), $statesForDefaultEntry, $cont,$historyContent
       )
     else if (sc:isCompoundState($states[1])) then
+       
        let $initialStates := sc:getInitialStates($states[1])
        return sc:addDescendantStatesToEnter(
          $initialStates[1], 
          ($statesToEnter, $states[1]), 
          ($statesForDefaultEntry, $states[1]),
        
-         function($statesToEnter1, $statesForDefaultEntry1) {
+         function($statesToEnter1, $statesForDefaultEntry1,$historyContent1) {
            sc:addAncestorStatesToEnter(
              $initialStates[1],
              $states[1],
              $statesToEnter1,
              $statesForDefaultEntry1,
-             function($statesToEnter2, $statesForDefaultEntry2) {
+             function($statesToEnter2, $statesForDefaultEntry2,$historyContent2) {
                sc:addDescendantStatesToEnter(
                  $initialStates[position() > 1], 
                  $statesToEnter2,
                  $statesForDefaultEntry2,
                   
-                 $cont
+                 $cont, $historyContent2
                )
-             }
+             },$historyContent1
            )
-         }
+         }, $historyContent
        )
     else if (sc:isParallelState($states[1])) then
+     
        let $childStates := sc:getChildStates($states[1])
        let $childStatesNotAdded := 
          $childStates[not (some $s in $statesToEnter satisfies sc:isDescendant($s, .))]
@@ -723,52 +749,53 @@ declare function sc:addDescendantStatesToEnter($states                as element
          ($statesToEnter, $states[1]), 
          $statesForDefaultEntry,
          
-         function($statesToEnter1, $statesForDefaultEntry1) {
+         function($statesToEnter1, $statesForDefaultEntry1,$historyContent1) {
            sc:addDescendantStatesToEnter(
              $childStatesNotAdded[position() > 1], 
              $statesToEnter1,
              $statesForDefaultEntry1,
              
-             function($statesToEnter2, $statesForDefaultEntry2) {
+             function($statesToEnter2, $statesForDefaultEntry2,$historyContent2) {
                sc:addDescendantStatesToEnter($states[position() > 1],
                                              $statesToEnter2,
                                              $statesForDefaultEntry2,
                                               
-                                             $cont)
-             }           )
-         }
+                                             $cont, $historyContent)
+             }    , $historyContent       )
+         }, $historyContent
        )
     else ()
   
   return $results
 };
-
+ 
 declare function sc:addAncestorStatesToEnter($state as element(),
                                              $ancestor as element()) as item() {
-  let $f := function($statesToEnter, $statesForDefaultEntry) { 
+  let $f := function($statesToEnter, $statesForDefaultEntry,$historyContent) { 
     map:merge((
       map:entry('statesToEnter', $statesToEnter),
-      map:entry('statesForDefaultEntry', $statesForDefaultEntry)
+      map:entry('statesForDefaultEntry', $statesForDefaultEntry),
+        map:entry('historyContent', $historyContent)
     ))
   }
   
-  return sc:addAncestorStatesToEnter($state, $ancestor, (), (), $f)
+  return sc:addAncestorStatesToEnter($state, $ancestor, (), (), $f,())
 };
 
 declare function sc:addAncestorStatesToEnter($states as element()*,
                                              $ancestor as element(),
                                              $statesToEnter as element()*,
                                              $statesForDefaultEntry as element()*,
-                                             $cont) as item() {
+                                             $cont, $historyContent) as item() {
   let $properAncestors :=
     for $s in $states return sc:getProperAncestors($s, $ancestor)
   
   let $results :=
-    if (fn:empty($properAncestors)) then $cont($statesToEnter, $statesForDefaultEntry)
+    if (fn:empty($properAncestors)) then $cont($statesToEnter, $statesForDefaultEntry,$historyContent)
     else sc:foldAncestorStatesToEnter ($properAncestors,
                                        $statesToEnter,
                                        $statesForDefaultEntry,
-                                       $cont)
+                                       $cont,$historyContent)
   
   return $results
 };
@@ -776,9 +803,9 @@ declare function sc:addAncestorStatesToEnter($states as element()*,
 declare function sc:foldAncestorStatesToEnter($states as element()*,
                                               $statesToEnter as element()*,
                                               $statesForDefaultEntry as element()*,
-                                              $cont) as item() {
+                                              $cont, $historyContent) as item() {
   let $results := 
-    if (fn:empty($states)) then  $cont($statesToEnter, $statesForDefaultEntry)
+    if (fn:empty($states)) then  $cont($statesToEnter, $statesForDefaultEntry,$historyContent)
     else if (sc:isParallelState($states[1])) then
       let $childStates := sc:getChildStates($states[1])
       let $childStatesNotAdded := 
@@ -789,26 +816,26 @@ declare function sc:foldAncestorStatesToEnter($states as element()*,
         ($statesToEnter, $states[1]), 
         $statesForDefaultEntry,
       
-        function($statesToEnter1, $statesForDefaultEntry1) {
+        function($statesToEnter1, $statesForDefaultEntry1, $historyContent1) {
           sc:addDescendantStatesToEnter(
             $childStatesNotAdded[position() > 1], 
             $statesToEnter1,
             $statesForDefaultEntry1,
           
-            function($statesToEnter2, $statesForDefaultEntry2) {
+            function($statesToEnter2, $statesForDefaultEntry2, $historyContent2) {
               sc:foldAncestorStatesToEnter($states[position() > 1],
                                            $statesToEnter2,
                                            $statesForDefaultEntry2,
-                                           $cont)
-            }
+                                           $cont,$historyContent2)
+            },$historyContent1
            )
-        }
+        }, $historyContent
       )
     else sc:foldAncestorStatesToEnter(
       $states[position() > 1],
       ($statesToEnter, $states[1]), 
       $statesForDefaultEntry, 
-      $cont
+      $cont,$historyContent
     )
   
   return $results
