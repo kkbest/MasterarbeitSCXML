@@ -120,7 +120,7 @@ let $dataModels := sc:selectDataModels($configuration)
 
 
 let $transitions := 
- mba:getCurrentTransitionsQueue($mba)/*
+ mba:getCurrentTransitionsQueue($mba)/transitions/*
   
 let $contents :=
   for $t in $transitions
@@ -129,7 +129,7 @@ let $contents :=
     
 
 
-let $exitSet := sc:computeExitSet($configuration,$transitions)
+let $exitSet := sc:computeExitSetTrans($configuration,$transitions)
 
 
 let $onExit := for $s in $exitSet
@@ -149,9 +149,18 @@ let $entrySet := if (not (fn:empty(sc:computeEntry($transitions)))) then
  ()
 
 
-let $onentry := 
+
+
+let $content1 := 
 for $s in $entrySet
-return $s/sc:onentry/*
+return ($s/sc:onentry/*,$s/sc:initial/sc:transition/*)
+
+
+let $content2 :=
+if (not (fn:empty(sc:computeEntry($transitions)))) then 
+ map:get(sc:computeEntry($transitions)[1],'historyContent')
+ else
+ ()
 
 
 (: there has to be done more
@@ -165,7 +174,7 @@ return $s/sc:onentry/*
             
             :)
 
-let $entryContents := $onentry
+let $entryContents := ($content1,$content2)
 
 return  ($exitContents,$contents,$entryContents)
 };
@@ -296,6 +305,14 @@ return
      case element(sc:script) return
            () (: TODO: has to be implementent:)
      case element(sc:send) return
+      if(not ($content/@target)) then 
+         let $event := <event name="{$content/@event}" xmlns=""></event>           
+           return mba:enqueueExternalEvent($mba,$event)
+        else
+        
+           
+           
+           (:TODO :)
      (:can also be a raise:)
             (: see sendDescendants External ?  TODO: has to be implementent:)
            (: use addEvent:)()
@@ -393,7 +410,7 @@ let $dataModels := sc:selectDataModels($configuration)
 
 
 let $transitions := 
- mba:getCurrentTransitionsQueue($mba)/*
+ mba:getCurrentTransitionsQueue($mba)/transitions/*
       
 
 
@@ -402,7 +419,7 @@ let $contents :=
     return $t/*
 
 
-let $exitSet :=  sc:computeExitSet($configuration,$transitions)
+let $exitSet :=  sc:computeExitSetTrans($configuration,$transitions)
 
 
 
@@ -419,9 +436,19 @@ let $entrySet := if (not (fn:empty(sc:computeEntry($transitions)))) then
  else
  ()
 
-let $onentry := 
+let $content1 := 
 for $s in $entrySet
-return $s/sc:onentry/*
+return ($s/sc:onentry/*,$s/sc:initial/sc:transition/*)
+
+
+let $content2 :=
+
+if (not (fn:empty(sc:computeEntry($transitions)))) then 
+ map:get(sc:computeEntry($transitions)[1],'historyContent')
+ else
+ ()
+ 
+
 
 
 (: TODO  there has to be done more
@@ -435,7 +462,7 @@ return $s/sc:onentry/*
             
             :)
 
-let $entryContents := $onentry
+let $entryContents := ($content1,$content2)
 let $exitContents := $onExit
 
 return  ($exitContents,$contents,$entryContents)
@@ -602,15 +629,6 @@ declare updating function kk:updateCounter($dbName,$collectionName,$mbaName)
 };
 
 
-declare function kk:getHistory($history, $state)
-{
-   return
-};
-
-declare function kk:getStateHistoryNodes($state)
-{
-  return
-};
 
 
 
@@ -628,23 +646,15 @@ let $eventName    := $currentEvent/name
 let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 
-let $transitions := 
-switch($type)
-case ('external')
-return
 
-  if($eventName) then
-    sc:selectTransitions($configuration, $dataModels, $eventName)
-  else ()
-case('internal')
-return sc:selectTransitions($configuration, $dataModels, $eventName)
-case('eventless')
-return sc:selectEventlessTransitions($configuration, $dataModels)
-default
-return ()  
-  
-  
-let $exitSet  := sc:computeExitSet($configuration, $transitions)
+ let $transitions := 
+ mba:getCurrentTransitionsQueue($mba)/transitions/*
+ 
+ 
+let $configuration := mba:getConfiguration($mba)
+ 
+let $exitSet :=  sc:computeExitSetTrans($configuration,$transitions)
+
 
 (: remove from States to Invoke:)
 (:TODO Anschauen exitOrder -> reverted Documentorder:)
@@ -663,17 +673,21 @@ for $state in reverse($exitSet)
   return 
 (:for $h in kk:getStateHistoryNodes($state):)
 if ($h/@type = 'deep') then 
-  if(sc:isDescendant($i,$state) and sc:isAtomicState($i)) then
+  if(sc:isDescendant($i,$state) and sc:isAtomicState($i) and not (fn:deep-equal($i,$state))) then
       <state ref="{$i/@id}"/>
   else ()
 else
-  if($h/parent::* = $state) then 
-     <state ref="{$i/@id}"/>
+  if(fn:deep-equal($h/parent::*,$i/parent::*)) then 
+      <state ref="{$i/@id}"/> 
 else ()
 
 
+return 
+  if (fn:empty(sc:getHistoryStates($h))) then
+ insert node <history ref = "{$h/@id}">{$insert}</history> into mba:getHistory($mba)
 
-return insert node <history ref = "{$h/@id}">{$insert}</history> into mba:getHistory($mba)
+else
+replace node mba:getHistory($mba)/history[@ref=$h/@id]  with <history ref = "{$h/@id}">{$insert}</history> 
 
 
 };
@@ -695,7 +709,7 @@ let $dataModels := sc:selectDataModels($configuration)
 
 
 let $transitions := 
- mba:getCurrentTransitionsQueue($mba)/*
+ mba:getCurrentTransitionsQueue($mba)/transitions/*
   
 let $entrySet  := if($type = 'init') then
 map:get(sc:computeEntryInit($scxml),'statesToEnter')

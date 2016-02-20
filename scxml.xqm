@@ -442,6 +442,19 @@ declare function sc:computeExitSet($configuration as element()*,
 };
 
 
+declare function sc:computeExitSetTrans($configuration as element()*,
+                                   $transitions as element()*) as element()*{
+  let $statesToExit := 
+    for $t in $transitions 
+      let $domain := sc:getTransitionDomainTrans($t)
+      for $s in $configuration
+        return if (sc:isDescendant($s, $domain)) then $s else ()
+  
+  return $statesToExit
+};
+
+
+
 declare function sc:computeEntry($transitions as element()*) {
   if (fn:empty($transitions)) then ()
   else
@@ -483,7 +496,7 @@ declare function sc:computeEntry($transitions as element()*) {
     let $stateLists := 
       (
        for $t in $transitions
-         let $ancestor := sc:getTransitionDomain($t)
+         let $ancestor := sc:getTransitionDomainTrans($t)
          let $addAncestors := fn:fold-left(?, $stateLists,
            function($stateListsResult, $s) {
              let $statesToEnter := 
@@ -561,7 +574,7 @@ declare function sc:computeEntryInit($scxml) {
     let $stateLists := 
       (
        for $s in $statesToEnterStart
-         let $ancestor := $s
+         let $ancestor := $scxml
          let $addAncestors := fn:fold-left(?, $stateLists,
            function($stateListsResult, $s) {
              let $statesToEnter := 
@@ -638,11 +651,11 @@ declare function sc:addDescendantStatesToEnter($states                as element
  
       (:TODO anschauen:)
       
-      let $test := fn:trace($states[1],"isHistoryState")
+      let $test := fn:trace($states[1],"responseisHistoryState")
       let $history := sc:getHistoryStates($states[1])
       return if (fn:empty($history))
       then
-      let $test := fn:trace($states[1],"no history exists")
+      let $test := fn:trace($states[1],"responseno history exists")
       (:default history
       HistoryContent will be done in ExcecuteContent:)
       
@@ -682,8 +695,12 @@ declare function sc:addDescendantStatesToEnter($states                as element
       
       else
       
-      let $test := fn:trace($states[1],"thereisaHistory")
+      let $test := fn:trace($states[1],"responsethereisaHistory")
+      let $test := fn:trace($history,"responsehistoryValue")
       return
+      
+       
+     
       sc:addDescendantStatesToEnter(
          $history[1], 
          ($statesToEnter), 
@@ -959,6 +976,16 @@ declare function sc:getSourceState($transition) {
   $transition/..
 };
 
+
+declare function sc:getSourceStateTrans($transition) {  
+  
+  $transition/ancestor::sc:scxml//*[@id = $transition/parent::*/@ref]
+  
+  
+  
+};
+
+
 declare function sc:isInternalTransition($transition as element()) as xs:boolean {  
   fn:exists($transition/@type='internal')
 };
@@ -966,6 +993,19 @@ declare function sc:isInternalTransition($transition as element()) as xs:boolean
 declare function sc:getTransitionDomain($transition as element()) as element() {
   let $targetStates := sc:getEffectiveTargetStates($transition)
   let $sourceState :=  sc:getSourceState($transition) 
+  
+  return
+    if (empty($targetStates)) then ($sourceState) 
+    else if (sc:isInternalTransition($transition) and
+             sc:isCompoundState($sourceState) and 
+             (every $s in $targetStates satisfies sc:isDescendant($s, $sourceState)))
+      then $sourceState
+    else sc:findLCCA(($sourceState, $targetStates))
+};
+
+declare function sc:getTransitionDomainTrans($transition as element()) as element() {
+  let $targetStates := sc:getEffectiveTargetStates($transition)
+  let $sourceState :=  sc:getSourceStateTrans($transition) 
   
   return
     if (empty($targetStates)) then ($sourceState) 
