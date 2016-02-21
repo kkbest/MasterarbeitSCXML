@@ -305,7 +305,7 @@ return
      case element(sc:script) return
            () (: TODO: has to be implementent:)
      case element(sc:send) return
-      if(not ($content/@target)) then 
+      if(not ($content/@target) and not ($content/@targetexpr)) then 
          let $event := <event name="{$content/@event}" xmlns=""></event>           
            return mba:enqueueExternalEvent($mba,$event)
         else

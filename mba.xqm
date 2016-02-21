@@ -372,6 +372,8 @@ declare updating function mba:removeCurrentStates($mba    as element(),
             default return ()
         case element(sc:state) return
           $currentStatus/state[@ref=$s/@id]
+         case element(sc:parallel)  return
+        $currentStatus/state[@ref=$s/@id]  
         default return ()
     
   return delete nodes $removeStates

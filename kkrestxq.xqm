@@ -337,8 +337,8 @@ declare
 
 kk:enterStates($dbName,$collectionName,$mbaName,'init')
 
-,  db:output(<rest:forward>{fn:concat('/startProcess/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) 
-
+(: ,  db:output(<rest:forward>{fn:concat('/startProcess/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) 
+:)
 };
 
 
@@ -519,6 +519,8 @@ let $configuration := mba:getConfiguration($mba)
  
 let $exitSet :=  sc:computeExitSetTrans($configuration,$transitions)
 
+
+
 let $entrySet := if (not (fn:empty(sc:computeEntry($transitions)))) then 
  map:get(sc:computeEntry($transitions)[1],'statesToEnter')
  else
@@ -534,11 +536,10 @@ let $scxml := mba:getSCXML($mba)
 
 let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
- 
 
 return 
-
- if($transType != 'external') then
+kk:changeCurrentStatus($mba,$entrySet,$exitSet)
+ (:if($transType != 'external') then
 
    ( kk:changeCurrentStatus($mba,$entrySet,$exitSet),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
 
@@ -554,7 +555,7 @@ return
    else
     ( kk:changeCurrentStatus($mba,$entrySet,$exitSet),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
 
-(:
+
  if($transType != 'external') then
 
    ( kk:changeCurrentStatus($dbName,$collectionName,$mbaName),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )

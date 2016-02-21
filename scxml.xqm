@@ -338,7 +338,7 @@ declare function sc:selectEventlessTransitions($configuration as element()*,
       
         return $transitions
   
-  return sc:removeConflictingTransitions($configuration, reverse($enabledTransitions))
+  return sc:removeConflictingTransitions($configuration, $enabledTransitions)
 };
 
 declare function sc:selectTransitions($configuration as element()*,
@@ -397,7 +397,7 @@ declare function sc:selectTransitions($configuration as element()*,
                             
       return $transitions[1]
   
-  return sc:removeConflictingTransitions($configuration, reverse($enabledTransitions))
+  return sc:removeConflictingTransitions($configuration,$enabledTransitions)
 };
 
 declare function sc:removeConflictingTransitions($configuration as element()*,
@@ -419,7 +419,7 @@ declare function sc:removeConflictingTransitions($configuration as element()*,
             (fn:remove($filteredTransitions, 
                        functx:index-of-node($filteredTransitions, $t2)), $t1)
           ) 
-          else ()
+          else $filteredTransitions
         )        
         else ($filteredTransitions, $t1)
       
@@ -430,25 +430,38 @@ declare function sc:removeConflictingTransitions($configuration as element()*,
   return $filteredTransitions($enabledTransitions)
 };
 
-declare function sc:computeExitSet($configuration as element()*,
-                                   $transitions as element()*) as element()*{
+
+
+
+declare function sc:computeExitSet($configuration,
+                                   $transitions) {
+  
+  let $test := fn:trace($configuration, "config")
+   let $test := fn:trace($transitions, "transitions")
   let $statesToExit := 
     for $t in $transitions 
       let $domain := sc:getTransitionDomain($t)
+       return if ($domain) then 
+        let $test := fn:trace($domain, "domain")
+        return
       for $s in $configuration
         return if (sc:isDescendant($s, $domain)) then $s else ()
-  
+  else ()
   return $statesToExit
 };
 
 
-declare function sc:computeExitSetTrans($configuration as element()*,
-                                   $transitions as element()*) as element()*{
+declare function sc:computeExitSetTrans($configuration,
+                                   $transitions){
+                                     
+     
   let $statesToExit := 
     for $t in $transitions 
-      let $domain := sc:getTransitionDomainTrans($t)
+      let $domain := sc:getTransitionDomainTransExit($t)
+          return if ($domain) then 
       for $s in $configuration
         return if (sc:isDescendant($s, $domain)) then $s else ()
+     else ()
   
   return $statesToExit
 };
@@ -642,7 +655,7 @@ declare function sc:addDescendantStatesToEnter($states                as element
   4. add AncestorSTatetoEnter
   :)
   
-
+  let $test := fn:trace($states[1],'stateanstelle1')
   let $results :=
     if (fn:empty($states)) then
    $cont($statesToEnter, $statesForDefaultEntry, $historyContent)
@@ -726,6 +739,10 @@ declare function sc:addDescendantStatesToEnter($states                as element
        ) 
  )
     else if (sc:isAtomicState($states[1])) then
+    
+      let $test := fn:trace($states[1],'atomic')
+      return
+
            sc:addDescendantStatesToEnter(
         $states[position() > 1], ($statesToEnter, $states[1]), $statesForDefaultEntry, $cont,$historyContent
       )
@@ -756,7 +773,8 @@ declare function sc:addDescendantStatesToEnter($states                as element
          }, $historyContent
        )
     else if (sc:isParallelState($states[1])) then
-     
+       let $test := fn:trace($states[1],'parallel')
+
        let $childStates := sc:getChildStates($states[1])
        let $childStatesNotAdded := 
          $childStates[not (some $s in $statesToEnter satisfies sc:isDescendant($s, .))]
@@ -786,8 +804,8 @@ declare function sc:addDescendantStatesToEnter($states                as element
   return $results
 };
  
-declare function sc:addAncestorStatesToEnter($state as element(),
-                                             $ancestor as element()) as item() {
+declare function sc:addAncestorStatesToEnter($state ,
+                                             $ancestor) {
   let $f := function($statesToEnter, $statesForDefaultEntry,$historyContent) { 
     map:merge((
       map:entry('statesToEnter', $statesToEnter),
@@ -799,14 +817,17 @@ declare function sc:addAncestorStatesToEnter($state as element(),
   return sc:addAncestorStatesToEnter($state, $ancestor, (), (), $f,())
 };
 
-declare function sc:addAncestorStatesToEnter($states as element()*,
-                                             $ancestor as element(),
-                                             $statesToEnter as element()*,
-                                             $statesForDefaultEntry as element()*,
-                                             $cont, $historyContent) as item() {
+declare function sc:addAncestorStatesToEnter($states ,
+                                             $ancestor ,
+                                             $statesToEnter ,
+                                             $statesForDefaultEntry ,
+                                             $cont, $historyContent) {
+                                               
+                                               
   let $properAncestors :=
     for $s in $states return sc:getProperAncestors($s, $ancestor)
   
+  let $test := fn:trace($properAncestors, 'ancestor')
   let $results :=
     if (fn:empty($properAncestors)) then $cont($statesToEnter, $statesForDefaultEntry,$historyContent)
     else sc:foldAncestorStatesToEnter ($properAncestors,
@@ -990,7 +1011,7 @@ declare function sc:isInternalTransition($transition as element()) as xs:boolean
   fn:exists($transition/@type='internal')
 };
 
-declare function sc:getTransitionDomain($transition as element()) as element() {
+declare function sc:getTransitionDomain($transition as element()) {
   let $targetStates := sc:getEffectiveTargetStates($transition)
   let $sourceState :=  sc:getSourceState($transition) 
   
@@ -1003,7 +1024,7 @@ declare function sc:getTransitionDomain($transition as element()) as element() {
     else sc:findLCCA(($sourceState, $targetStates))
 };
 
-declare function sc:getTransitionDomainTrans($transition as element()) as element() {
+declare function sc:getTransitionDomainTrans($transition as element()){
   let $targetStates := sc:getEffectiveTargetStates($transition)
   let $sourceState :=  sc:getSourceStateTrans($transition) 
   
@@ -1017,9 +1038,24 @@ declare function sc:getTransitionDomainTrans($transition as element()) as elemen
 };
 
 
-declare function sc:findLCCA($states as element()*) as element() {
+declare function sc:getTransitionDomainTransExit($transition as element()){
+  let $targetStates := sc:getEffectiveTargetStates($transition)
+  let $sourceState :=  sc:getSourceStateTrans($transition) 
+  
+  return
+    if (empty($targetStates)) then ()
+    else if (sc:isInternalTransition($transition) and
+             sc:isCompoundState($sourceState) and 
+             (every $s in $targetStates satisfies sc:isDescendant($s, $sourceState)))
+      then $sourceState
+    else sc:findLCCA(($sourceState, $targetStates))
+};
+
+
+
+declare function sc:findLCCA($states as element()*) {
   let $ancestorsOfHead := 
-    sc:getProperAncestors(fn:head($states))
+    sc:getProperAncestors(fn:head($states))[sc:isCompoundState(.)]
   
   let $tail := fn:tail($states)
   
@@ -1031,6 +1067,9 @@ declare function sc:findLCCA($states as element()*) as element() {
     )[1]
   
   return $lcca
+  
+  
+  
 };
 
 declare function sc:isDescendant($state1 as element(),
@@ -1039,11 +1078,11 @@ declare function sc:isDescendant($state1 as element(),
 };
 
 declare function sc:getProperAncestors($state as element()) as element()* {
-  fn:reverse($state/ancestor::*)
+  fn:reverse($state/ancestor::*[sc:scxml or sc:state or sc:parallel or sc:history])
 };
 
-declare function sc:getProperAncestors($state as element(),
-                                       $upTo  as element()) as element()* {
+declare function sc:getProperAncestors($state,
+                                       $upTo ) {
   fn:reverse($state/ancestor::*[$upTo << .])
 };
 

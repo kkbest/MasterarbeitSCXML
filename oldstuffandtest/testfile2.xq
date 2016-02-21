@@ -9,91 +9,109 @@ import module namespace sync = 'http://www.dke.jku.at/MBA/Synchronization';
 declare variable $dbName := 'myMBAse';
 declare variable $collectionName := 'JohannesKeplerUniversity';
 declare variable $mbaName := 'InformationSystems';
+declare variable $transType := 'internal';
 
 
-declare function local:mult($x, $y)
-{
-  $x * $y
-};
+let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+let $scxml := mba:getSCXML($mba)
 
-
-declare function local:runExecutableContentuA($mba,$content)
-  {
-(:declare variable $dbName external;
-declare variable $collectionName external;
-declare variable $mbaName external;
-declare variable $content external;
-
-let $mba   := mba:getMBA($dbName, $collectionName, $mbaName) :)
-
-copy $copymba := $mba
-modify 
-(
-  let $scxml := mba:getSCXML($copymba)
-
-let $configuration := mba:getConfiguration($copymba)
+let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
-return
- typeswitch($content)
-    case element(sc:assign) return 
-      sc:assign($dataModels, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*)
-    default return ()
-)
-return $copymba
-};
+
+let $currentEvent := mba:getCurrentEvent($mba)
+
+let $eventName    :=
+$currentEvent/name
 
 
-let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
-  let $removeInsertedMBA := kk:removeFromInsertLog($mba)
-  let $queue := mba:getExternalEventQueue($removeInsertedMBA)
-  let $nextEvent := ($queue/event)[1]
-  let $nextEventName := <name xmlns="">{fn:string($nextEvent/@name)}</name>
-  let $nextEventData := <data xmlns="">{$nextEvent/*}</data>
-  let $currentEvent := mba:getCurrentEvent($removeInsertedMBA)
-  let $removedMba :=  kk:removeCurrentEventoU($removeInsertedMBA)
-  let $insertMba := kk:insertcurrentEventoU($removedMba,$queue,$nextEvent,$nextEventName,$nextEventData,$currentEvent)
-  let $currentEmba := kk:dequeueExternalEvent1($insertMba)
- 
- let $executableContent :=  kk:getExecutableContents($currentEmba)
-  let $executableContent1 :=  kk:getExecutableContents($currentEmba)[1]
+let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+let $scxml := mba:getSCXML($mba)
+
+let $configuration := mba:getConfiguration($mba)
+let $dataModels := sc:selectDataModels($configuration)
+
+
+let $transitions := 
+ mba:getCurrentTransitionsQueue($mba)/transitions/*
   
-(:  
-   let $foldresults := fold-left(?, $currentEmba, function($content, $mba){ fn:trace(local:runExecutableContentuA($mba, $content), "info")})
-   
-   let $test1 := fold-left(?, $currentEmba, function($mba, $content){ fn:trace(local:runExecutableContentuA($mba, $content), "help")})
-:)
+let $contents :=
+  for $t in $transitions
+    return $t/*
+    
+    
+let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+let $scxml := mba:getSCXML($mba)
 
-
- let $todo :=  fold-left(?, $currentEmba, function($mba, $content){ fn:trace($content), "trace"})
- let $scxml := mba:getSCXML($currentEmba)
-
-let $configuration := mba:getConfiguration($currentEmba)
+let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 
+let $currentEvent := mba:getCurrentEvent($mba)
 
-let $expression :=
-    if (not( $executableContent/@expr) or  $executableContent/@expr = '') 
-    then '() '
-    else  $executableContent/@expr
-    
-let $locations := $executableContent/@location 
+let $eventName    :=
+$currentEvent/name
 
+let $event := $eventName
+let $transitions := 
 
-let $from-digits := fold-left(?, 0,  function($d, $n) {fn:trace( 10 * $n + $d) }
-)
+ if (fn:empty($event)) then 
+  ()
+ else
+  let $atomicStates :=
+    $configuration[sc:isAtomicState(.)]
+  
+  let $dataBindings :=
+    for $dataModel in $dataModels
+      for $data in $dataModel/sc:data
+        return map:entry($data/@id, $data)
+  
+  let $declare :=
+    for $dataModel in $dataModels
+      for $data in $dataModel/sc:data
+        return 
+          'declare variable $' || $data/@id || ' external; '
+        
+  let $enabledTransitions :=
+    for $state in $atomicStates 
+      return ('hallo',$state, sc:getProperAncestors($state))
 
-let $newValues := $expression
-
-
-return (
- $currentEmba
-)
-(:    
-
-
-    
-    $from-digits(1 to 5)
- 
-  $test1($executableContent1)
-)
-return $executableContent :)
+      
+      
+  return $enabledTransitions
+    return $transitions
+  
+  
+  (: let $transitions :=
+        
+        
+         for $t in $s/sc:transition
+         let $evaluation := try
+         {
+            xquery:eval(scx:importModules() ||
+                        fn:string-join($declare) || 
+                        scx:builtInFunctionDeclarations() ||
+                       'return ' || $t/@cond, 
+                       map:merge($dataBindings))
+         } 
+         catch *
+         {
+           fn:false()
+         }
+         return
+         
+         if((sc:matchesEventDescriptors(
+                             $event,
+                             fn:tokenize($t/@event, '\s')
+                           ) and (not($t/@cond) or
+                                 $evaluation )) )then 
+                           $t
+                       
+                           
+                           else
+                           ()
+                            
+      return $transitions[1]
+  
+  return sc:removeConflictingTransitions($configuration,$enabledTransitions)
+  
+  
+  :)
