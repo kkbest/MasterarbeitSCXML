@@ -1019,7 +1019,7 @@ declare function sc:getTransitionDomainTrans($transition as element()) as elemen
 
 declare function sc:findLCCA($states as element()*) as element() {
   let $ancestorsOfHead := 
-    sc:getProperAncestors(fn:head($states))
+    sc:getProperAncestors(fn:head($states))[self::sc:scxml or sc:isCompoundState(.)]
   
   let $tail := fn:tail($states)
   
