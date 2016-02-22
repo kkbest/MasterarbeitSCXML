@@ -338,7 +338,7 @@ declare function sc:selectEventlessTransitions($configuration as element()*,
       
         return $transitions
   
-  return sc:removeConflictingTransitions($configuration, reverse($enabledTransitions))
+  return sc:removeConflictingTransitions($configuration, ($enabledTransitions))
 };
 
 declare function sc:selectTransitions($configuration as element()*,
@@ -397,7 +397,7 @@ declare function sc:selectTransitions($configuration as element()*,
                             
       return $transitions[1]
   
-  return sc:removeConflictingTransitions($configuration, reverse($enabledTransitions))
+  return sc:removeConflictingTransitions($configuration, ($enabledTransitions))
 };
 
 declare function sc:removeConflictingTransitions($configuration as element()*,
@@ -419,7 +419,7 @@ declare function sc:removeConflictingTransitions($configuration as element()*,
             (fn:remove($filteredTransitions, 
                        functx:index-of-node($filteredTransitions, $t2)), $t1)
           ) 
-          else ()
+          else $filteredTransitions
         )        
         else ($filteredTransitions, $t1)
       
@@ -441,6 +441,20 @@ declare function sc:computeExitSet($configuration as element()*,
   return $statesToExit
 };
 
+declare function sc:computeExitSet2($configuration as element()*,
+                                   $transitions as element()*) {
+  let $statesToExit := 
+    for $t in $transitions 
+      let $domain := sc:getTransitionDomainExit($t)
+      return if (not (fn:empty($domain))) then 
+      for $s in $configuration
+        return if (sc:isDescendant($s, $domain)) then $s else ()
+       
+       else
+       ()
+  return $statesToExit
+};
+
 
 declare function sc:computeExitSetTrans($configuration as element()*,
                                    $transitions as element()*) as element()*{
@@ -450,6 +464,19 @@ declare function sc:computeExitSetTrans($configuration as element()*,
       for $s in $configuration
         return if (sc:isDescendant($s, $domain)) then $s else ()
   
+  return $statesToExit
+};
+
+declare function sc:computeExitSetTrans2($configuration as element()*,
+                                   $transitions as element()*){
+  let $statesToExit := 
+    for $t in $transitions 
+      let $domain := sc:getTransitionDomainTransExit($t)
+       return if (not (fn:empty($domain))) then 
+      for $s in $configuration
+        return if (sc:isDescendant($s, $domain)) then $s else ()
+  else
+  ()
   return $statesToExit
 };
 
@@ -1003,12 +1030,40 @@ declare function sc:getTransitionDomain($transition as element()) as element() {
     else sc:findLCCA(($sourceState, $targetStates))
 };
 
+
+declare function sc:getTransitionDomainExit($transition as element()) as element()? {
+  let $targetStates := sc:getEffectiveTargetStates($transition)
+  let $sourceState :=  sc:getSourceState($transition) 
+  
+  return
+    if (empty($targetStates)) then () 
+    else if (sc:isInternalTransition($transition) and
+             sc:isCompoundState($sourceState) and 
+             (every $s in $targetStates satisfies sc:isDescendant($s, $sourceState)))
+      then $sourceState
+    else sc:findLCCA(($sourceState, $targetStates))
+};
+
+
 declare function sc:getTransitionDomainTrans($transition as element()) as element() {
   let $targetStates := sc:getEffectiveTargetStates($transition)
   let $sourceState :=  sc:getSourceStateTrans($transition) 
   
   return
     if (empty($targetStates)) then ($sourceState) 
+    else if (sc:isInternalTransition($transition) and
+             sc:isCompoundState($sourceState) and 
+             (every $s in $targetStates satisfies sc:isDescendant($s, $sourceState)))
+      then $sourceState
+    else sc:findLCCA(($sourceState, $targetStates))
+};
+
+declare function sc:getTransitionDomainTransExit($transition as element()) as element()? {
+  let $targetStates := sc:getEffectiveTargetStates($transition)
+  let $sourceState :=  sc:getSourceStateTrans($transition) 
+  
+  return
+    if (empty($targetStates)) then ()
     else if (sc:isInternalTransition($transition) and
              sc:isCompoundState($sourceState) and 
              (every $s in $targetStates satisfies sc:isDescendant($s, $sourceState)))

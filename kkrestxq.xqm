@@ -335,10 +335,11 @@ declare
 (: maybee some inital Things:)
 (: move Forward to Eventless Transitions :)
 
-kk:enterStates($dbName,$collectionName,$mbaName,'init')
+kk:enterStates($dbName,$collectionName,$mbaName,'init'), 
+db:output(<respones> asdfasdf </respones>)
 
-,  db:output(<rest:forward>{fn:concat('/startProcess/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) 
-
+(: ,  db:output(<rest:forward>{fn:concat('/startProcess/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) 
+:)
 };
 
 
