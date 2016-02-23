@@ -671,6 +671,8 @@ declare updating function mba:init($mba as element()) {
   let $scxml := mba:getSCXML($mba)
   let $initialStates := sc:getInitialStates($scxml)
   
+  
+  let $insertotherdm := $scxml//*
   return (
   
   if (not ($scxml/sc:datamodel)) then 

@@ -77,7 +77,17 @@ declare updating function sc:assign($dataModels as element()*,
                                     $expression as xs:string?,
                                     $type       as xs:string?,
                                     $attribute  as xs:string?,
-                                    $nodelist   as node()*) {  
+                                    $nodelist   as node()*, 
+                                  $dbName  as xs:string,
+                                   $collectionName as xs:string,
+                                    $mbaName as xs:string
+                                ) {  
+           
+  
+   
+  try
+  {        
+  
   let $dataBindings :=
     for $dataModel in $dataModels
       for $data in $dataModel/sc:data
@@ -97,6 +107,10 @@ declare updating function sc:assign($dataModels as element()*,
     else $expression
   
   return
+
+  
+           
+           
     xquery:update(
       scx:importModules() ||
       fn:string-join($declare) ||
@@ -139,6 +153,23 @@ declare updating function sc:assign($dataModels as element()*,
         )
       ), map:merge(($dataBindings, map:entry('nodelist', $nodelist)))
     )
+  }
+  catch *
+  
+  {
+    
+     
+   
+    let $mbtest   := 'mba:getMBA( "' || $dbName || '" ,"' || $collectionName || '","' || $mbaName || '") '
+   return 
+    xquery:update(
+      scx:importModules() ||
+      ' let $event := <event name="error.execution" xmlns=""></event> '  ||
+      'let $mba := '|| $mbtest || '
+      return mba:enqueueInternalEvent($mba,$event)')
+      
+  }
+  
 };
 
 
@@ -669,7 +700,7 @@ declare function sc:addDescendantStatesToEnter($states                as element
   4. add AncestorSTatetoEnter
   :)
   
-
+  let $test := fn:trace($states[1],"stateToCheck")
   let $results :=
     if (fn:empty($states)) then
    $cont($statesToEnter, $statesForDefaultEntry, $historyContent)
@@ -757,7 +788,7 @@ declare function sc:addDescendantStatesToEnter($states                as element
         $states[position() > 1], ($statesToEnter, $states[1]), $statesForDefaultEntry, $cont,$historyContent
       )
     else if (sc:isCompoundState($states[1])) then
-       
+        let $test := fn:trace($states[1],"compound")
        let $initialStates := sc:getInitialStates($states[1])
        return sc:addDescendantStatesToEnter(
          $initialStates[1], 
@@ -914,14 +945,23 @@ declare function sc:isInFinalState($state,$configuration,$entrySet)
 };
 
 declare function sc:getInitialStates($state) as element()* {
+  
+  let $states :=
   if ($state/@initial) then 
     for $s in fn:tokenize($state/@initial, '\s')
       return $state//*[@id = $s]
   else (
     for $transition in $state/sc:initial/sc:transition
       return  sc:getTargetStates($transition)
-
   )
+  let $test := fn:trace($states,"initial")
+  return if (fn:empty($states)) then 
+  let $test := fn:trace($state/sc:state[1],"otherinitial")
+  return
+  $state/sc:state[1]
+  else 
+  $states
+  
 };
 
 declare function sc:getHistoryStates($state) as element()*
@@ -1162,6 +1202,8 @@ declare function sc:getSpecializedTransitions($transition as element(),
         
       ( (not(@cond) and not($transition/@cond)) or 
         (@cond = '' and $transition/@cond = '') or 
+        
+        
         not($transition/@cond) or $transition/@cond = '' or
         @cond = $transition/@cond or
         fn:matches(@cond, '^' || 

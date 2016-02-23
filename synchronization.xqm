@@ -143,12 +143,17 @@ declare updating function sync:assignAncestor($mba        as element(),
   let $configuration := mba:getConfiguration($ancestor)
   let $dataModels := sc:selectDataModels($configuration)
   
+  
+  let $dbName := mba:getDatabaseName($mba)
+  let $collectionName := mba:getCollectionName($mba)
+  let  $mbaName := $mba/@name
+
   return sc:assign($dataModels, 
                    $location, 
                    $expression, 
                    $type, 
                    $attribute, 
-                   $nodelist)
+                   $nodelist, $dbName, $collectionName, $mbaName)
 };
 
 (:~
@@ -226,12 +231,17 @@ declare updating function sync:assignDescendants($mba        as element(),
   for $descendant in $filtered
     let $configuration := mba:getConfiguration($descendant)
     let $dataModels := sc:selectDataModels($configuration)
+      
+  let $dbName := mba:getDatabaseName($mba)
+  let $collectionName := mba:getCollectionName($mba)
+  let  $mbaName := $mba/@name
+  
       return sc:assign($dataModels, 
                        $location, 
                        $expression, 
                        $type, 
                        $attribute, 
-                       $nodelist)
+                       $nodelist, $dbName, $collectionName, $mbaName)
 };
 
 declare updating function sync:newDescendant(

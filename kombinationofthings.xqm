@@ -280,9 +280,9 @@ return
     
     if (not(fn:empty($dataModels/sc:data[@id=substring($content/@location,2)]))) then 
      (:  sc:selectDataModels($configuration)/sc:data[@id="degree"] :)
-      sc:assign($dataModels, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*)
+      sc:assign($dataModels, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*, $dbName, $collectionName, $mbaName)
       else
-           let $event := <event name="error" xmlns=""></event>           
+           let $event := <event name="error.execution" xmlns=""></event>           
            return mba:enqueueInternalEvent($mba,$event)
     case element(sync:assignAncestor) return
       sync:assignAncestor($mba, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*, $content/@level)
@@ -713,7 +713,7 @@ let $transitions :=
  mba:getCurrentTransitionsQueue($mba)/transitions/*
   
 let $entrySet  := if($type = 'init') then
-map:get(sc:computeEntryInit($scxml),'statesToEnter')
+map:get(sc:computeEntryInit($scxml)[1],'statesToEnter')
 else 
 if (not (fn:empty(sc:computeEntry($transitions)))) then 
  map:get(sc:computeEntry($transitions)[1],'statesToEnter')
@@ -730,7 +730,11 @@ if (sc:isFinalState($state)) then
    let $parent:= $state/parent::*
    let $grandparent := $parent/parent::*
    let $eventname := "done.state." || $parent/@id
-   let $event := <event name="{$eventname}">  </event> (:TODO donedata:)
+
+    let $doneData := for $data in $state/sc:donedata/*
+                     return <data> {fn:string( $data/@expr)}</data>
+   let $event := <event name="{$eventname}">{$doneData} </event> (:TODO donedata:)
+
 
    return 
      if(sc:isParallelState($grandparent)) then 
