@@ -439,6 +439,12 @@ declare function mba:getCurrentTransitionsQueue($mba as element()) as node()* {
 
 
 
+declare function mba:getStatesToInvokeQueue($mba as element()) as node()* {
+  let $scxml := mba:getSCXML($mba)
+  return $scxml/sc:datamodel/sc:data[@id = '_x']/statesToInvoke
+};
+
+
 declare function mba:getHistory($mba as element()) {
   let $scxml := mba:getSCXML($mba)
   
@@ -504,6 +510,38 @@ else
 };
 
 :)
+
+
+declare updating function mba:addstatesToInvoke($mba   as element(), 
+                                                   $entrySet as element()*) {
+  let $queue := mba:getStatesToInvokeQueue($mba)
+  
+  let $entrySet := 
+  for $s in $entrySet 
+  return 
+  <state ref="{$s/@id}"></state>
+  return
+    
+
+insert node $entrySet into $queue
+
+};
+
+
+
+declare updating function mba:removestatesToInvoke($mba   as element(), 
+                                                   $exitSet as element()*) {
+                                                     
+  
+  let $queue := mba:getStatesToInvokeQueue($mba)
+
+  return delete node $queue/state[@ref=$exitSet/@id]
+
+
+};
+
+
+
 declare updating function mba:updatecurrentTransitions($mba   as element(), 
                                                    $transitions ) {
   let $queue := mba:getCurrentTransitionsQueue($mba)

@@ -129,7 +129,7 @@ let $contents :=
     
 
 
-let $exitSet := sc:computeExitSetTrans($configuration,$transitions)
+let $exitSet := reverse(sc:computeExitSetTrans($configuration,$transitions))
 
 
 let $onExit := for $s in $exitSet
@@ -180,81 +180,6 @@ return  ($exitContents,$contents,$entryContents)
 };
 
 
-declare function kk:getExecutableContentsEnter($dbName, $collectionName, $mbaName)
-{
-  
-let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
-let $scxml := mba:getSCXML($mba)
-
-let $currentEvent := mba:getCurrentEvent($mba)
-let $eventName    := $currentEvent/name
-
-let $configuration := mba:getConfiguration($mba)
-let $dataModels := sc:selectDataModels($configuration)
-
-
-let $transitions := 
-  if($eventName) then
-    sc:selectTransitions($configuration, $dataModels, $eventName)
-  else ()
-  
-let $contents :=
-  for $t in $transitions
-    return $t/*
-    
-
-let $entrySet := if (not (fn:empty(sc:computeEntry($transitions)))) then 
- map:get(sc:computeEntry($transitions)[1],'statesToEnter')
- else
- ()
-
-
-let $onentry := $entrySet/sc:onentry/*
-
-
-let $defaultEntrycontent := 
-for $s in $entrySet 
-return $s
-
-
-let $HistoryContent := 
-for $s in $entrySet 
-return 
-if(fn:empty (sc:getHistoryStates($s))) then 
- $s/*
-else
-()
-
-
-return ($onentry,$defaultEntrycontent, $HistoryContent)
-  
-(:
-
- statesToEnter = new OrderedSet()
-    statesForDefaultEntry = new OrderedSet()
-    // initialize the temporary table for default content in history states
-    defaultHistoryContent = new HashTable() 
-    computeEntrySet(enabledTransitions, statesToEnter, statesForDefaultEntry, defaultHistoryContent) 
-   
-    for s in statesToEnter.toList().sort(entryOrder):
-        configuration.add(s)
-        statesToInvoke.add(s)
-        if binding == "late" and s.isFirstEntry:
-            initializeDataModel(datamodel.s,doc.s)
-            s.isFirstEntry = false
-            
-            
-        for content in s.onentry.sort(documentOrder):
-            executeContent(content)
-        if statesForDefaultEntry.isMember(s):
-            executeContent(s.initial.transition)
-        if defaultHistoryContent[s.id]:
-            executeContent(defaultHistoryContent[s.id]) 
-        
- 
- :)
-
-};
 
 
 
@@ -280,8 +205,11 @@ return
     
     if (not(fn:empty($dataModels/sc:data[@id=substring($content/@location,2)]))) then 
      (:  sc:selectDataModels($configuration)/sc:data[@id="degree"] :)
+     let $test := fn:trace('something')
+     return 
       sc:assign($dataModels, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*, $dbName, $collectionName, $mbaName)
       else
+        let $test := fn:trace('someelse')
            let $event := <event name="error.execution" xmlns=""></event>           
            return mba:enqueueInternalEvent($mba,$event)
     case element(sync:assignAncestor) return
@@ -305,9 +233,50 @@ return
      case element(sc:script) return
            () (: TODO: has to be implementent:)
      case element(sc:send) return
-            if(not ($content/@target) and not ($content/@targetexpr)) then 
-
-         let $event := <event name="{$content/@event}" xmlns=""></event>           
+     
+      let $test := fn:trace("sc:send")
+      return 
+      
+       let $eventtext := if (fn:empty($content/@event)) then 
+            if(fn:empty($content/@eventexpr)) then 
+            ()
+            else 
+        sc:eval($content/@eventexpr, $dataModels)
+        else 
+        $content/@event
+ let $location := if (fn:empty($content/@target)) then
+   if(fn:empty($content/@targetexpr)) then 
+            ()
+            else 
+      sc:eval($content/@targetexpr,$dataModels)
+      else
+      $content/@target 
+      
+      
+        let $test := fn:trace($content/sc:param, "params1")
+      let $params :=
+      
+         for $p in $content/sc:param
+         return 
+         element {$p/@name}{sc:eval($p/@expr, $dataModels)}
+       
+       let $test := fn:trace($params, "params")
+       
+         
+         
+         
+      let $eventbody := 
+      ($params, 
+       $content/sc:content/text())
+        
+        let $test := fn:trace($eventbody, "sc:send")
+        
+        
+        
+        return 
+            if(not ($location) or $location = '#_internal') then 
+        let $test := fn:trace($eventtext, "eventText")
+         let $event := <event name="{$eventtext}" xmlns=""> {$eventbody}</event>           
            return mba:enqueueExternalEvent($mba,$event)
         else
         
@@ -321,10 +290,35 @@ return
       case element(sc:cancel) return
            () (: TODO: has to be implementent:)
         case element(sc:if) return
-     () (:TODO has d:)
+     
+let $ifcontent :=  
+if (sc:evaluateCond($content/@cond, $dataModels)) then 
+let $til :=
+if(fn:empty($content/sc:elseif)) then 
+$content/sc:else
+else $content/sc:elseif
+
+let $index := functx:index-of-node($content/*,$til)
+return $content/*[fn:position()<$index]
+else
+(: finde das erste elseif das ok ist. :)
+  let $elseifs := $content/*[self::sc:elseif and sc:evaluateCond(./@cond, $dataModels)][1]
+   return
+ if(not(fn:empty($elseifs))) then 
+ 
+  let $til :=  $elseifs/following-sibling::node()[(self::sc:elseif or self::sc:else)][1]
+  let $index := functx:index-of-node($elseifs/following-sibling::node(),$til)
+return
+ $elseifs/following-sibling::node()[fn:position()<$index]
+ 
+ else
+  $content/*[self::sc:else]/following-sibling::node()
+  for $c in $ifcontent 
+  return  kk:runExecutableContent($dbName, $collectionName, $mbaName , $c)
      
      case element(sc:foreach) return
-           () (: TODO: has to be implementent:)     
+     ()
+            (: TODO: has to be implementent:)     
 
     default return ()
 };
@@ -420,7 +414,7 @@ let $contents :=
     return $t/*
 
 
-let $exitSet :=  sc:computeExitSetTrans($configuration,$transitions)
+let $exitSet :=  reverse(sc:computeExitSetTrans($configuration,$transitions))
 
 
 
@@ -469,22 +463,7 @@ let $exitContents := $onExit
 return  ($exitContents,$contents,$entryContents)
 };
 
-declare function kk:getExecutableContentsEventless($mba)
-{
-let $scxml := mba:getSCXML($mba)
 
-let $configuration := mba:getConfiguration($mba)
-let $dataModels := sc:selectDataModels($configuration)
-
-let $transitions := 
-  sc:selectEventlessTransitions($configuration, $dataModels)
-
-let $contents :=
-  for $t in $transitions
-    return $t/*
-
-return $contents
-};
 
 declare updating function kk:changeCurrentStatusEventless($dbName, $collectionName, $mbaName)
 {
@@ -588,15 +567,6 @@ declare updating function kk:insertnode($mba as element(), $nextEvent, $nextEven
 
 
 
-declare function kk:eventlessTransitions($mba)
-{
-  let $contents := kk:getExecutableContentsEventless($mba)
- (: let $mba := kk:runExecutableContent($mba):) 
-  return $contents
-  
-};
-
-
 
 
 
@@ -685,10 +655,10 @@ else ()
 
 return 
   if (fn:empty(sc:getHistoryStates($h))) then
- insert node <history ref = "{$h/@id}">{$insert}</history> into mba:getHistory($mba)
+ (insert node <history ref = "{$h/@id}">{$insert}</history> into mba:getHistory($mba), mba:removestatesToInvoke($mba,$exitSet))
 
 else
-replace node mba:getHistory($mba)/history[@ref=$h/@id]  with <history ref = "{$h/@id}">{$insert}</history> 
+(replace node mba:getHistory($mba)/history[@ref=$h/@id]  with <history ref = "{$h/@id}">{$insert}</history> , mba:removestatesToInvoke($mba,$exitSet))
 
 
 };
@@ -744,18 +714,18 @@ if (sc:isFinalState($state)) then
           let $parallelEventName := "done.state." || $grandparent/@id
             let $parallelEvent := <event name="{$parallelEventName}">  </event> 
             return
-          (mba:enqueueInternalEvent($mba,$event),mba:enqueueInternalEvent($mba,$parallelEvent))
+          (mba:enqueueInternalEvent($mba,$event),mba:enqueueInternalEvent($mba,$parallelEvent),  mba:addstatesToInvoke($mba,$state))
 
 else
-  mba:enqueueInternalEvent($mba,$event)    
+  (mba:enqueueInternalEvent($mba,$event) , mba:addstatesToInvoke($mba,$state)   )
     
    else
-      mba:enqueueInternalEvent($mba,$event)                 
+   (   mba:enqueueInternalEvent($mba,$event)  ,  mba:addstatesToInvoke($mba,$state)         )      
    
   else
-  ()
+  ( mba:addstatesToInvoke($mba,$state))
 else
-()
+( mba:addstatesToInvoke($mba,$state))
 
 };
 

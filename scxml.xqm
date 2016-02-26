@@ -47,6 +47,40 @@ declare function sc:matchesEventDescriptors($eventName        as xs:string,
  )
 };
 
+
+declare function sc:evaluateCond($cond, $dataModels) as xs:boolean
+{
+  
+  
+
+  let $dataBindings :=
+    for $dataModel in $dataModels
+      for $data in $dataModel/sc:data
+        return map:entry($data/@id, $data)
+  
+  let $declare :=
+    for $dataModel in $dataModels
+      for $data in $dataModel/sc:data
+        return 
+          ' declare variable $' || $data/@id || ' external ;'
+          
+    let $evaluation := try
+         {
+            xquery:eval(scx:importModules() ||
+                        fn:string-join($declare) || 
+                        scx:builtInFunctionDeclarations() ||
+                       'return ' || $cond, 
+                       map:merge($dataBindings))
+         } 
+         catch *
+         {
+           fn:false()
+         }
+         
+         return $evaluation
+         
+};
+
 (:~
  : Selects the data models that are valid in the current configuration.
  : 
@@ -68,6 +102,16 @@ declare function sc:selectDataModels($configuration as element()*)
   
   return ($global, $local)
 };
+
+
+declare function sc:selectAllDataModels($mba as element()*) 
+    as element()* {
+  
+ $mba/*/*/sc:scxml//sc:datamodel
+
+};
+
+
 
 (:~
  : 
@@ -159,7 +203,7 @@ declare updating function sc:assign($dataModels as element()*,
   {
     
      
-   
+    let $test := fn:trace($err:code,$err:description)
     let $mbtest   := 'mba:getMBA( "' || $dbName || '" ,"' || $collectionName || '","' || $mbaName || '") '
    return 
     xquery:update(
@@ -323,17 +367,7 @@ declare function sc:selectEventlessTransitions($configuration as element()*,
   let $atomicStates :=
     $configuration[sc:isAtomicState(.)]
     
-  let $dataBindings :=
-    for $dataModel in $dataModels
-      for $data in $dataModel/sc:data
-        return map:entry($data/@id, $data)
-  
-  let $declare :=
-    for $dataModel in $dataModels
-      for $data in $dataModel/sc:data
-        return 
-          'declare variable $' || $data/@id || ' external; '
-      
+       
   let $enabledTransitions :=
     for $state in $atomicStates 
       let $transitions :=  
@@ -343,18 +377,12 @@ declare function sc:selectEventlessTransitions($configuration as element()*,
         
         
          for $t in $s/sc:transition
-         let $evaluation := try
-         {
-            xquery:eval(scx:importModules() ||
-                        fn:string-join($declare) || 
-                        scx:builtInFunctionDeclarations() ||
-                       'return ' || $t/@cond, 
-                       map:merge($dataBindings))
-         } 
-         catch *
-         {
-           fn:false()
-         }
+         
+         
+         let $evaluation := 
+         
+         sc:evaluateCond($t/@cond, $dataModels)
+       
          return
          
          if(((not($t/@event) or $t/@event = '')  and (not($t/@cond) or $t/@cond = '' or
