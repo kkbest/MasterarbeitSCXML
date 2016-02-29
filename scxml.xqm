@@ -208,7 +208,7 @@ declare updating function sc:assign($dataModels as element()*,
    return 
     xquery:update(
       scx:importModules() ||
-      ' let $event := <event name="error.execution" xmlns=""></event> '  ||
+      ' let $event := <event name="error.execution"  type="platform" xmlns=""></event> '  ||
       'let $mba := '|| $mbtest || '
       return mba:enqueueInternalEvent($mba,$event)')
       
@@ -285,7 +285,10 @@ declare updating function sc:getValue($dataModels as element()*,
  return insert node $newNode into $l) '
         ), map:merge(($dataBindings, map:entry('nodelist', $nodelist)))
       
-    )    
+    ) 
+    
+    
+       
 };
 
 
@@ -293,8 +296,15 @@ declare updating function sc:getValue($dataModels as element()*,
 
 declare updating function sc:log($dataModels as element()*,
                                     $expression as xs:string?,
+                                    $label as xs:string?,
                                     $nodelist   as node()*,
-                                    $id ) {  
+                                    $id,
+                                     $dbName, $collectionName, $mbaName ) {  
+  
+  
+   try
+  { 
+  
   let $dataBindings :=
     for $dataModel in $dataModels
       for $data in $dataModel/sc:data
@@ -311,7 +321,7 @@ declare updating function sc:log($dataModels as element()*,
   let $expression :=
     if (not($expression) or $expression = '') 
     then '() '
-    else $expression
+    else sc:eval($expression,$dataModels)
    
   
   let $location := '$_x/' ||'response'
@@ -323,7 +333,7 @@ declare updating function sc:log($dataModels as element()*,
       scx:builtInFunctionDeclarations() ||
       'let $locations := ' || $location || ' ' || (
       if ($expression) then
-        'let $newValues :=  <log>' || $expression || ' </log> '
+        'let $newValues :=  <log>' ||$label || $expression || ' </log> '
       else 
         'let $newValues := $nodelist ' 
       ) ||
@@ -355,7 +365,22 @@ declare updating function sc:log($dataModels as element()*,
         ), map:merge(($dataBindings, map:entry('nodelist', $nodelist)))
       
     )
+   }
+   catch *
+  
+  {
     
+     
+    let $test := fn:trace($err:code,$err:description)
+    let $mbtest   := 'mba:getMBA( "' || $dbName || '" ,"' || $collectionName || '","' || $mbaName || '") '
+   return 
+    xquery:update(
+      scx:importModules() ||
+      ' let $event := <event name="error.execution" type="platform" xmlns=""></event> '  ||
+      'let $mba := '|| $mbtest || '
+      return mba:enqueueInternalEvent($mba,$event)')
+      
+  }
 };
 
 
@@ -945,18 +970,24 @@ declare function sc:foldAncestorStatesToEnter($states as element()*,
 };
 
 
-declare function sc:isInFinalState($state,$configuration,$entrySet)
+declare function sc:isInFinalState($state,$configuration,$enterState)
 {
   
  
    
     
  if (sc:isCompoundState($state)) then 
-     if(fn:empty(sc:getChildStates($state)[functx:is-node-in-sequence(.,($configuration,$entrySet)) and sc:isFinalState(.)])) then
+ 
+ let $test := fn:trace($state,'state')
+ return
+     if(fn:empty(sc:getChildStates($state)[functx:is-node-in-sequence(.,($configuration,$enterState)) and sc:isFinalState(.)])) then
+      let $test := fn:trace($state,'compound')
+      return
       fn:false()
     else
      fn:true()
   else if (sc:isParallelState($state)) then
+  let $test := fn:trace($state,'parallel')
   let $allinFinalState := sc:getChildStates($state)
            where every $childState in sc:getChildStates($state)
            satisfies sc:isFinalState($childState)
