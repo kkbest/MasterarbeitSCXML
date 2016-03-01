@@ -654,12 +654,22 @@ declare updating function mba:loadNextExternalEvent($mba as element()) {
   let $queue := mba:getExternalEventQueue($mba)
   let $nextEvent := ($queue/event)[1]
   let $nextEventName := <name xmlns="">{fn:string($nextEvent/@name)}</name>
+   let $nextEventType := <type xmlns="">{fn:string($nextEvent/@type)}</type>
+  let $nextEventSendid := <sendid xmlns="">{fn:string($nextEvent/@sendid)}</sendid>
+  let $nextEventOrigin := <origin xmlns="">{fn:string($nextEvent/@origin)}</origin>
+  let $nextOriginType := <origintype xmlns="">{fn:string($nextEvent/@origintype)}</origintype>
+  let $nextInvokeid := <invokeid xmlns="">{fn:string($nextEvent/@invokeid)}</invokeid>
   let $nextEventData := <data xmlns="">{$nextEvent/*}</data>
   let $currentEvent := mba:getCurrentEvent($mba)
   
   return (
     mba:removeCurrentEvent($mba),
     if ($nextEvent) then insert node $nextEventName into $currentEvent else (),
+     if ($nextEvent) then insert node $nextEventType into $currentEvent else (),
+    if ($nextEvent) then insert node $nextEventSendid into $currentEvent else (),
+    if ($nextEvent) then insert node $nextEventOrigin into $currentEvent else (),
+    if ($nextEvent) then insert node $nextOriginType into $currentEvent else (),
+    if ($nextEvent) then insert node $nextInvokeid into $currentEvent else (),
     if ($nextEvent) then insert node $nextEventData into $currentEvent else (),
     mba:dequeueExternalEvent($mba)
   )
@@ -679,6 +689,11 @@ declare updating function mba:loadNextInternalEvent($mba as element()) {
   let $queue := mba:getInternalEventQueue($mba)
   let $nextEvent := ($queue/event)[1]
   let $nextEventName := <name xmlns="">{fn:string($nextEvent/@name)}</name>
+  let $nextEventType := <type xmlns="">{fn:string($nextEvent/@type)}</type>
+  let $nextEventSendid := <sendid xmlns="">{fn:string($nextEvent/@sendid)}</sendid>
+  let $nextEventOrigin := <origin xmlns="">{fn:string($nextEvent/@origin)}</origin>
+  let $nextOriginType := <origintype xmlns="">{fn:string($nextEvent/@origintype)}</origintype>
+  let $nextInvokeid := <invokeid xmlns="">{fn:string($nextEvent/@invokeid)}</invokeid>
   let $nextEventData := <data xmlns="">{$nextEvent/*}</data>
 let $counter := 
 if(fn:empty( mba:getCurrentEvent($mba)/data/id/text())) then 
@@ -691,6 +706,11 @@ else
   return (
     mba:removeCurrentEvent($mba),
     if ($nextEvent) then insert node $nextEventName into $currentEvent else (),
+    if ($nextEvent) then insert node $nextEventType into $currentEvent else (),
+    if ($nextEvent) then insert node $nextEventSendid into $currentEvent else (),
+    if ($nextEvent) then insert node $nextEventOrigin into $currentEvent else (),
+    if ($nextEvent) then insert node $nextOriginType into $currentEvent else (),
+    if ($nextEvent) then insert node $nextInvokeid into $currentEvent else (),
     if ($nextEvent) then insert node $nextEventData into $currentEvent else (),
     mba:dequeueInternalEvent($mba)
   )
@@ -718,9 +738,10 @@ declare updating function mba:init($mba as element()) {
   ( insert node
    <sc:datamodel>
     <sc:data id = "_event"/> 
-    <sc:data id = "_sessionid"/> 
-      <sc:data id = "_name">  {$scxml/@name} </sc:data>
-       <sc:data id = "_ioprocessors"/>  
+    <sc:data id = "_sessionid">{generate-id($mba)} </sc:data>
+      <sc:data id = "_name">  {$scxml/@name/data()} </sc:data>
+       <sc:data id = "_ioprocessors">{'http://www.w3.org/TR/scxml/#SCXMLEventProcessor'}
+        </sc:data>
        
       <sc:data id = "_x">
           <db xmlns="">{mba:getDatabaseName($mba)}</db>
@@ -744,7 +765,7 @@ declare updating function mba:init($mba as element()) {
    ( 
    
    if (not ($scxml/sc:datamodel/sc:data[@id = '_sessionid'])) then
-      insert node <sc:data id = "_sessionid"></sc:data> into $scxml/sc:datamodel
+      insert node <sc:data id = "_sessionid">{generate-id($mba)}</sc:data> into $scxml/sc:datamodel
     else (),
     
    if (not ($scxml/sc:datamodel/sc:data[@id = '_event'])) then
@@ -752,11 +773,11 @@ declare updating function mba:init($mba as element()) {
     else (),
     
    if (not ($scxml/sc:datamodel/sc:data[@id = '_name'])) then
-      insert node <sc:data id = "_name">{$scxml/@name} </sc:data> into $scxml/sc:datamodel
+      insert node <sc:data id = "_name">{$scxml/@name/data()} </sc:data> into $scxml/sc:datamodel
     else (),
     
     if (not ($scxml/sc:datamodel/sc:data[@id = '_ioprocessors'])) then
-      insert node <sc:data id = "_ioprocessors"/> into $scxml/sc:datamodel
+      insert node <sc:data id = "_ioprocessors">{'http://www.w3.org/TR/scxml/#SCXMLEventProcessor'}</sc:data> into $scxml/sc:datamodel
     else (),
     if (not ($scxml/sc:datamodel/sc:data[@id = '_x'])) then
       insert node 
@@ -836,6 +857,24 @@ else if($d/@src)  then
            return mba:enqueueInternalEvent($mba,$event), insert node <data id="{$d/@id}">{$err:code}</data> into $scxml/sc:datamodel, delete node $d
            
          })
+         
+else if($d/@systemsrc)  then
+(try
+         {
+           let $value :=  sc:eval($d/@systemsrc,$dataModels)/text()
+                     
+           let $test := fn:trace("hallo")
+           return insert node <data id="{$d/@id}">{$value} </data> into $scxml/sc:datamodel, delete node $d
+            
+         } 
+         catch *
+         {
+            let $test := fn:trace("hallo2")
+            let $event := <event name="error.execution" xmlns=""></event>           
+           return mba:enqueueInternalEvent($mba,$event), insert node <data id="{$d/@id}">{$err:code}</data> into $scxml/sc:datamodel, delete node $d
+           
+         })         
+         
 else
 ()
                 

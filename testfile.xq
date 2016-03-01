@@ -17,4 +17,4 @@ let $scxml := mba:getSCXML($mba)
 let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 
-return   $mba
+return $mba

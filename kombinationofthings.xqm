@@ -257,7 +257,7 @@ return
         return 
             if(not ($location) or $location = '#_internal') then 
         let $test := fn:trace($eventtext, "eventText")
-         let $event := <event name="{$eventtext}" type="internal" xmlns=""> {$eventbody}</event>           
+         let $event := <event name="{$eventtext}" type="external" xmlns=""> {$eventbody}</event>           
            return mba:enqueueExternalEvent($mba,$event)
         else
         

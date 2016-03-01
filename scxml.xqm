@@ -131,7 +131,8 @@ declare updating function sc:assign($dataModels as element()*,
    
   try
   {        
-  
+      let $test := fn:trace("try")
+
   let $dataBindings :=
     for $dataModel in $dataModels
       for $data in $dataModel/sc:data
@@ -139,7 +140,7 @@ declare updating function sc:assign($dataModels as element()*,
   
   let $declare :=
     for $dataModel in $dataModels
-      for $data in $dataModel/sc:data
+      for $data in $dataModel/sc:data[not (@id = '_sessionid' or @id = '_name' or  @id = '_sessionid' or @id = '_ioprocessors')]
         return 'declare variable $' || $data/@id || ' external; '
   
   let $declareNodeList :=
@@ -202,7 +203,8 @@ declare updating function sc:assign($dataModels as element()*,
   
   {
     
-     
+         let $test := fn:trace("catchassign")
+
     let $test := fn:trace($err:code,$err:description)
     let $mbtest   := 'mba:getMBA( "' || $dbName || '" ,"' || $collectionName || '","' || $mbaName || '") '
    return 
