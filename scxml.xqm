@@ -43,7 +43,7 @@ declare function sc:matchesEventDescriptors($eventName        as xs:string,
   some $descriptor in $eventDescriptors satisfies
   
    ( fn:matches($descriptor || '|' || $eventName ,'^((([a-zA-Z]+)\.\*\|\3\.[a-zA-Z]+)|(\*\|[a-zA-Z]+)|((([a-zA-Z]|\.)+)\|(\6))|(([a-zA-Z]+)\|\10\.[a-zA-Z]+))$')
-     or $eventDescriptors = "*" or     fn:matches($eventName, '^' || $descriptor || '$')
+     or $eventDescriptors = "*" or  $eventName=$descriptor or    fn:matches($eventName, '^' || $descriptor || '$')
  )
 };
 
@@ -140,7 +140,7 @@ declare updating function sc:assign($dataModels as element()*,
   
   let $declare :=
     for $dataModel in $dataModels
-      for $data in $dataModel/sc:data[not (@id = '_sessionid' or @id = '_name' or  @id = '_sessionid' or @id = '_ioprocessors')]
+      for $data in $dataModel/sc:data
         return 'declare variable $' || $data/@id || ' external; '
   
   let $declareNodeList :=
@@ -151,6 +151,8 @@ declare updating function sc:assign($dataModels as element()*,
     then '() '
     else $expression
   
+    let $test := fn:trace($expression,'expression')
+    
   return
 
   
@@ -458,11 +460,7 @@ declare function sc:selectTransitions($configuration as element()*,
          for $t in $s/sc:transition
          let $evaluation := try
          {
-            xquery:eval(scx:importModules() ||
-                        fn:string-join($declare) || 
-                        scx:builtInFunctionDeclarations() ||
-                       'return ' || $t/@cond, 
-                       map:merge($dataBindings))
+            sc:evaluateCond($t/@cond, $dataModels)
          } 
          catch *
          {
@@ -471,7 +469,7 @@ declare function sc:selectTransitions($configuration as element()*,
          return
          
          if((sc:matchesEventDescriptors(
-                             $event,
+                              functx:trim($event),
                              fn:tokenize($t/@event, '\s')
                            ) and (not($t/@cond) or
                                  $evaluation )) )then 

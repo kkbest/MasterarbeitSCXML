@@ -660,6 +660,7 @@ declare updating function mba:loadNextExternalEvent($mba as element()) {
   let $nextOriginType := <origintype xmlns="">{fn:string($nextEvent/@origintype)}</origintype>
   let $nextInvokeid := <invokeid xmlns="">{fn:string($nextEvent/@invokeid)}</invokeid>
   let $nextEventData := <data xmlns="">{$nextEvent/*}</data>
+  let $nextEventData1 := <data xmlns="">{$nextEvent/text()}</data>
   let $currentEvent := mba:getCurrentEvent($mba)
   
   return (
@@ -671,6 +672,7 @@ declare updating function mba:loadNextExternalEvent($mba as element()) {
     if ($nextEvent) then insert node $nextOriginType into $currentEvent else (),
     if ($nextEvent) then insert node $nextInvokeid into $currentEvent else (),
     if ($nextEvent) then insert node $nextEventData into $currentEvent else (),
+      if ($nextEvent) then insert node $nextEventData1 into $currentEvent else (),
     mba:dequeueExternalEvent($mba)
   )
 };
@@ -812,7 +814,7 @@ declare updating function mba:createDatamodel($mba)
   
 let $scxml := mba:getSCXML($mba)
 let $configuration := mba:getConfiguration($mba)
-let $dataModels := sc:selectDataModels($configuration)
+let $dataModels := sc:selectAllDataModels($mba)
 
 let $data :=  $scxml/sc:datamodel/sc:data[not ( functx:is-value-in-sequence(@id, ('_x', '_event'))) ]
 for $d in $data
@@ -830,6 +832,7 @@ if ($d/@expr) then
          catch *
          {
             let $test := fn:trace("hallo2")
+            let $test := fn:trace($err:description,"errdesc")
             let $event := <event name="error.execution" xmlns=""></event>           
            return mba:enqueueInternalEvent($mba,$event), insert node <data id="{$d/@id}"></data> into $scxml/sc:datamodel, delete node $d
            

@@ -184,7 +184,10 @@ return
   typeswitch($content)
     case element(sc:assign) return 
     
-    if (not(fn:empty($dataModels/sc:data[@id=substring($content/@location,2)]))) then 
+    if (not(fn:empty($dataModels/sc:data[@id=substring($content/@location,2)])) and 
+  
+   not ($content/@location = '$_sessionid' or $content/@location  = '$_name' or  $content/@location  = '$_sessionid' or $content/@location  = '$_ioprocessors' or $content/@location = '$_event')
+) then 
      (:  sc:selectDataModels($configuration)/sc:data[@id="degree"] :)
      let $test := fn:trace('something')
      return 
@@ -225,9 +228,20 @@ return
         sc:eval($content/@eventexpr, $dataModels)
         else 
         $content/@event
+ 
+ 
  let $location := if (fn:empty($content/@target)) then
    if(fn:empty($content/@targetexpr)) then 
             ()
+            else 
+      sc:eval($content/@targetexpr,$dataModels)
+      else
+      $content/@target 
+      
+      
+      let $origintype := if (fn:empty($content/@type)) then
+   if(fn:empty($content/@targetexpr)) then 
+            ('http://www.w3.org/TR/scxml/#SCXMLEventProcessor')
             else 
       sc:eval($content/@targetexpr,$dataModels)
       else
@@ -255,18 +269,23 @@ return
         
         
         return 
-            if(not ($location) or $location = '#_internal') then 
+            if(not ($location)) then 
         let $test := fn:trace($eventtext, "eventText")
-         let $event := <event name="{$eventtext}" type="external" xmlns=""> {$eventbody}</event>           
+         let $event := <event name="{$eventtext}" type="external" origintype="{$origintype}" xmlns=""> {$eventbody}</event>           
            return mba:enqueueExternalEvent($mba,$event)
+        else if($location = '#_internal' ) then
+           let $event := <event name="{$eventtext}" type="external" origintype="{$origintype}" xmlns=""> {$eventbody}</event>           
+           return mba:enqueueInternalEvent($mba,$event)
+        
         else
+        ()
         
            
            
            (:TODO :)
      (:can also be a raise:)
             (: see sendDescendants External ?  TODO: has to be implementent:)
-           (: use addEvent:)()
+           (: use addEvent:)
            
       case element(sc:cancel) return
            () (: TODO: has to be implementent:)
