@@ -601,13 +601,24 @@ let $configuration := mba:getConfiguration($mba)
 let $exitSet :=  sc:computeExitSetTrans2($configuration,$transitions)
 
 
+
+let $entrySet := if (not (fn:empty(sc:computeEntry($transitions)))) then 
+ map:get(sc:computeEntry($transitions)[1],'statesToEnter')
+ else
+ ()
+
+
+let $ids := functx:value-intersect($exitSet/@id, $entrySet/@id)
+
+let $exitSet := $exitSet[not (@id=$ids)]
+
+
 let $scxml := mba:getSCXML($mba)
 
 let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectAllDataModels($mba)
 
 return
-
 
 if($transType != 'external') then
 
@@ -626,26 +637,6 @@ if($transType != 'external') then
     ( kk:changeCurrentStatus($mba,(),$exitSet),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
 
 
-
-(:
- if($transType != 'external') then
-
-   ( kk:changeCurrentStatus($dbName,$collectionName,$mbaName),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
-   
-
-  
-   else
-
-  if(fn:empty(sc:selectEventlessTransitions($configuration,$dataModels)) and fn:empty(mba:getInternalEventQueue($mba)/*)) then 
-   
-   kk:changeCurrentStatus($dbName,$collectionName,$mbaName)
-
-
-   
-   else
-    ( kk:changeCurrentStatus($dbName,$collectionName,$mbaName),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
-    
-:)
 
 
  

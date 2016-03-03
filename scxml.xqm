@@ -1218,6 +1218,38 @@ declare function sc:eval($expr       as xs:string,
                      map:merge($dataBindings))
 };
 
+
+
+declare function sc:evalWithError($expr       as xs:string,
+                         $dataModels as element()*) {
+  
+  try
+  {
+  let $dataBindings :=
+    for $dataModel in $dataModels
+      for $data in $dataModel/sc:data
+        return map:entry($data/@id, $data)
+  
+  let $declare :=
+    for $dataModel in $dataModels
+      for $data in $dataModel/sc:data
+        return 'declare variable $' || $data/@id || ' external; '
+      
+  return xquery:eval(fn:string-join($declare) || 
+                     $expr, 
+                     map:merge($dataBindings))
+                   }
+                   catch *
+                   {
+                     
+                     
+                     $err:code
+                   }
+                   
+};
+
+
+
 declare function sc:isSubDescriptorOrEqual($subDescriptor   as xs:string,
                                            $superDescriptor as xs:string) 
     as xs:boolean {

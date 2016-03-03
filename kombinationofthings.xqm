@@ -225,7 +225,7 @@ return
             if(fn:empty($content/@eventexpr)) then 
             ()
             else 
-        sc:eval($content/@eventexpr, $dataModels)
+        sc:evalWithError($content/@eventexpr, $dataModels)
         else 
         $content/@event
  
@@ -234,7 +234,7 @@ return
    if(fn:empty($content/@targetexpr)) then 
             ()
             else 
-      sc:eval($content/@targetexpr,$dataModels)
+      sc:evalWithError($content/@targetexpr,$dataModels)
       else
       $content/@target 
       
@@ -243,23 +243,44 @@ return
    if(fn:empty($content/@targetexpr)) then 
             ('http://www.w3.org/TR/scxml/#SCXMLEventProcessor')
             else 
-      sc:eval($content/@targetexpr,$dataModels)
+      sc:evalWithError($content/@targetexpr,$dataModels)
       else
       $content/@target 
       
+     let $test := fn:trace("sc:vorsupportsType")
+     
+      let $supportsType := 
       
+      if($content/@type = sc:eval('$_ioprocessors',$dataModels) or fn:empty($content/@type)) then 
+      
+     'true'
+      else
+      'err:Special'
+      
+      
+       let $test := fn:trace("sc:nachSupportsType")
         let $test := fn:trace($content/sc:param, "params1")
       let $params :=
       
          for $p in $content/sc:param
          return 
-         element {$p/@name}{sc:eval($p/@expr, $dataModels)}
+         element {$p/@name}{sc:evalWithError($p/@expr, $dataModels)}
        
        let $test := fn:trace($params, "params")
        
          
+      let $error := 
+     
          
-         
+         if (fn:matches(fn:string($location),'^err:')  
+         or fn:matches(fn:string($origintype),'^err:')   
+        or fn:matches(fn:string($params),'^err:')  
+      or fn:matches(fn:string($supportsType),'^err:')  ) then 
+ fn:true()
+else 
+ fn:false()
+ 
+ 
       let $eventbody := 
       ($params, 
        $content/sc:content/text())
@@ -269,7 +290,15 @@ return
         
         
         return 
-            if(not ($location)) then 
+        
+        if ($error) then 
+        (
+         let $event := <event name="error.execution" type="platform" xmlns=""></event>           
+           return mba:enqueueInternalEvent($mba,$event)
+        )
+        else
+        (
+        if(not ($location)) then 
         let $test := fn:trace($eventtext, "eventText")
          let $event := <event name="{$eventtext}" type="external" origintype="{$origintype}" xmlns=""> {$eventbody}</event>           
            return mba:enqueueExternalEvent($mba,$event)
@@ -279,7 +308,7 @@ return
         
         else
         ()
-        
+      )
            
            
            (:TODO :)
