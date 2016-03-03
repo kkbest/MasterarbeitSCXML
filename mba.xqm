@@ -402,7 +402,7 @@ declare function mba:getInternalEventQueue($mba as element()) as element() {
   
   return $scxml/sc:datamodel/sc:data[@id = '_x']/internalEventQueue
 };
-(:
+
 declare function mba:getCurrentEntrySet($mba as element()) as node()* {
   let $scxml := mba:getSCXML($mba)
   
@@ -416,7 +416,7 @@ declare function mba:getCurrentEntryQueue($mba as element()) as node()* {
   return $scxml/sc:datamodel/sc:data[@id = '_x']/currentEntrySet
 };
 
-:)
+
 
 declare function mba:getCurrentExitSet($mba as element()) as node()* {
   let $scxml := mba:getSCXML($mba)
@@ -475,7 +475,7 @@ declare updating function mba:enqueueInternalEvent($mba   as element(),
   )
 };
 
-(:
+
 declare updating function mba:updatecurrentEntrySet($mba   as element(), 
                                                    $entrySet as element()*) {
   let $queue := mba:getCurrentEntryQueue($mba)
@@ -491,7 +491,7 @@ insert node $entrySet into $queue
 else
  replace node $queue with <currentEntrySet xmlns="" > {$entrySet}</currentEntrySet>
 };
-:)
+
 
 declare updating function mba:updateCurrentExitSet($mba   as element(), 
                                                    $exitSet as element()*) {

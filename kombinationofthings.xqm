@@ -162,6 +162,38 @@ return  ($exitContents,$contents)
 
 
 
+declare function kk:getExecutableContentsExit($dbName, $collectionName, $mbaName,$state)
+{
+
+
+let $onExit := for $s in $state
+return $s/sc:onexit/reverse(*)
+
+
+let $exitContents := $onExit
+ 
+
+return  ($exitContents)
+};
+
+
+declare function kk:getExecutableContentsTransitions($dbName, $collectionName, $mbaName)
+{
+
+
+let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+let $transitions := 
+ mba:getCurrentTransitionsQueue($mba)/transitions/*
+  
+let $contents :=
+  for $t in $transitions
+    return $t/*
+    
+
+
+return  ($contents)
+};
+
 
 
 
@@ -695,6 +727,60 @@ return
 
 else
 (replace node mba:getHistory($mba)/history[@ref=$h/@id]  with <history ref = "{$h/@id}">{$insert}</history> , mba:removestatesToInvoke($mba,$exitSet))
+
+
+};
+
+
+
+
+declare updating function kk:exitStatesSingle($dbName,$collectionName,$mbaName,$state, $type)
+{
+  
+  
+  
+let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+let $scxml := mba:getSCXML($mba)
+
+
+
+let $configuration := mba:getConfiguration($mba)
+let $dataModels := sc:selectDataModels($configuration)
+
+
+
+(: remove from States to Invoke:)
+(:TODO Anschauen exitOrder -> reverted Documentorder:)
+(: configuration will be done after enterStates:)
+
+
+
+
+
+for $state in $state
+
+ for $h in $state/sc:history
+  let $insert := 
+  
+  for $i in  $configuration
+  return 
+(:for $h in kk:getStateHistoryNodes($state):)
+if ($h/@type = 'deep') then 
+  if(sc:isDescendant($i,$state) and sc:isAtomicState($i) and not (fn:deep-equal($i,$state))) then
+      <state ref="{$i/@id}"/>
+  else ()
+else
+  if(fn:deep-equal($h/parent::*,$i/parent::*)) then 
+      <state ref="{$i/@id}"/> 
+else ()
+
+
+return 
+  if (fn:empty(sc:getHistoryStates($h))) then
+ (insert node <history ref = "{$h/@id}">{$insert}</history> into mba:getHistory($mba), mba:removestatesToInvoke($mba,$state))
+
+else
+(replace node mba:getHistory($mba)/history[@ref=$h/@id]  with <history ref = "{$h/@id}">{$insert}</history> , mba:removestatesToInvoke($mba,$state))
 
 
 };

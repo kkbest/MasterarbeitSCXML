@@ -347,8 +347,7 @@ declare
 
 kk:enterStates($dbName,$collectionName,$mbaName,'init')
 
- ,  db:output(<rest:forward>{fn:concat('/startProcess/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>)
-
+,  db:output(<rest:forward>{fn:concat('/startProcess/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>)
 
 };
 
@@ -461,7 +460,67 @@ let $exitSet :=  sc:computeExitSet2($configuration,$transitions)
 
 
 return 
-(mba:updateCurrentExitSet($mba,$exitSet),mba:updatecurrentTransitions($mba,$insert), db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counter,$transType), '/' ))}</rest:forward>))
+(mba:updateCurrentExitSet($mba,$exitSet),mba:updatecurrentTransitions($mba,$insert), db:output(<rest:forward>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName, 0, 1, $transType), '/' ))}</rest:forward>))
+
+};
+
+
+
+declare
+  %rest:path("/exitContents/{$dbName}/{$collectionName}/{$mbaName}/{$counterContent}/{$counterExit}/{$transType}")
+  %rest:GET
+  updating function page:exitContents(
+    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $counterContent as xs:integer, $counterExit as xs:integer,  $transType as xs:string)
+{
+  
+ 
+let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+let $scxml := mba:getSCXML($mba)
+
+  
+   let $transitions := 
+ mba:getCurrentTransitionsQueue($mba)/transitions/*
+ 
+ 
+ let $exitSet :=  reverse(mba:getCurrentExitSet($mba))
+ 
+ let $state := $exitSet[$counterExit]
+  
+ let $content :=  kk:getExecutableContentsExit($dbName, $collectionName, $mbaName,$state)
+ 
+ 
+
+ let $max := fn:count($content)
+
+ return
+ if (fn:empty($state)) then 
+  
+ db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,0, $transType), '/' ))}</rest:forward>) 
+
+else
+
+  
+   if ($counterContent = 0 ) then 
+   
+(   mba:removeCurrentStates($mba, $state), kk:exitStatesSingle($dbName,$collectionName,$mbaName,$state,$transType),
+   db:output(<rest:forward>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName, $counterContent+1, $counterExit, $transType), '/' ))}</rest:forward>))
+  
+else if ($counterContent <= $max) then
+  
+  ( kk:executeExecutablecontent($dbName, $collectionName, $mbaName, $content, $counterContent),  db:output(<rest:forward>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName, $counterContent+1, $counterExit, $transType), '/' ))}</rest:forward>))
+ 
+ 
+ else
+ 
+ let $maxStates := fn:count($exitSet)
+ return 
+ if ($counterExit <= $maxStates) then 
+  db:output(<rest:forward>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName,0, $counterExit +1 , $transType), '/' ))}</rest:forward>)
+ else 
+ db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,0, $transType), '/' ))}</rest:forward>) 
+
+ 
+
 
 };
 
@@ -482,7 +541,7 @@ let $scxml := mba:getSCXML($mba)
 
 
 let $content := 
-   kk:getExecutableContents($dbName, $collectionName, $mbaName)
+   kk:getExecutableContentsTransitions($dbName, $collectionName, $mbaName)
 
   
   
@@ -494,7 +553,7 @@ let $counterneu := $counter + 1
 
 return if ($counter = 0) then 
 (
-kk:exitStates($dbName,$collectionName,$mbaName,$transType),
+  (:kk:exitStates($dbName,$collectionName,$mbaName,$transType), :)
    db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counterneu,$transType), '/' ))}</rest:forward>)
 )
 else if ($counter <= $max) then
@@ -502,9 +561,23 @@ else if ($counter <= $max) then
    db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counterneu, $transType), '/' ))}</rest:forward>))
  else
  (: (kk:enterStates($dbName, $collectionName, $mbaName,$transType), :)
-   db:output(<rest:forward>{fn:concat('/enterContents/', string-join(($dbName,$collectionName,$mbaName, 0, 1, $transType), '/' ))}</rest:forward>)
+ 
+      let $transitions := 
+ mba:getCurrentTransitionsQueue($mba)/transitions/*
+ 
+let $entrySet := if (not (fn:empty(sc:computeEntry($transitions)))) then 
+ map:get(sc:computeEntry($transitions)[1],'statesToEnter')
+ else
+ ()
+ 
+ return
+ 
+ ( mba:updatecurrentEntrySet($mba,$entrySet),  db:output(<rest:forward>{fn:concat('/enterContents/', string-join(($dbName,$collectionName,$mbaName, 0, 1, $transType), '/' ))}</rest:forward>))
+   
    
 };
+
+
 
 declare
   %rest:path("/enterContents/{$dbName}/{$collectionName}/{$mbaName}/{$counterContent}/{$counterEntry}/{$transType}")
@@ -522,10 +595,7 @@ let $scxml := mba:getSCXML($mba)
  mba:getCurrentTransitionsQueue($mba)/transitions/*
  
   
-let $entrySet := if (not (fn:empty(sc:computeEntry($transitions)))) then 
- map:get(sc:computeEntry($transitions)[1],'statesToEnter')
- else
- ()
+let $entrySet := mba:getCurrentEntrySet($mba)
 let $historyContent :=  if (not (fn:empty(sc:computeEntry($transitions)))) then 
  map:get(sc:computeEntry($transitions)[1],'historyContent')
  else
@@ -612,6 +682,7 @@ let $ids := functx:value-intersect($exitSet/@id, $entrySet/@id)
 
 let $exitSet := $exitSet[not (@id=$ids)]
 
+let $exitSet := ()
 
 let $scxml := mba:getSCXML($mba)
 
@@ -619,7 +690,8 @@ let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectAllDataModels($mba)
 
 return
-
+()
+(:
 if($transType != 'external') then
 
    ( kk:changeCurrentStatus($mba,(),$exitSet),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
@@ -638,7 +710,7 @@ if($transType != 'external') then
 
 
 
-
+:)
  
     
     
