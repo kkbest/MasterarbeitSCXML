@@ -53,8 +53,8 @@ let $configuration := mba:getConfiguration($mba)
 return
   if (not ($configuration)) then 
   
-
-    mba:addCurrentStates($mba, map:get(sc:computeEntryInit($scxml)[1],'statesToEnter'))
+   mba:updatecurrentEntrySet($mba,map:get(sc:computeEntryInit($scxml)[1],'statesToEnter'))
+   (: mba:addCurrentStates($mba, map:get(sc:computeEntryInit($scxml)[1],'statesToEnter')):)
   else ()
 
 };
@@ -241,6 +241,13 @@ return
     case element(sc:getValue) return
         sc:getValue($dataModels, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*,$counter)
      case element(sc:log) return
+       let $test := fn:trace('sc:log')
+       let $test := fn:trace($content,'sc:logso')
+       let $max := $content/@label
+       let $test := fn:trace($max, 'max')
+       let $test := fn:trace($content/@expr ,'sc:log1')
+        let $test := fn:trace($content/@label,'sc:log2')
+       return
          sc:log($dataModels,$content/@expr,$content/@label, $content/*,$counter,  $dbName, $collectionName, $mbaName)
    case element(sc:raise) return
           let $event := <event name="{$content/@event}" type="internal" xmlns=""></event>           
@@ -762,7 +769,7 @@ for $state in $state
  for $h in $state/sc:history
   let $insert := 
   
-  for $i in  $configuration
+  for $i in  ($configuration,mba:getCurrentExitSet($mba))
   return 
 (:for $h in kk:getStateHistoryNodes($state):)
 if ($h/@type = 'deep') then 
@@ -784,6 +791,8 @@ else
 
 
 };
+
+
 
 
 

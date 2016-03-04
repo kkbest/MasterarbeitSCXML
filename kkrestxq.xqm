@@ -268,7 +268,7 @@ let $url := 'http://pagehost:8984/'
 return
 
  kk:initMBARest($dbName,$collectionName,$mbaName),
- db:output(<rest:forward>{fn:concat('/initSCXML/', string-join(($dbName,$collectionName,$mbaName,0), '/' ))}</rest:forward>)
+ db:output(<rest:redirect>{fn:concat('/initSCXML/', string-join(($dbName,$collectionName,$mbaName,0), '/' ))}</rest:redirect>)
 
 };
 
@@ -288,14 +288,14 @@ if($counter = 0) then
   mba:createDatamodel($mba)
 
 ,
- db:output(<rest:forward>{fn:concat('/initSCXML/', string-join(($dbName,$collectionName,$mbaName,1), '/' ))}</rest:forward>))
+ db:output(<rest:redirect>{fn:concat('/initSCXML/', string-join(($dbName,$collectionName,$mbaName,1), '/' ))}</rest:redirect>))
  else
 
 (
 
   (kk:initSCXMLRest($dbName,$collectionName,$mbaName)
 ,
- db:output(<rest:forward>{fn:concat('/executeInit/', string-join(($dbName,$collectionName,$mbaName,0), '/' ))}</rest:forward>))) 
+ db:output(<rest:redirect>{fn:concat('/executeInit/', string-join(($dbName,$collectionName,$mbaName,0), '/' ))}</rest:redirect>))) 
  
  
 };
@@ -326,10 +326,10 @@ return
 
 if ($icounter <= $max) then  
  ( kk:runExecutableContent($dbName, $collectionName, $mbaName, $content[$icounter]), 
- db:output(<rest:forward>{fn:concat('/executeInit/', string-join(($dbName,$collectionName,$mbaName,$icounterneu), '/' ))}</rest:forward>))
+ db:output(<rest:redirect>{fn:concat('/executeInit/', string-join(($dbName,$collectionName,$mbaName,$icounterneu), '/' ))}</rest:redirect>))
  else
  ( kk:runExecutableContent($dbName, $collectionName, $mbaName, $content[$icounter]), 
- db:output(<rest:forward>{fn:concat('/enterStatesInit/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>))
+ db:output(<rest:redirect>{fn:concat('/enterStatesInit/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:redirect>))
  
   
  
@@ -347,7 +347,7 @@ declare
 
 kk:enterStates($dbName,$collectionName,$mbaName,'init')
 
-,  db:output(<rest:forward>{fn:concat('/startProcess/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>)
+,  db:output(<rest:redirect>{fn:concat('/startProcess/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:redirect>)
 
 };
 
@@ -366,7 +366,7 @@ declare
 (: move Forward to Eventless Transitions :)
 
  kk:removeFromInsertLog($dbName, $collectionName, $mbaName),
-  db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>)
+  db:output(<rest:redirect>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:redirect>)
 
 };
 
@@ -397,12 +397,12 @@ let $internalEvent := mba:getInternalEventQueue($mba)/*
 return
 if(fn:empty($internalEvent)) then
 
-( kk:getNextExternalEvent($dbName, $collectionName, $mbaName),db:output(<rest:forward>{fn:concat('/transitions/', string-join(($dbName,$collectionName,$mbaName,'0','external'), '/' ))}</rest:forward>))
+( kk:getNextExternalEvent($dbName, $collectionName, $mbaName),db:output(<rest:redirect>{fn:concat('/transitions/', string-join(($dbName,$collectionName,$mbaName,'0','external'), '/' ))}</rest:redirect>))
  
 else
-(kk:getNextInternalEvent($dbName, $collectionName, $mbaName), db:output(<rest:forward>{fn:concat('/transitions/', string-join(($dbName,$collectionName,$mbaName,'0','internal'), '/' ))}</rest:forward>))
+(kk:getNextInternalEvent($dbName, $collectionName, $mbaName), db:output(<rest:redirect>{fn:concat('/transitions/', string-join(($dbName,$collectionName,$mbaName,'0','internal'), '/' ))}</rest:redirect>))
 else
-( (), db:output(<rest:forward>{fn:concat('/transitions/', string-join(($dbName,$collectionName,$mbaName,'0', 'eventless'), '/' ))}</rest:forward>))
+( (), db:output(<rest:redirect>{fn:concat('/transitions/', string-join(($dbName,$collectionName,$mbaName,'0', 'eventless'), '/' ))}</rest:redirect>))
 
 
 };
@@ -460,7 +460,7 @@ let $exitSet :=  sc:computeExitSet2($configuration,$transitions)
 
 
 return 
-(mba:updateCurrentExitSet($mba,$exitSet),mba:updatecurrentTransitions($mba,$insert), db:output(<rest:forward>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName, 0, 1, $transType), '/' ))}</rest:forward>))
+(mba:updateCurrentExitSet($mba,$exitSet),mba:updatecurrentTransitions($mba,$insert), db:output(<rest:redirect>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName, 0, 1, $transType), '/' ))}</rest:redirect>))
 
 };
 
@@ -495,7 +495,7 @@ let $scxml := mba:getSCXML($mba)
  return
  if (fn:empty($state)) then 
   
- db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,0, $transType), '/' ))}</rest:forward>) 
+ db:output(<rest:redirect>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,0, $transType), '/' ))}</rest:redirect>) 
 
 else
 
@@ -503,11 +503,11 @@ else
    if ($counterContent = 0 ) then 
    
 (   mba:removeCurrentStates($mba, $state), kk:exitStatesSingle($dbName,$collectionName,$mbaName,$state,$transType),
-   db:output(<rest:forward>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName, $counterContent+1, $counterExit, $transType), '/' ))}</rest:forward>))
+   db:output(<rest:redirect>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName, $counterContent+1, $counterExit, $transType), '/' ))}</rest:redirect>))
   
 else if ($counterContent <= $max) then
   
-  ( kk:executeExecutablecontent($dbName, $collectionName, $mbaName, $content, $counterContent),  db:output(<rest:forward>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName, $counterContent+1, $counterExit, $transType), '/' ))}</rest:forward>))
+  ( kk:executeExecutablecontent($dbName, $collectionName, $mbaName, $content, $counterContent),  db:output(<rest:redirect>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName, $counterContent+1, $counterExit, $transType), '/' ))}</rest:redirect>))
  
  
  else
@@ -515,9 +515,9 @@ else if ($counterContent <= $max) then
  let $maxStates := fn:count($exitSet)
  return 
  if ($counterExit <= $maxStates) then 
-  db:output(<rest:forward>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName,0, $counterExit +1 , $transType), '/' ))}</rest:forward>)
+  db:output(<rest:redirect>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName,0, $counterExit +1 , $transType), '/' ))}</rest:redirect>)
  else 
- db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,0, $transType), '/' ))}</rest:forward>) 
+ db:output(<rest:redirect>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,0, $transType), '/' ))}</rest:redirect>) 
 
  
 
@@ -554,11 +554,11 @@ let $counterneu := $counter + 1
 return if ($counter = 0) then 
 (
   (:kk:exitStates($dbName,$collectionName,$mbaName,$transType), :)
-   db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counterneu,$transType), '/' ))}</rest:forward>)
+   db:output(<rest:redirect>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counterneu,$transType), '/' ))}</rest:redirect>)
 )
 else if ($counter <= $max) then
  (kk:executeExecutablecontent($dbName, $collectionName, $mbaName, $content, $counter),
-   db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counterneu, $transType), '/' ))}</rest:forward>))
+   db:output(<rest:redirect>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counterneu, $transType), '/' ))}</rest:redirect>))
  else
  (: (kk:enterStates($dbName, $collectionName, $mbaName,$transType), :)
  
@@ -572,7 +572,7 @@ let $entrySet := if (not (fn:empty(sc:computeEntry($transitions)))) then
  
  return
  
- ( mba:updatecurrentEntrySet($mba,$entrySet),  db:output(<rest:forward>{fn:concat('/enterContents/', string-join(($dbName,$collectionName,$mbaName, 0, 1, $transType), '/' ))}</rest:forward>))
+ ( mba:updatecurrentEntrySet($mba,$entrySet),  db:output(<rest:redirect>{fn:concat('/enterContents/', string-join(($dbName,$collectionName,$mbaName, 0, 1, $transType), '/' ))}</rest:redirect>))
    
    
 };
@@ -611,9 +611,9 @@ let $historyContent :=  if (not (fn:empty(sc:computeEntry($transitions)))) then
   let $maxStates := fn:count($entrySet)
  return 
  if ($counterEntry < $maxStates) then 
-  db:output(<rest:forward>{fn:concat('/enterContents/', string-join(($dbName,$collectionName,$mbaName,0, $counterEntry +1 , $transType), '/' ))}</rest:forward>)
+  db:output(<rest:redirect>{fn:concat('/enterContents/', string-join(($dbName,$collectionName,$mbaName,0, $counterEntry +1 , $transType), '/' ))}</rest:redirect>)
  else 
- db:output(<rest:forward>{fn:concat('/controller/', string-join(($dbName,$collectionName,$mbaName, $transType), '/' ))}</rest:forward>) 
+ db:output(<rest:redirect>{fn:concat('/controller/', string-join(($dbName,$collectionName,$mbaName, $transType), '/' ))}</rest:redirect>) 
 
 else
 
@@ -621,11 +621,11 @@ else
    if ($counterContent = 0 ) then 
    
 (  kk:enterStatesSingle($dbName,$collectionName,$mbaName,$state),
-   db:output(<rest:forward>{fn:concat('/enterContents/', string-join(($dbName,$collectionName,$mbaName, $counterContent+1, $counterEntry, $transType), '/' ))}</rest:forward>))
+   db:output(<rest:redirect>{fn:concat('/enterContents/', string-join(($dbName,$collectionName,$mbaName, $counterContent+1, $counterEntry, $transType), '/' ))}</rest:redirect>))
   
 else if ($counterContent <= $max) then
   
-  ( kk:executeExecutablecontent($dbName, $collectionName, $mbaName, $content, $counterContent),  db:output(<rest:forward>{fn:concat('/enterContents/', string-join(($dbName,$collectionName,$mbaName, $counterContent+1, $counterEntry, $transType), '/' ))}</rest:forward>))
+  ( kk:executeExecutablecontent($dbName, $collectionName, $mbaName, $content, $counterContent),  db:output(<rest:redirect>{fn:concat('/enterContents/', string-join(($dbName,$collectionName,$mbaName, $counterContent+1, $counterEntry, $transType), '/' ))}</rest:redirect>))
  
  
  else
@@ -633,9 +633,9 @@ else if ($counterContent <= $max) then
  let $maxStates := fn:count($entrySet)
  return 
  if ($counterEntry < $maxStates) then 
-  db:output(<rest:forward>{fn:concat('/enterContents/', string-join(($dbName,$collectionName,$mbaName,0, $counterEntry +1 , $transType), '/' ))}</rest:forward>)
+  db:output(<rest:redirect>{fn:concat('/enterContents/', string-join(($dbName,$collectionName,$mbaName,0, $counterEntry +1 , $transType), '/' ))}</rest:redirect>)
  else 
- db:output(<rest:forward>{fn:concat('/controller/', string-join(($dbName,$collectionName,$mbaName, $transType), '/' ))}</rest:forward>) 
+ db:output(<rest:redirect>{fn:concat('/controller/', string-join(($dbName,$collectionName,$mbaName, $transType), '/' ))}</rest:redirect>) 
 
 
    
@@ -690,11 +690,10 @@ let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectAllDataModels($mba)
 
 return
-()
-(:
+
 if($transType != 'external') then
 
-   ( kk:changeCurrentStatus($mba,(),$exitSet),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
+   ( kk:changeCurrentStatus($mba,(),$exitSet),db:output(<rest:redirect>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:redirect>) )
 
    else
 
@@ -706,11 +705,10 @@ if($transType != 'external') then
    ) )
    
    else
-    ( kk:changeCurrentStatus($mba,(),$exitSet),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
+    ( kk:changeCurrentStatus($mba,(),$exitSet),db:output(<rest:redirect>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:redirect>) )
 
 
 
-:)
  
     
     

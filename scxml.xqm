@@ -323,11 +323,19 @@ declare updating function sc:log($dataModels as element()*,
     'declare variable $nodelist external; '
   
   let $expression :=
-    if (not($expression) or $expression = '') 
+    if (fn:empty($expression) or $expression = '') 
     then '() '
-    else sc:eval($expression,$dataModels)
-   
+    else sc:evalWithError($expression,$dataModels)
+    
+    
+
   
+  
+ let $expression := 
+  if (fn:empty($expression) or (fn:matches(fn:string($expression),'^err:')  )) then 
+  ' '
+  else
+  $expression 
   let $location := '$_x/' ||'response'
   return
     xquery:update(
