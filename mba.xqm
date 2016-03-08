@@ -318,6 +318,34 @@ declare function mba:getCurrentStatus($mba as element()) as element()* {
   return $currentStatus
 };
 
+
+
+
+declare function mba:getRunning($mba as element()) as xs:boolean
+{
+  
+   let $scxml := mba:getSCXML($mba)
+  let $_x := $scxml/sc:datamodel/sc:data[@id = '_x']
+   
+   let $isRunning := if ($_x) then $_x/isRunning
+    else ()
+  
+  return fn:boolean($isRunning)
+  
+};
+
+
+declare updating function mba:updateRunning($mba as element(), $value as xs:boolean)
+{
+  let $running :=    
+  let $scxml := mba:getSCXML($mba)
+  return $scxml/sc:datamodel/sc:data[@id = '_x']/isRunning
+ 
+  return replace node $running with <isRunning>{$value}</isRunning>
+ 
+  
+};
+
 declare function mba:getConfiguration($mba as element()) as element()* {
   let $scxml := mba:getSCXML($mba)
   let $currentStatus := mba:getCurrentStatus($mba)
@@ -442,6 +470,53 @@ declare function mba:getCurrentTransitionsQueue($mba as element()) as node()* {
 declare function mba:getStatesToInvokeQueue($mba as element()) as node()* {
   let $scxml := mba:getSCXML($mba)
   return $scxml/sc:datamodel/sc:data[@id = '_x']/statesToInvoke
+};
+
+declare function mba:getStatesToInvoke($mba as element())
+{
+  
+   let $queue := mba:getStatesToInvokeQueue($mba)/*
+   
+    for $s in $queue[1]/ancestor::sc:scxml//*[@id = $queue/@ref]
+   return $s
+
+};
+
+
+declare updating function mba:deleteStatesToInvokeQueue($mba as element())
+{
+  
+   let $queue := mba:getStatesToInvokeQueue($mba)/*
+   
+  return delete node $queue
+
+};
+
+
+
+declare function mba:getParentInvoke($mba as element()) as node()* {
+  let $scxml := mba:getSCXML($mba)
+  return $scxml/sc:datamodel/sc:data[@id = '_x']/parentInvoke
+};
+
+
+declare updating function mba:setParentInvoke($mba   as element(), 
+                                                   $mbaparent as element()) {
+  let $parentinvoke := mba:getParentInvoke($mba)
+  
+  
+ 
+   
+  let $mbaName :=  $mbaparent/@name
+  let $collectionname := mba:getCollectionName($mbaparent)
+  let $dbName := mba:getDatabaseName($mbaparent)
+  
+  let $text := 'mba:' ||$dbName || ',' || $collectionname ||',' ||$mbaName
+  
+  return (
+    insert node <parent>{$text}</parent> into $parentinvoke,
+    mba:markAsNew($mba)
+  )
 };
 
 
@@ -752,6 +827,8 @@ declare updating function mba:init($mba as element()) {
           <currentStatus xmlns=""/>
           <externalEventQueue xmlns=""/>
           <internalEventQueue xmlns=""/>
+           <isRunning xmlns="">{fn:true()}</isRunning>
+           <parentInvoke xmlns=""/>
          <currentEntrySet xmlns=""/>
          <currentExitSet xmlns=""/>
          <currentTransitions xmlns=""/>
@@ -788,6 +865,8 @@ declare updating function mba:init($mba as element()) {
           <collection xmlns="">{mba:getCollectionName($mba)}</collection>
           <name xmlns="">{fn:string($mba/@name)}</name>
           <currentStatus xmlns=""/>
+          <isRunning xmlns="">{fn:true()}</isRunning>
+           <parentInvoke xmlns=""/>
           <externalEventQueue xmlns=""/>
           <internalEventQueue xmlns=""/>
           <currentEntrySet xmlns=""/>
@@ -798,6 +877,7 @@ declare updating function mba:init($mba as element()) {
                <counter xmlns="">1</counter>
            </response>
           <historyStates xmlns=""/>
+            <parentInvoke xmlns=""/>
         </sc:data>
       into $scxml/sc:datamodel
     else (),

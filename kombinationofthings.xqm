@@ -254,6 +254,9 @@ return
            return mba:enqueueInternalEvent($mba,$event)
    
      case element(sc:script) return
+     
+     
+     
            () (: TODO: has to be implementent:)
      case element(sc:send) return
      
@@ -794,7 +797,7 @@ else
 
 
 
-
+(:
 
 declare updating function kk:enterStates($dbName,$collectionName,$mbaName,$type)
 {
@@ -827,7 +830,7 @@ if (sc:isFinalState($state)) then
   
   if (fn:empty($state/parent::sc:scxml)) then
   
-  
+  (
    let $parent:= $state/parent::*
    let $grandparent := $parent/parent::*
    let $eventname := "done.state." || $parent/@id
@@ -879,14 +882,18 @@ else
     
    else
    (   mba:enqueueInternalEvent($mba,$event)  ,  mba:addstatesToInvoke($mba,$state), kk:initDatamodel($state,$mba)         )      
-   
+ )
+ 
   else
-  ( mba:addstatesToInvoke($mba,$state), kk:initDatamodel($state,$mba))
+  ( mba:addstatesToInvoke($mba,$state), kk:initDatamodel($state,$mba)
+
+
+)
 else
 ( mba:addstatesToInvoke($mba,$state), kk:initDatamodel($state,$mba))
 
 };
-
+:)
 
 
 declare updating function kk:enterStatesSingle($dbName,$collectionName,$mbaName,$state as element())
@@ -1030,7 +1037,9 @@ else
    
   else
   
-  ( mba:addstatesToInvoke($mba,$state), kk:initDatamodel($state,$mba),  mba:addCurrentStates($mba, $state))
+  ( (:TODO set running to false:)
+  
+  mba:updateRunning($mba , fn:false()) ,mba:addstatesToInvoke($mba,$state), kk:initDatamodel($state,$mba),  mba:addCurrentStates($mba, $state))
 else
 ( mba:addstatesToInvoke($mba,$state), kk:initDatamodel($state,$mba),  mba:addCurrentStates($mba, $state))
 
@@ -1105,4 +1114,74 @@ else
  let $test := fn:trace('no latebinding')
  return ()
   
+};
+
+
+declare updating function kk:invokeStates($mba)
+{
+
+let $scxml := mba:getSCXML($mba)
+
+let $configuration := mba:getConfiguration($mba)
+let $dataModels := sc:selectDataModels($configuration)
+
+ 
+  
+  
+    let $states := mba:getStatesToInvoke($mba)
+  
+let $invoke :=  for $s in $states
+  return $s/sc:invoke
+  
+  let $invoke :=  for $s in $states
+  return $s/sc:invoke
+  
+let $src := if (fn:empty($invoke/@src)) then
+   if(fn:empty($invoke/@srcexpr)) then 
+            ()
+            else 
+      sc:evalWithError($invoke/@srcexpr,$dataModels)
+      else
+      $invoke/@src 
+      
+      
+let $type := if (fn:empty($invoke/@type)) then
+   if(fn:empty($invoke/@typeexpr)) then 
+            ()
+            else 
+      sc:evalWithError($invoke/@typeexpr,$dataModels)
+      else
+      $invoke/@type 
+      
+let $id := if (fn:empty($invoke/@id)) then
+   if(fn:empty($invoke/@idlocation)) then 
+            ()
+            else 
+      sc:evalWithError($invoke/@idlocation,$dataModels)
+      else
+      $invoke/@id       
+ 
+ 
+let $mbaData :=  
+           if (fn:substring-before($src, ':') = 'mba') then 
+           
+             let $test := fn:trace("hallofile")
+          return fn:substring-after($src,':')        
+          else()  
+      
+let $mbadata :=fn:tokenize($mbaData, ',')
+return if(fn:empty($mbadata)) then 
+
+()
+else
+
+
+let $insertMba :=  mba:getMBA($mbadata[1],$mbadata[2],$mbadata[3])
+let $event := <event invokeid=""> </event>
+
+(:invoke irgendwas tun das eclipse das aufgreift:)
+
+return mba:setParentInvoke($insertMba,$mba)
+
+
 };

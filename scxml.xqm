@@ -42,7 +42,7 @@ declare function sc:matchesEventDescriptors($eventName        as xs:string,
     as xs:boolean {
   some $descriptor in $eventDescriptors satisfies
   
-   ( fn:matches($descriptor || '|' || $eventName ,'^((([a-zA-Z]+)\.\*\|\3\.[a-zA-Z]+)|(\*\|[a-zA-Z]+)|((([a-zA-Z]|\.)+)\|(\6))|(([a-zA-Z]+)\|\10\.[a-zA-Z]+))$')
+   ( fn:matches($descriptor || '|' || $eventName ,'^((([a-zA-Z]+)\.\*\|\3\.[a-zA-Z]+)|(\*\|[a-zA-Z]+)|((([a-zA-Z]|\.)+)\|(\6))|(([a-zA-Z\.]+)\|\10\.[a-zA-Z]+))$')
      or $eventDescriptors = "*" or  $eventName=$descriptor or    fn:matches($eventName, '^' || $descriptor || '$')
  )
 };
@@ -491,6 +491,55 @@ declare function sc:selectTransitions($configuration as element()*,
   
   return sc:removeConflictingTransitions($configuration, ($enabledTransitions))
 };
+
+
+declare function sc:selectTransitionsoC($configuration as element()*,
+                                      $dataModels as element()*,
+                                      $event
+                                    ) as element()* {
+  
+ if (fn:empty($event)) then 
+  ()
+ else
+  let $atomicStates :=
+    $configuration[sc:isAtomicState(.)]
+  
+  let $dataBindings :=
+    for $dataModel in $dataModels
+      for $data in $dataModel/sc:data
+        return map:entry($data/@id, $data)
+  
+  let $declare :=
+    for $dataModel in $dataModels
+      for $data in $dataModel/sc:data
+        return 
+          'declare variable $' || $data/@id || ' external; '
+        
+  let $enabledTransitions :=
+    for $state in $atomicStates 
+      for $s in ($state, sc:getProperAncestors($state))
+       let $transitions :=
+        
+        
+         for $t in $s/sc:transition
+        
+         return
+         
+         if((sc:matchesEventDescriptors(
+                              functx:trim($event),
+                             fn:tokenize($t/@event, '\s')
+                           ))) then 
+                           $t
+                       
+                           
+                           else
+                           ()
+                            
+      return $transitions[1]
+  
+  return sc:removeConflictingTransitions($configuration, ($enabledTransitions))
+};
+
 
 declare function sc:removeConflictingTransitions($configuration as element()*,
                                                  $transitions as element()*)
