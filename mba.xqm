@@ -545,8 +545,7 @@ declare updating function mba:enqueueInternalEvent($mba   as element(),
   let $queue := mba:getInternalEventQueue($mba)
   
   return (
-    insert node $event into $queue,
-    mba:markAsUpdated($mba)
+    insert node $event into $queue
   )
 };
 
@@ -663,7 +662,7 @@ declare updating function mba:markAsUpdated($mba as element()) {
     $document/mba:collections/mba:collection[@name = $collectionName]
   
   return
-    insert node <mba ref="{$mba/@name}"/> into $collectionEntry/mba:updated
+    insert node <mba:mba ref="{$mba/@name}"/> into $collectionEntry/mba:updated
 };
 
 declare updating function mba:markAsNew($mba as element()) {
@@ -698,11 +697,11 @@ declare updating function mba:removeFromInsertLog($mba as element()) {
   
   let $document := db:open($dbName, 'collections.xml')
   let $collectionEntry := 
-    $document/mba:collections/mba:collection[@ref = $collectionName]
+    $document/mba:collections/mba:collection[@name = $collectionName]
   
   return
     delete node functx:first-node(
-      $collectionEntry/mba:new/mba:mba[@name = $mba/@name]
+      $collectionEntry/mba:new/mba:mba[@ref = $mba/@name]
     )
 };
 
@@ -804,9 +803,18 @@ declare updating function mba:removeCurrentEvent($mba as element()) {
 
 declare updating function mba:init($mba as element()) {
   let $scxml := mba:getSCXML($mba)
-  let $initialStates := sc:getInitialStates($scxml)
   
+  let $dbName := try
+          {mba:getDatabaseName($mba)
+        }
+        catch *
+        {()}
   
+  let $collectionName := try 
+         {mba:getCollectionName($mba)
+        }
+        catch *
+        {()}
   let $insertotherdm := $scxml//*
   return (
   
@@ -821,8 +829,11 @@ declare updating function mba:init($mba as element()) {
         </sc:data>
        
       <sc:data id = "_x">
-          <db xmlns="">{mba:getDatabaseName($mba)}</db>
-          <collection xmlns="">{mba:getCollectionName($mba)}</collection>
+          <db xmlns="">{ $dbName}
+        </db>
+         
+         <collection xmlns="">
+         {$collectionName}</collection>
           <name xmlns="">{fn:string($mba/@name)}</name>
           <currentStatus xmlns=""/>
           <externalEventQueue xmlns=""/>
@@ -861,8 +872,8 @@ declare updating function mba:init($mba as element()) {
     if (not ($scxml/sc:datamodel/sc:data[@id = '_x'])) then
       insert node 
         <sc:data id = "_x">
-          <db xmlns="">{mba:getDatabaseName($mba)}</db>
-          <collection xmlns="">{mba:getCollectionName($mba)}</collection>
+          <db xmlns="">{$dbName}</db>
+          <collection xmlns="">{$collectionName}</collection>
           <name xmlns="">{fn:string($mba/@name)}</name>
           <currentStatus xmlns=""/>
           <isRunning xmlns="">{fn:true()}</isRunning>
@@ -877,7 +888,7 @@ declare updating function mba:init($mba as element()) {
                <counter xmlns="">1</counter>
            </response>
           <historyStates xmlns=""/>
-            <parentInvoke xmlns=""/>
+            
         </sc:data>
       into $scxml/sc:datamodel
     else (),

@@ -96,6 +96,13 @@ let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
 return mba:removeFromInsertLog($mba)
 };
 
+
+declare updating function kk:markAsUpdated($dbName, $collectionName, $mbaName)
+{
+let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
+return mba:markAsUpdated($mba)
+};
+
 declare updating function kk:getNextExternalEvent($dbName,$collectionName,$mbaName)
 {
 let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
@@ -347,7 +354,30 @@ else
         else if($location = '#_internal' ) then
            let $event := <event name="{$eventtext}" type="external" origintype="{$origintype}" xmlns=""> {$eventbody}</event>           
            return mba:enqueueInternalEvent($mba,$event)
+         else if($location = '#_parent' ) then
+         
+         
+        let $src := mba:getParentInvoke($mba)/parent
+  
+  let $mbaData :=  
+             if (fn:substring-before($src, ':') = 'mba') then 
+             
+    
+            fn:substring-after($src,':')        
+            else()  
         
+  let $mbadata :=fn:tokenize($mbaData, ',')
+  return if(fn:empty($mbadata)) then 
+  
+  ()
+  else
+  
+  
+  let $parentmba :=  mba:getMBA($mbadata[1],$mbadata[2],$mbadata[3])
+           
+           let $event := <event name="{$eventtext}" invokeid="{mba:getParentInvoke($mba)/id}" type="external" origintype="{$origintype}" xmlns=""> {$eventbody}</event>           
+           return mba:enqueueExternalEvent($parentmba,$event)
+           
         else
         ()
       )
@@ -1184,4 +1214,207 @@ let $event := <event invokeid=""> </event>
 return mba:setParentInvoke($insertMba,$mba)
 
 
+};
+
+
+declare updating function kk:invokeStateswithNewDb($mba)
+{
+  let $scxml := mba:getSCXML($mba)
+
+let $configuration := mba:getConfiguration($mba)
+let $dataModels := sc:selectDataModels($configuration)
+
+ 
+  
+  let $states := mba:getStatesToInvoke($mba)
+    
+   
+   
+     let $invoke1 :=  for $s in $states
+  return $s/sc:invoke
+  
+  for $stateInvoke in $invoke1 
+  
+
+      
+let $type := if (fn:empty($stateInvoke/@type)) then
+   if(fn:empty($stateInvoke/@typeexpr)) then 
+            ()
+            else 
+      sc:evalWithError($stateInvoke/@typeexpr,$dataModels)
+      else
+      $stateInvoke/@type     
+    
+    
+  
+let $src := if (fn:empty($stateInvoke/@src)) then
+   if(fn:empty($stateInvoke/@srcexpr)) then 
+            ()
+            else 
+      sc:evalWithError($stateInvoke/@srcexpr,$dataModels)
+      else
+      $stateInvoke/@src 
+      
+    
+let $id := if (fn:empty($stateInvoke/@id)) then
+        $stateInvoke/@id   
+        else()
+        
+        
+        
+let $generateId := 
+if (fn:empty($stateInvoke/@idlocation)) then
+
+        ()
+        else
+        fn:generate-id($stateInvoke)
+        
+        
+        let $idInsert := 
+        if(fn:empty($id)) then
+        $generateId
+        else
+        $id    
+      
+    
+    let $autoforwards := $stateInvoke/@autoforward
+ 
+
+
+let $content := 
+if (fn:empty($src)) then 
+$stateInvoke/sc:content/*
+else
+fn:doc($src)
+
+
+
+
+
+let $param := $stateInvoke/sc:param
+
+let $finalize := ()
+
+let $insertMBA := 
+<mba xmlns="http://www.dke.jku.at/MBA" xmlns:sc="http://www.w3.org/2005/07/scxml" xmlns:sync="http://www.dke.jku.at/MBA/Synchronization" hierarchy="simple" name ="invoke">
+ <topLevel name="university">
+    <elements>
+    
+
+         {$content}
+          
+    </elements>
+    </topLevel>
+</mba>
+
+
+
+let $insertMBA :=
+copy $insertMBA := $insertMBA
+modify
+(
+  mba:init($insertMBA)
+)
+return $insertMBA
+
+let $insertMBA :=
+if(not(fn:empty($param))) then 
+copy $insertMBA := $insertMBA
+modify
+(
+  
+  
+   let $dataModels := sc:selectAllDataModels($insertMBA)
+
+
+for $p in $param
+let $data := ($dataModels/sc:data[@id=$p/@name]) 
+return insert node(attribute { 'expr' } { $p/@expr })   into $data
+
+
+
+)
+return $insertMBA
+
+else
+$insertMBA
+
+
+
+let $insertMBA :=
+copy $insertMBA := $insertMBA
+modify
+(
+  let $parentInvoke := mba:getParentInvoke($insertMBA)
+  let $mbaName :=  $mba/@name
+  let $collectionname := mba:getCollectionName($mba)
+  let $dbName := mba:getDatabaseName($mba)
+  let $text := 'mba:' ||$dbName || ',' || $collectionname ||',' ||$mbaName
+
+ return ( insert node <parent>{$text}</parent> into $parentInvoke,
+ insert node <id>{$generateId}</id> into $parentInvoke)
+)
+return $insertMBA
+
+  
+      
+
+let $dbNameNew := 'invoke' || fn:generate-id($insertMBA)  
+
+return 
+      
+      
+  if($type = 'http://www.w3.org/TR/scxml/' or fn:empty($type))
+  then    
+                               
+  (: 
+  let $mbaName :=  $mbaparent/@name
+  let $collectionname := mba:getCollectionName($mbaparent)
+  let $dbName := mba:getDatabaseName($mbaparent)
+  
+  let $text := 'mba:' ||$dbName || ',' || $collectionname ||',' ||$mbaName
+  
+  return (
+    insert node <parent>{$text}</parent> into $parentinvoke,
+    mba:markAsNew($mba)
+  )
+  :)
+  
+  
+    if($insertMBA/@hierarchy = 'simple') then 
+   
+    let $collectionName  := $insertMBA/@name
+    let $fileName        := 'collections/' || $collectionName || '.xml'
+    let $collectionEntry :=
+     
+     
+     <mba:collection name='{$collectionName}' file="{$fileName}" hierarchy="simple">
+        <mba:new> <mba:mba ref="{$insertMBA/@name}"/>
+        </mba:new>
+        <mba:updated/>
+      </mba:collection>
+     let $documenttest        := 
+      <mba:collections>{$collectionEntry} </mba:collections>
+
+ 
+    return (
+      db:create($dbNameNew, ($insertMBA,$documenttest), ( $fileName, 'collections.xml')    ),
+      (if (fn:empty($generateId)) then ()
+      else
+      (
+        let $content := <sc:assign location="{$stateInvoke/@idlocation}"  expr="'{$generateId}'"> </sc:assign>
+        
+        return kk:runExecutableContent(mba:getDatabaseName($mba), mba:getCollectionName($mba), $mba/@name, $content)
+
+         
+          ))
+    )
+   
+     else
+     ()
+ else
+     ()
+
+    
+    
 };

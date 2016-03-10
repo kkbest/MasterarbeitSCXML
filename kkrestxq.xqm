@@ -162,25 +162,105 @@ $content := 'href="../static/start.xsl" type="text/xsl" '
 
 return document {
    processing-instruction {$target} {$content},
-$events 
+
+  <output>
+  {($events,
+ <hidden>
+<dbName>{$dbName}</dbName>
+<collectionName>{$collectionName}</collectionName>
+<mbaName>{$mbaName}</mbaName>
+</hidden>)}
+</output> 
 }
 
 };
 
-(:
-declare %rest:path("change/{$key}")
-  %rest:GET
+
+declare %rest:path("addEventWithName")
+%rest:form-param("dbName","{$dbName}", "(no dbName)")
+%rest:form-param("collectionName","{$collectionName}", "no collectionName")
+%rest:form-param("mbaName","{$mbaName}", "no mbaName")
+%rest:form-param("event","{$event}", "no event")
+  %rest:POST
   function page:change(
-    $key as xs:string)
+    $event as xs:string, $dbName as xs:untypedAtomic*, $collectionName as xs:untypedAtomic*, $mbaName as xs:untypedAtomic*)
     as item()*
 {
+
 let $target := 'xml-stylesheet',
-$content := 'href="../static/change.xsl" type="text/xsl" '
+$content := 'href="../static/event.xsl" type="text/xsl" '
+
+
+
+let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+let $scxml := mba:getSCXML($mba)
+
+let $configuration := mba:getConfiguration($mba)
+let $dataModels := sc:selectAllDataModels($mba)
+
+
+return 
+
+for $eventName in $event
+
+let $transitions := 
+  sc:selectTransitionsoC($configuration, $dataModels, $eventName)
+let $exitSet := sc:computeExitSet2($configuration,$transitions)
+let $entrymap :=sc:computeEntryOc($transitions)
+let $historycontent :=  if (not (fn:empty($entrymap))) then 
+ map:get($entrymap[1],'historyContent')
+ else
+ ()
+let $entrySet := if (not (fn:empty($entrymap))) then 
+ map:get($entrymap[1],'statesToEnter')
+ else
+ ()
+ 
+ let $contentEntry := 
+  for $state in $entrySet
+  return  kk:getExecutableContentsEnter($dbName, $collectionName, $mbaName,$state,$historycontent)
+ let $contentExit :=
+  for $state in $exitSet
+return kk:getExecutableContentsExit($dbName, $collectionName, $mbaName,$state)
+ 
+let $value :=
+(
+$transitions/@cond, $transitions/*/@expr, $contentEntry/@expr, $contentExit/@expr)
+
+let $dataToCheck :=  ($value[contains(.,'$_event')])
+let $values := 
+for $d in $dataToCheck
+let $after :=(substring-after($d,'$_event/data/'))
+let $before := <text>{functx:substring-before-match($after,('/|\s'))} </text>
+return $before
+
+
+let $data := 
+for $d in fn:distinct-values($values)
+return 
+<data> {$d}</data>
 return document {
    processing-instruction {$target} {$content},
- db:open($page:db)/dblp/*[@key = fn:replace($key,'_','/')]
+ element
+ {$event }
+ {
+   <input>
+   {$data}
+ <hidden>
+<dbName>{$dbName}</dbName>
+<collectionName>{$collectionName}</collectionName>
+<mbaName>{$mbaName}</mbaName>
+</hidden>
+  </input>
+ }
+ 
 }
-};:)
+
+
+};
+
+
+
 
 
 
@@ -358,10 +438,11 @@ declare
 {
 
 
-let $url := 'http://pagehost:8984/'
-return
-
- kk:initMBARest($dbName,$collectionName,$mbaName)
+(
+ kk:initMBARest($dbName,$collectionName,$mbaName), kk:removeFromInsertLog($dbName, $collectionName, $mbaName),
+ kk:markAsUpdated($dbName, $collectionName, $mbaName)
+ 
+)
 
 
 };
@@ -379,7 +460,7 @@ if($counter = 0) then
 
   let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
   return (
-  mba:createDatamodel($mba)
+  mba:createDatamodel($mba), kk:removeFromUpdateLog($dbName, $collectionName, $mbaName)
 
 ,
  db:output(<rest:forward>{fn:concat('/initSCXML/', string-join(($dbName,$collectionName,$mbaName,1), '/' ))}</rest:forward>))
@@ -848,7 +929,8 @@ declare
   let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
  
   
-  return (kk:invokeStates($mba),mba:deleteStatesToInvokeQueue($mba), 
+  return (kk:invokeStateswithNewDb($mba)
+  ,mba:deleteStatesToInvokeQueue($mba), 
   db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
   
   (:
@@ -883,7 +965,8 @@ declare
   return (: runExitcontent , cancelInvoke, :)
   if (sc:isFinalState($s)and not (fn:empty($s/parent::*[self::sc:scxml])))  then
   let $name := 'done.invoke.test'
-  let $event := <event name="{$name}"></event>
+  let $invokeid := mba:getParentInvoke($mba)/id
+  let $event := <event invokeid="{$invokeid}"  name="{$name}"></event>
   
   let $src := mba:getParentInvoke($mba)/parent
   
@@ -905,7 +988,8 @@ declare
   
   
 
-  return mba:enqueueExternalEvent($insertMba, $event)
+  return (mba:enqueueExternalEvent($insertMba, $event)
+  , db:drop($dbName))
   
   else
   ()

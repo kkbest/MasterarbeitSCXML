@@ -700,6 +700,83 @@ declare function sc:computeEntry($transitions as element()*) {
 
 
 
+declare function sc:computeEntryOc($transitions as element()*) {
+  if (fn:empty($transitions)) then ()
+  else
+    let $statesToEnterStart := 
+      for $t in $transitions
+        return sc:getTargetStates($t)
+    
+    let $stateLists :=
+      map:merge((
+        map:entry('statesToEnter', ()),
+        map:entry('statesForDefaultEntry', ()),
+         map:entry('historyContent',())  
+      ))
+      
+    let $addDescendants := fn:fold-left(?, $stateLists,
+      function($stateListsResult, $s) {
+        let $statesToEnter := 
+          map:get($stateListsResult, 'statesToEnter')
+        let $statesForDefaultEntry := 
+          map:get($stateListsResult, 'statesForDefaultEntry')
+           let $historyContent := 
+          map:get($stateListsResult, 'historyContent')  
+          
+        let $f := function($statesToEnter, $statesForDefaultEntry,$historyContent) { 
+          map:merge((
+            map:entry('statesToEnter', $statesToEnter),
+            map:entry('statesForDefaultEntry', $statesForDefaultEntry),
+         map:entry('historyContent',$historyContent)  
+          ))
+        }
+        
+        return
+          sc:addDescendantStatesToEnter($s, $statesToEnter, $statesForDefaultEntry, $f, $historyContent)
+      }
+    )
+    
+    let $stateLists := $addDescendants($statesToEnterStart)
+   
+    let $stateLists := 
+      (
+       for $t in $transitions
+         let $ancestor := sc:getTransitionDomain($t)
+         let $addAncestors := fn:fold-left(?, $stateLists,
+           function($stateListsResult, $s) {
+             let $statesToEnter := 
+               map:get($stateListsResult, 'statesToEnter')
+             let $statesForDefaultEntry := 
+               map:get($stateListsResult, 'statesForDefaultEntry')
+                let $historyContent := 
+          map:get($stateListsResult, 'historyContent')  
+              
+             let $f := function($statesToEnter, $statesForDefaultEntry,$historyContent) { 
+               map:merge((
+                 map:entry('statesToEnter', $statesToEnter),
+                 map:entry('statesForDefaultEntry', $statesForDefaultEntry),
+                 map:entry('historyContent', $historyContent)
+               ))
+             }
+             
+             return
+               sc:addAncestorStatesToEnter($s, $ancestor, $statesToEnter, $statesForDefaultEntry, $f, $historyContent)
+           }
+         )
+         
+         for $s in sc:getTargetStates($t)
+           return $addAncestors($s)
+      )
+    
+    let $statesToEnter := 
+      if (not (fn:empty($stateLists))) then $stateLists
+      else ()
+    
+    return $statesToEnter
+};
+
+
+
 declare function sc:computeEntryInit($scxml) {
 
   let $statesToEnterStart :=   if(fn:empty(sc:getInitialStates($scxml))) then 

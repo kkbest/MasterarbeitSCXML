@@ -15,8 +15,8 @@ declare variable $transType := 'internal';
 let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
 let $mba1   := mba:getMBA($dbName, $collectionName, $mbaName1)
 let $scxml := mba:getSCXML($mba)
-
+let $scxml1 := mba:getSCXML($mba1)
 let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 
-return mba:getSCXML($mba1)
+return $mba
