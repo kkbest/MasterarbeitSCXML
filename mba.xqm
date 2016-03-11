@@ -466,6 +466,12 @@ declare function mba:getCurrentTransitionsQueue($mba as element()) as node()* {
 };
 
 
+declare function mba:getChildInvokeQueue($mba as element()) as node()* {
+  let $scxml := mba:getSCXML($mba)
+  return $scxml/sc:datamodel/sc:data[@id = '_x']/childInvoke
+};
+
+
 
 declare function mba:getStatesToInvokeQueue($mba as element()) as node()* {
   let $scxml := mba:getSCXML($mba)
@@ -526,6 +532,7 @@ declare function mba:getHistory($mba as element()) {
   return if(fn:empty( $scxml/sc:datamodel/sc:data[@id = '_x']/historyStates)) then 
   ()
   else
+  
    $scxml/sc:datamodel/sc:data[@id = '_x']/historyStates
 };
 
@@ -628,6 +635,24 @@ else
  replace node $queue with <currentTransitions xmlns="" > {$transitions}</currentTransitions>
 };
 
+
+
+declare updating function mba:updatechildInvoke($mba   as element(), 
+                                                   $state, $dbName, $collectionName, $mbaName  ) {
+  let $queue := mba:getChildInvokeQueue($mba)
+
+
+ 
+ let $text := 'mba:' ||$dbName || ',' || $collectionName ||',' ||$mbaName
+ 
+let $insert :=  <invoke ref="{$state/@id}">{$text}</invoke>
+
+
+return
+   
+insert node $insert into $queue
+
+};
 
 
 
@@ -814,7 +839,7 @@ declare updating function mba:init($mba as element()) {
          {mba:getCollectionName($mba)
         }
         catch *
-        {()}
+        {'invoke'}
   let $insertotherdm := $scxml//*
   return (
   
@@ -840,6 +865,7 @@ declare updating function mba:init($mba as element()) {
           <internalEventQueue xmlns=""/>
            <isRunning xmlns="">{fn:true()}</isRunning>
            <parentInvoke xmlns=""/>
+            <childInvoke xmlns=""/>
          <currentEntrySet xmlns=""/>
          <currentExitSet xmlns=""/>
          <currentTransitions xmlns=""/>
@@ -878,6 +904,7 @@ declare updating function mba:init($mba as element()) {
           <currentStatus xmlns=""/>
           <isRunning xmlns="">{fn:true()}</isRunning>
            <parentInvoke xmlns=""/>
+            <childInvoke xmlns=""/>
           <externalEventQueue xmlns=""/>
           <internalEventQueue xmlns=""/>
           <currentEntrySet xmlns=""/>

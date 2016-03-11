@@ -1077,6 +1077,51 @@ else
 
 
 
+declare updating function kk:exitInterpreter($dbName,$collectionName,$mbaName)
+
+{ let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+ 
+  let $states := mba:getStatesToInvokeQueue($mba)
+  
+
+  
+  let $configuration := mba:getConfiguration($mba)
+  
+    for $s in $configuration
+    
+  return (: runExitcontent , cancelInvoke, :)
+  if (sc:isFinalState($s)and not (fn:empty($s/parent::*[self::sc:scxml])))  then
+   let $invokeid := mba:getParentInvoke($mba)/id
+  let $name := 'done.invoke' || $invokeid
+
+  let $event := <event invokeid="{$invokeid}"  name="{$name}"></event>
+  
+  let $src := mba:getParentInvoke($mba)/parent
+  
+  let $mbaData :=  
+             if (fn:substring-before($src, ':') = 'mba') then 
+             
+    
+            fn:substring-after($src,':')        
+            else()  
+        
+  let $mbadata :=fn:tokenize($mbaData, ',')
+  return if(fn:empty($mbadata)) then 
+  
+  ()
+  else
+  
+  
+  let $insertMba :=  mba:getMBA($mbadata[1],$mbadata[2],$mbadata[3])
+  
+  
+
+  return (mba:enqueueExternalEvent($insertMba, $event))
+  
+  else
+  ()
+  
+};
 
 
 declare updating function kk:initDatamodel($states,$mba)
@@ -1230,10 +1275,9 @@ let $dataModels := sc:selectDataModels($configuration)
     
    
    
-     let $invoke1 :=  for $s in $states
-  return $s/sc:invoke
-  
-  for $stateInvoke in $invoke1 
+  for $s in $states
+ 
+  for $stateInvoke in $s/sc:invoke
   
 
       
@@ -1257,18 +1301,16 @@ let $src := if (fn:empty($stateInvoke/@src)) then
       
     
 let $id := if (fn:empty($stateInvoke/@id)) then
-        $stateInvoke/@id   
-        else()
+      ()
+        else  $stateInvoke/@id/data()   
         
         
         
 let $generateId := 
-if (fn:empty($stateInvoke/@idlocation)) then
 
-        ()
-        else
-        fn:generate-id($stateInvoke)
-        
+
+        $s/@id || '.' || fn:generate-id($stateInvoke)
+
         
         let $idInsert := 
         if(fn:empty($id)) then
@@ -1352,14 +1394,29 @@ modify
   let $text := 'mba:' ||$dbName || ',' || $collectionname ||',' ||$mbaName
 
  return ( insert node <parent>{$text}</parent> into $parentInvoke,
- insert node <id>{$generateId}</id> into $parentInvoke)
+ insert node <id>{$idInsert}</id> into $parentInvoke)
 )
 return $insertMBA
 
   
       
-
+ 
 let $dbNameNew := 'invoke' || fn:generate-id($insertMBA)  
+
+ 
+  let $insertMBA :=
+copy $insertMBA := $insertMBA
+modify
+(
+  
+  let $dbSave := $insertMBA//*[@id='_x']/db
+  return
+  if(fn:empty($dbSave/text())) then 
+   insert node $dbNameNew into $dbSave
+  else
+  ()
+)
+return $insertMBA
 
 return 
       
@@ -1399,7 +1456,7 @@ return
  
     return (
       db:create($dbNameNew, ($insertMBA,$documenttest), ( $fileName, 'collections.xml')    ),
-      (if (fn:empty($generateId)) then ()
+      (if (fn:empty($stateInvoke/@idlocation)) then ()
       else
       (
         let $content := <sc:assign location="{$stateInvoke/@idlocation}"  expr="'{$generateId}'"> </sc:assign>
@@ -1407,7 +1464,8 @@ return
         return kk:runExecutableContent(mba:getDatabaseName($mba), mba:getCollectionName($mba), $mba/@name, $content)
 
          
-          ))
+          )),
+          mba:updatechildInvoke($mba,$s,$dbNameNew,'invoke','invoke')
     )
    
      else

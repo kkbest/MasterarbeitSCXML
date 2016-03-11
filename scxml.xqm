@@ -42,7 +42,7 @@ declare function sc:matchesEventDescriptors($eventName        as xs:string,
     as xs:boolean {
   some $descriptor in $eventDescriptors satisfies
   
-   ( fn:matches($descriptor || '|' || $eventName ,'^((([a-zA-Z]+)\.\*\|\3\.[a-zA-Z]+)|(\*\|[a-zA-Z]+)|((([a-zA-Z]|\.)+)\|(\6))|(([a-zA-Z\.]+)\|\10\.[a-zA-Z]+))$')
+   ( fn:matches($descriptor || '|' || $eventName ,'^((([a-zA-Z0-9\.]+)\.\*\|\3\.[a-zA-Z0-9\.]+)|(\*\|[a-zA-Z0-9\.]+)|((([a-zA-Z0-9\.]|\.)+)\|(\6))|(([a-zA-Z0-9\.]+)\|\10\.[a-zA-Z0-9\.]+))$')
      or $eventDescriptors = "*" or  $eventName=$descriptor or    fn:matches($eventName, '^' || $descriptor || '$')
  )
 };
@@ -328,7 +328,6 @@ declare updating function sc:log($dataModels as element()*,
     else sc:evalWithError($expression,$dataModels)
     
     
-
   
   
  let $expression := 
