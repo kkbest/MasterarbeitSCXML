@@ -616,7 +616,7 @@ declare updating function mba:removestatesToInvoke($mba   as element(),
   
   let $queue := mba:getStatesToInvokeQueue($mba)
 
-  return delete node $queue/state[@ref=$exitSet/@id]
+return delete node $queue/*[@ref=$exitSet/@id]
 
 
 };
@@ -638,14 +638,14 @@ else
 
 
 declare updating function mba:updatechildInvoke($mba   as element(), 
-                                                   $state, $dbName, $collectionName, $mbaName  ) {
+                                                   $state, $dbName, $collectionName, $mbaName , $id ) {
   let $queue := mba:getChildInvokeQueue($mba)
 
 
  
  let $text := 'mba:' ||$dbName || ',' || $collectionName ||',' ||$mbaName
  
-let $insert :=  <invoke ref="{$state/@id}">{$text}</invoke>
+let $insert :=  <invoke ref="{$state/@id}" id="{$id}">{$text}</invoke>
 
 
 return
@@ -840,6 +840,9 @@ declare updating function mba:init($mba as element()) {
         }
         catch *
         {'invoke'}
+        
+  let $mbaName := fn:string($mba/@name)
+  let $mbaSession := 'mba:' ||$dbName || ',' || $collectionName ||',' ||$mbaName      
   let $insertotherdm := $scxml//*
   return (
   
@@ -848,7 +851,7 @@ declare updating function mba:init($mba as element()) {
   ( insert node
    <sc:datamodel>
     <sc:data id = "_event"/> 
-    <sc:data id = "_sessionid">{generate-id($mba)} </sc:data>
+    <sc:data id = "_sessionid">{$mbaSession} </sc:data>
       <sc:data id = "_name">  {$scxml/@name/data()} </sc:data>
        <sc:data id = "_ioprocessors">{'http://www.w3.org/TR/scxml/#SCXMLEventProcessor'}
         </sc:data>
@@ -859,7 +862,7 @@ declare updating function mba:init($mba as element()) {
          
          <collection xmlns="">
          {$collectionName}</collection>
-          <name xmlns="">{fn:string($mba/@name)}</name>
+          <name xmlns="">{$mbaName}</name>
           <currentStatus xmlns=""/>
           <externalEventQueue xmlns=""/>
           <internalEventQueue xmlns=""/>
@@ -881,7 +884,7 @@ declare updating function mba:init($mba as element()) {
    ( 
    
    if (not ($scxml/sc:datamodel/sc:data[@id = '_sessionid'])) then
-      insert node <sc:data id = "_sessionid">{generate-id($mba)}</sc:data> into $scxml/sc:datamodel
+      insert node <sc:data id = "_sessionid">{$mbaSession}</sc:data> into $scxml/sc:datamodel
     else (),
     
    if (not ($scxml/sc:datamodel/sc:data[@id = '_event'])) then
@@ -932,9 +935,15 @@ declare updating function mba:createDatamodel($mba)
   
 let $scxml := mba:getSCXML($mba)
 let $configuration := mba:getConfiguration($mba)
-let $dataModels := sc:selectAllDataModels($mba)
 
-let $data :=  $scxml/sc:datamodel/sc:data[not ( functx:is-value-in-sequence(@id, ('_x', '_event'))) ]
+let $dataModels :=
+
+if(fn:empty ($configuration)) then 
+sc:selectAllDataModels($mba)
+else 
+ sc:selectDataModels($configuration)
+ 
+let $data :=  $scxml/sc:datamodel/sc:data[not (fn:matches(@id,'^_'))]
 for $d in $data
 
 return 
@@ -951,7 +960,8 @@ if ($d/@expr) then
          {
             let $test := fn:trace("hallo2")
             let $test := fn:trace($err:description,"errdesc")
-            let $event := <event name="error.execution" xmlns=""></event>           
+            let $event := <event name="error.execution" xmlns="">
+            <data>{$err:code,$err:description}</data></event>           
            return mba:enqueueInternalEvent($mba,$event), insert node <data id="{$d/@id}"></data> into $scxml/sc:datamodel, delete node $d
            
          })

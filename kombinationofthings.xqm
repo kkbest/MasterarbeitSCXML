@@ -289,12 +289,12 @@ return
       
       
       let $origintype := if (fn:empty($content/@type)) then
-   if(fn:empty($content/@targetexpr)) then 
+   if(fn:empty($content/@typexpr)) then 
             ('http://www.w3.org/TR/scxml/#SCXMLEventProcessor')
             else 
       sc:evalWithError($content/@targetexpr,$dataModels)
       else
-      $content/@target 
+      $content/@type 
       
      let $test := fn:trace("sc:vorsupportsType")
      
@@ -317,6 +317,23 @@ return
        
        let $test := fn:trace($params, "params")
        
+       
+       let $idlocation :=  (if (fn:empty($content/@idlocation)) then 
+       if(fn:empty($content/@id)) then 
+       ()
+       else($content/@id)
+      else
+      (
+        fn:generate-id($content)))
+        
+        let $idContent := 
+        
+         <sc:assign location="{$content/@idlocation}"  expr="'{
+
+
+        $idlocation }'"> </sc:assign>
+        
+      
          
       let $error := 
      
@@ -330,6 +347,8 @@ else
  fn:false()
  
  
+ let $origin :=  'mba:' ||$dbName || ',' || $collectionName ||',' ||$mbaName
+ 
       let $eventbody := 
       ($params, 
        $content/sc:content/text())
@@ -342,20 +361,48 @@ else
         
         if ($error) then 
         (
-         let $event := <event name="error.execution" type="platform" xmlns=""></event>           
-           return mba:enqueueInternalEvent($mba,$event)
-        )
+         let $event := <event name="error.execution" sendid="{$idlocation}" type="platform" xmlns=""></event>           
+           return (mba:enqueueInternalEvent($mba,$event),
+           
+            if (fn:empty($content/@idlocation)) then ()
+      else
+      (
+         kk:runExecutableContent(mba:getDatabaseName($mba), mba:getCollectionName($mba), $mba/@name, $idContent)
+        )))
         else
         (
         if(not ($location)) then 
-        let $test := fn:trace($eventtext, "eventText")
-         let $event := <event name="{$eventtext}" type="external" origintype="{$origintype}" xmlns=""> {$eventbody}</event>           
-           return mba:enqueueExternalEvent($mba,$event)
-        else if($location = '#_internal' ) then
-           let $event := <event name="{$eventtext}" type="external" origintype="{$origintype}" xmlns=""> {$eventbody}</event>           
-           return mba:enqueueInternalEvent($mba,$event)
-         else if($location = '#_parent' ) then
+        
+        (let $test := fn:trace($eventtext, "eventText")
+         let $event := <event name="{$eventtext}" type="external" sendid="{$idlocation}" origintype="{$origintype}" origin="{$origin}" xmlns=""> {$eventbody}</event>           
+           return (mba:enqueueExternalEvent($mba,$event), 
+           
+            (if (fn:empty($content/@idlocation)) then ()
+      else
+      (
+     
+       kk:runExecutableContent(mba:getDatabaseName($mba), mba:getCollectionName($mba), $mba/@name, $idContent)
+
          
+          )))
+      )
+      
+      else if($location = '#_internal' ) then
+       
+       (    let $event := <event name="{$eventtext}" type="external" sendid="{$idlocation}" origintype="{$origintype}"  origin="{$origin}"  xmlns=""> {$eventbody}</event>           
+           return 
+           (mba:enqueueInternalEvent($mba,$event), (if (fn:empty($content/@idlocation)) then ()
+      else
+      (
+       
+        
+         kk:runExecutableContent(mba:getDatabaseName($mba), mba:getCollectionName($mba), $mba/@name, $idContent)
+
+         
+          )))
+       )
+       else if($location = '#_parent' ) then
+       (  
          
         let $src := mba:getParentInvoke($mba)/parent
   
@@ -369,17 +416,106 @@ else
   let $mbadata :=fn:tokenize($mbaData, ',')
   return if(fn:empty($mbadata)) then 
   
+  (:else if ($location  matches ) :)
   ()
   else
   
   
   let $parentmba :=  mba:getMBA($mbadata[1],$mbadata[2],$mbadata[3])
            
-           let $event := <event name="{$eventtext}" invokeid="{mba:getParentInvoke($mba)/id}" type="external" origintype="{$origintype}" xmlns=""> {$eventbody}</event>           
-           return mba:enqueueExternalEvent($parentmba,$event)
+           let $event := <event name="{$eventtext}" sendid="{$idlocation}" invokeid="{mba:getParentInvoke($mba)/id}" type="external" origintype="{$origintype}"  origin="{$origin}"  xmlns=""> {$eventbody}</event>           
+           return (mba:enqueueExternalEvent($parentmba,$event) , (if (fn:empty($content/@idlocation)) then ()
+      else
+      (
+        kk:runExecutableContent(mba:getDatabaseName($mba), mba:getCollectionName($mba), $mba/@name, $idContent)
+
+         
+          )))
+        
+    )
+    else if (fn:matches($location, '#_scxml_' )) then 
+      (
+        
+       let $mbaData :=
+        
+         fn:substring-after($location,':')
+
+
+  let $mbaData :=fn:tokenize($mbaData, ',')
+  return if(fn:empty($mbaData)) then 
+  
+  ()
+  else
+  
+  
+  let $sendMba :=  mba:getMBA($mbaData[1],$mbaData[2],$mbaData[3])
+  
+  let $event := <event name="{$eventtext}" sendid="{$idlocation}" invokeid="{mba:getParentInvoke($mba)/id}" type="external" origintype="{$origintype}"   origin="{$origin}"  xmlns=""> {$eventbody}</event>           
+           return (mba:enqueueExternalEvent($sendMba,$event) , (if (fn:empty($content/@idlocation)) then ()
+      else
+      (
+        kk:runExecutableContent(mba:getDatabaseName($mba), mba:getCollectionName($mba), $mba/@name, $idContent)
+
+         
+          )))
+
+
+      )
+ 
+ 
+    
+      else if (fn:matches($location, '#_' )) then 
+      (
+        
+       let $mbaData :=
+        
+         fn:substring-after(mba:getChildInvokeQueue($mba)/*[@id=fn:substring($location, 3)]/text(),':')
+
+
+  let $mbaData :=fn:tokenize($mbaData, ',')
+  return if(fn:empty($mbaData)) then 
+  
+  ()
+  else
+  
+  
+  let $sendMba :=  mba:getMBA($mbaData[1],$mbaData[2],$mbaData[3])
+  
+  let $event := <event name="{$eventtext}" sendid="{$idlocation}" invokeid="{mba:getParentInvoke($mba)/id}" type="external" origintype="{$origintype}"  origin="{$origin}"  xmlns="" > {$eventbody}</event>           
+           return (mba:enqueueExternalEvent($sendMba,$event) , (if (fn:empty($content/@idlocation)) then ()
+      else
+      (
+        kk:runExecutableContent(mba:getDatabaseName($mba), mba:getCollectionName($mba), $mba/@name, $idContent)
+
+         
+          )))
+
+
+      )
            
         else
-        ()
+        (  let $mbaData :=
+        
+         fn:substring-after($location,':')
+
+
+  let $mbaData :=fn:tokenize($mbaData, ',')
+  return if(fn:empty($mbaData)) then 
+  
+  ()
+  else
+  
+  
+  let $sendMba :=  mba:getMBA($mbaData[1],$mbaData[2],$mbaData[3])
+  
+  let $event := <event name="{$eventtext}"  sendid="{$idlocation}" invokeid="{mba:getParentInvoke($mba)/id}" type="external" origintype="{$origintype}"   origin="{$origin}"  xmlns=""> {$eventbody}</event>           
+           return (mba:enqueueExternalEvent($sendMba,$event) , (if (fn:empty($content/@idlocation)) then ()
+      else
+      (
+        kk:runExecutableContent(mba:getDatabaseName($mba), mba:getCollectionName($mba), $mba/@name, $idContent)
+
+         
+          ))))
       )
            
            
@@ -1335,7 +1471,13 @@ fn:doc($src)
 
 let $param := $stateInvoke/sc:param
 
-let $finalize := ()
+let $namelist := $stateInvoke/@namelist
+
+let $namelistData := 
+for $n in fn:tokenize($namelist, '\s')
+return 
+(<var name="{$n}">{sc:evalWithError($n,$dataModels)}</var>)
+
 
 let $insertMBA := 
 <mba xmlns="http://www.dke.jku.at/MBA" xmlns:sc="http://www.w3.org/2005/07/scxml" xmlns:sync="http://www.dke.jku.at/MBA/Synchronization" hierarchy="simple" name ="invoke">
@@ -1371,15 +1513,56 @@ modify
 
 for $p in $param
 let $data := ($dataModels/sc:data[@id=$p/@name]) 
-return insert node(attribute { 'expr' } { $p/@expr })   into $data
 
-
+return if (fn:empty($data)) then 
+()
+else
+(
+if(fn:empty($data/@expr)) then 
+insert node(attribute { 'expr' } { $p/@expr })   into $data
+else
+replace value of node $data/@expr with $p/@expr
+)
 
 )
 return $insertMBA
 
 else
 $insertMBA
+
+
+let $insertMBA :=
+if(not(fn:empty($namelistData))) then 
+copy $insertMBA := $insertMBA
+modify
+(
+  
+  
+   let $dataModels := sc:selectAllDataModels($insertMBA)
+
+for $dat in $namelistData
+let $data := if(fn:matches($dat/@name, '^\$'))
+ then 
+  ($dataModels/sc:data[@id=substring($dat/@name,2)])
+ else
+ ($dataModels/sc:data[@id=substring($dat/@name,1)])
+
+return if (fn:empty($data)) then 
+()
+else
+(
+if(fn:empty($data/@expr)) then 
+insert node(attribute { 'expr' } { $dat/data() })   into $data
+else
+replace value of node $data/@expr with $dat/data()
+)
+
+)
+return $insertMBA
+
+else
+$insertMBA
+
 
 
 
@@ -1410,9 +1593,12 @@ modify
 (
   
   let $dbSave := $insertMBA//*[@id='_x']/db
+  let $text := 'mba:' ||$dbNameNew || ',' || 'invoke' ||',' ||'invoke'
   return
   if(fn:empty($dbSave/text())) then 
-   insert node $dbNameNew into $dbSave
+   (insert node $dbNameNew into $dbSave,
+   replace node $insertMBA//*[@id='_sessionid']  with 
+   <sc:data id="_sessionid">{$text}</sc:data> )
   else
   ()
 )
@@ -1421,22 +1607,10 @@ return $insertMBA
 return 
       
       
-  if($type = 'http://www.w3.org/TR/scxml/' or fn:empty($type))
+  if($type = 'http://www.w3.org/TR/scxml/' or $type = 'http://www.w3.org/TR/scxml' or $type = 'scxml' or fn:empty($type))
   then    
                                
-  (: 
-  let $mbaName :=  $mbaparent/@name
-  let $collectionname := mba:getCollectionName($mbaparent)
-  let $dbName := mba:getDatabaseName($mbaparent)
-  
-  let $text := 'mba:' ||$dbName || ',' || $collectionname ||',' ||$mbaName
-  
-  return (
-    insert node <parent>{$text}</parent> into $parentinvoke,
-    mba:markAsNew($mba)
-  )
-  :)
-  
+
   
     if($insertMBA/@hierarchy = 'simple') then 
    
@@ -1465,7 +1639,7 @@ return
 
          
           )),
-          mba:updatechildInvoke($mba,$s,$dbNameNew,'invoke','invoke')
+          mba:updatechildInvoke($mba,$s,$dbNameNew,'invoke','invoke',$idInsert)
     )
    
      else
