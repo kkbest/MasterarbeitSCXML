@@ -556,7 +556,9 @@ let $internalEvent := mba:getInternalEventQueue($mba)/*
 return
 if(fn:empty($internalEvent)) then
 
-( kk:getNextExternalEvent($dbName, $collectionName, $mbaName),db:output(<rest:forward>{fn:concat('/doFinalizeandAutoforward/', string-join(($dbName,$collectionName,$mbaName,0,0), '/' ))}</rest:forward>))
+(
+   kk:getNextExternalEvent($dbName, $collectionName, $mbaName),db:output(<rest:forward>{fn:concat('/doFinalizeandAutoforward/', string-join(($dbName,$collectionName,$mbaName,0,0), '/' ))}</rest:forward>)) 
+
  
 else
 (kk:getNextInternalEvent($dbName, $collectionName, $mbaName), db:output(<rest:forward>{fn:concat('/transitions/', string-join(($dbName,$collectionName,$mbaName,'0','internal'), '/' ))}</rest:forward>))
@@ -583,6 +585,13 @@ let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
  
  return 
  (
+   (if (
+    $currentEvent/type = 'cancel')then 
+     mba:updateRunning($mba , fn:false()) 
+    else
+    () )
+   
+   ,
     for $s in $configuration
     for $inv in $s/sc:invoke
    return
@@ -650,10 +659,13 @@ else
    return (mba:enqueueExternalEvent($insertMba, $event))))
    else())),
  
+
   
 db:output(<rest:forward>{fn:concat('/transitions/', string-join(($dbName,$collectionName,$mbaName,0,'external'), '/' ))}</rest:forward>) )
- 
-  
+
+ (:   
+db:output(fn:concat('/transitions/', string-join(($dbName,$collectionName,$mbaName,0,'external'), '/' )))) 
+  :)
 };
 
 
@@ -994,6 +1006,7 @@ if($transType != 'external') then
 else 
 db:output(<rest:forward>{fn:concat('/exitInterpreter/', string-join(($dbName,$collectionName,$mbaName,0), '/' ))}</rest:forward>)
 
+
 (:
 if($transType != 'external') then
 
@@ -1125,8 +1138,7 @@ else
   
 
   return (mba:enqueueExternalEvent($insertMba, $event)
- , db:drop($dbName)
-)
+ , db:drop($dbName))
 
   else
   ())

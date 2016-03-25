@@ -560,7 +560,7 @@ declare updating function mba:enqueueInternalEvent($mba   as element(),
 declare updating function mba:updatecurrentEntrySet($mba   as element(), 
                                                    $entrySet as element()*) {
   let $queue := mba:getCurrentEntryQueue($mba)
-  
+  let $test := fn:trace($entrySet,"entrySet")
   let $entrySet := 
   for $s in $entrySet 
   return 
@@ -853,7 +853,9 @@ declare updating function mba:init($mba as element()) {
     <sc:data id = "_event"/> 
     <sc:data id = "_sessionid">{$mbaSession} </sc:data>
       <sc:data id = "_name">  {$scxml/@name/data()} </sc:data>
-       <sc:data id = "_ioprocessors">{'http://www.w3.org/TR/scxml/#SCXMLEventProcessor'}
+       <sc:data id = "_ioprocessors">
+       <processor name="{'http://www.w3.org/TR/scxml/#SCXMLEventProcessor'}" xmlns="">
+       <location xmlns="">{$mbaSession}</location></processor>
         </sc:data>
        
       <sc:data id = "_x">
@@ -896,7 +898,11 @@ declare updating function mba:init($mba as element()) {
     else (),
     
     if (not ($scxml/sc:datamodel/sc:data[@id = '_ioprocessors'])) then
-      insert node <sc:data id = "_ioprocessors">{'http://www.w3.org/TR/scxml/#SCXMLEventProcessor'}</sc:data> into $scxml/sc:datamodel
+      insert node <sc:data id = "_ioprocessors">
+       <processor  xmlns="" name="{'http://www.w3.org/TR/scxml/#SCXMLEventProcessor'}">
+       <location  xmlns="">{$mbaSession}</location></processor>
+       <test xmlns = ""> </test>
+        </sc:data> into $scxml/sc:datamodel
     else (),
     if (not ($scxml/sc:datamodel/sc:data[@id = '_x'])) then
       insert node 
@@ -939,11 +945,16 @@ let $configuration := mba:getConfiguration($mba)
 let $dataModels :=
 
 if(fn:empty ($configuration)) then 
-sc:selectAllDataModels($mba)
+sc:selectAllDataModels($mba)[not (./ancestor ::sc:invoke)]
 else 
- sc:selectDataModels($configuration)
+ sc:selectDataModels($configuration)[not (./ancestor ::sc:invoke)]
  
-let $data :=  $scxml/sc:datamodel/sc:data[not (fn:matches(@id,'^_'))]
+ let $data :=  
+if ($scxml/@binding='late' ) then  
+$scxml/sc:datamodel/sc:data[not (fn:matches(@id,'^_'))]
+else
+$scxml//sc:datamodel/sc:data[not (fn:matches(@id,'^_')) and not(./ancestor::sc:invoke)]
+
 for $d in $data
 
 return 
@@ -985,24 +996,28 @@ else if($d/@src)  then
          {
             let $test := fn:trace("hallo2")
             let $event := <event name="error.execution" xmlns=""></event>           
-           return mba:enqueueInternalEvent($mba,$event), insert node <data id="{$d/@id}">{$err:code}</data> into $scxml/sc:datamodel, delete node $d
+           return mba:enqueueInternalEvent($mba,$event), insert node <data id="{$d/@id}">{$err:code}</data> into $d/parent::*, delete node $d
            
          })
          
 else if($d/@systemsrc)  then
 (try
          {
-           let $value :=  sc:eval($d/@systemsrc,$dataModels)/text()
+           let $value := 
+           if(fn:matches($d/@systemsrc, '\$_ioprocessors')) then sc:evalWithError($d/@systemsrc,$dataModels)
+                     else
+                     sc:evalWithError($d/@systemsrc,$dataModels)/text()
+                     
                      
            let $test := fn:trace("hallo")
-           return insert node <data id="{$d/@id}">{$value} </data> into $scxml/sc:datamodel, delete node $d
+           return insert node <data id="{$d/@id}">{$value} </data> into $d/parent::*, delete node $d
             
          } 
          catch *
          {
             let $test := fn:trace("hallo2")
             let $event := <event name="error.execution" xmlns=""></event>           
-           return mba:enqueueInternalEvent($mba,$event), insert node <data id="{$d/@id}">{$err:code}</data> into $scxml/sc:datamodel, delete node $d
+           return mba:enqueueInternalEvent($mba,$event), insert node <data id="{$d/@id}">{$err:code}</data> into $d/parent::*, delete node $d
            
          })         
          

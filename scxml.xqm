@@ -131,6 +131,10 @@ declare updating function sc:assign($dataModels as element()*,
    
   try
   {        
+          let $test := fn:trace($expression,'expression')
+ let $test := fn:trace($nodelist,'nodelist')
+ let $test := fn:trace($location,'location')
+      
       let $test := fn:trace("try")
 
   let $dataBindings :=
@@ -148,7 +152,7 @@ declare updating function sc:assign($dataModels as element()*,
   
   let $expression :=
     if (not($expression) or $expression = '') 
-    then '() '
+    then ()
     else $expression
   
     let $test := fn:trace($expression,'expression')
@@ -159,13 +163,15 @@ declare updating function sc:assign($dataModels as element()*,
            
            
     xquery:update(
+      fn:trace(
       scx:importModules() ||
       fn:string-join($declare) ||
       $declareNodeList ||
       scx:builtInFunctionDeclarations() ||
       'let $locations := ' || $location || ' ' || (
-      if ($expression) then
+      if (not(fn:empty($expression))) then
         'let $newValues := ' || $expression || ' '
+        
       else 
         'let $newValues := $nodelist ' 
       ) ||
@@ -198,7 +204,7 @@ declare updating function sc:assign($dataModels as element()*,
             'let $newNode := copy $c := $emptier modify(insert nodes $newValues into $c) return $c ' ||
             'return replace node $l with $newNode '
         )
-      ), map:merge(($dataBindings, map:entry('nodelist', $nodelist)))
+      )), map:merge(($dataBindings, map:entry('nodelist', $nodelist)))
     )
   }
   catch *
@@ -780,7 +786,7 @@ declare function sc:computeEntryInit($scxml) {
 
   let $statesToEnterStart :=   if(fn:empty(sc:getInitialStates($scxml))) then 
    
-    $scxml//sc:state[1]
+   $scxml//*[self::sc:state or self::sc:final][1]
     else
     sc:getInitialStates($scxml)
     
@@ -1150,7 +1156,7 @@ declare function sc:getInitialStates($state) as element()* {
   return if (fn:empty($states)) then 
   let $test := fn:trace($state/sc:state[1],"otherinitial")
   return
-  $state/sc:state[1]
+     $state//*[self::sc:state or self::sc:final][1]
   else 
   $states
   
@@ -1352,10 +1358,13 @@ declare function sc:eval($expr       as xs:string,
 };
 
 
-
+(:
 declare function sc:evalWithError($expr       as xs:string,
                          $dataModels as element()*) {
-  
+ :) 
+ 
+ declare function sc:evalWithError($expr     ,
+                         $dataModels) {
   try
   {
   let $dataBindings :=

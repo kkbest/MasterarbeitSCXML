@@ -42,8 +42,7 @@ declare updating function kk:initMBARest($dbName,$collectionName,$mbaName as xs:
 
 declare updating function kk:initSCXMLRest($dbName,$collectionName,$mbaName as xs:string)
 {
-  
-  let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+   let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
 let $scxml := mba:getSCXML($mba)
 
 let $configuration := mba:getConfiguration($mba)
@@ -53,9 +52,14 @@ let $configuration := mba:getConfiguration($mba)
 return
   if (not ($configuration)) then 
   
-   mba:updatecurrentEntrySet($mba,map:get(sc:computeEntryInit($scxml)[1],'statesToEnter'))
+  let $entrySet := sc:computeEntryInit($scxml)[1]
+  return
+  if (not(fn:empty($entrySet)))then
+   mba:updatecurrentEntrySet($mba,map:get($entrySet,'statesToEnter'))
+   else()
    (: mba:addCurrentStates($mba, map:get(sc:computeEntryInit($scxml)[1],'statesToEnter')):)
   else ()
+
 
 };
 
@@ -223,17 +227,19 @@ return
   typeswitch($content)
     case element(sc:assign) return 
     
-    if (not(fn:empty($dataModels/sc:data[@id=substring($content/@location,2)])) and 
+    if (
+      
+      ( not(fn:empty($dataModels/sc:data[@id=substring(functx:substring-before-if-contains($content/@location,'/'),2)]))  and 
   
    not ($content/@location = '$_sessionid' or $content/@location  = '$_name' or  $content/@location  = '$_sessionid' or $content/@location  = '$_ioprocessors' or $content/@location = '$_event')
-) then 
+)) then 
      (:  sc:selectDataModels($configuration)/sc:data[@id="degree"] :)
      let $test := fn:trace('something')
      return 
       sc:assign($dataModels, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*, $dbName, $collectionName, $mbaName)
       else
         let $test := fn:trace('someelse')
-           let $event := <event name="error.execution" type="platform" xmlns=""></event>           
+           let $event := <event name="error.execution.ass" type="platform" xmlns=""></event>           
            return mba:enqueueInternalEvent($mba,$event)
     case element(sync:assignAncestor) return
       sync:assignAncestor($mba, $content/@location, $content/@expr, $content/@type, $content/@attr, $content/*, $content/@level)
@@ -300,7 +306,7 @@ return
      
       let $supportsType := 
       
-      if($content/@type = sc:eval('$_ioprocessors',$dataModels) or fn:empty($content/@type)) then 
+   if (   functx:is-value-in-sequence($content/@type,  sc:eval('$_ioprocessors/processor/@name',$dataModels)) or fn:empty($content/@type)) then 
       
      'true'
       else
@@ -340,7 +346,9 @@ return
          
          if (fn:matches(fn:string($location),'^err:')  
          or fn:matches(fn:string($origintype),'^err:')   
-        or fn:matches(fn:string($params),'^err:')  
+        or 
+         (some $p in $params
+         satisfies fn:matches(fn:string($p),'^err:'))
       or fn:matches(fn:string($supportsType),'^err:')  ) then 
  fn:true()
 else 
@@ -361,7 +369,7 @@ else
         
         if ($error) then 
         (
-         let $event := <event name="error.execution" sendid="{$idlocation}" type="platform" xmlns=""></event>           
+         let $event := <event name="error.execution.send" sendid="{$idlocation}" type="platform" xmlns=""></event>           
            return (mba:enqueueInternalEvent($mba,$event),
            
             if (fn:empty($content/@idlocation)) then ()
@@ -494,7 +502,10 @@ else
       )
            
         else
-        (  let $mbaData :=
+        ( 
+         let $test := fn:trace($location, "sc:send in else")
+         
+          let $mbaData :=
         
          fn:substring-after($location,':')
 
@@ -505,8 +516,31 @@ else
   ()
   else
   
+ 
   
-  let $sendMba :=  mba:getMBA($mbaData[1],$mbaData[2],$mbaData[3])
+  let $sendMba :=
+  try
+  {  mba:getMBA($mbaData[1],$mbaData[2],$mbaData[3])
+}
+catch *
+{
+  $err:code
+}
+      let $test := fn:trace($sendMba, "sc:send sendMBA") 
+        return 
+        
+        if ((fn:matches(fn:string($sendMba),'^err:') ) or (fn:matches(fn:string($sendMba),'^bxerr:') )) then 
+        (
+         let $event := <event name="error.communication.send" sendid="{$idlocation}" type="platform" xmlns=""></event>           
+           return (mba:enqueueInternalEvent($mba,$event),
+           
+            if (fn:empty($content/@idlocation)) then ()
+      else
+      (
+         kk:runExecutableContent(mba:getDatabaseName($mba), mba:getCollectionName($mba), $mba/@name, $idContent)
+        )))
+        else
+        
   
   let $event := <event name="{$eventtext}"  sendid="{$idlocation}" invokeid="{mba:getParentInvoke($mba)/id}" type="external" origintype="{$origintype}"   origin="{$origin}"  xmlns=""> {$eventbody}</event>           
            return (mba:enqueueExternalEvent($sendMba,$event) , (if (fn:empty($content/@idlocation)) then ()
@@ -932,9 +966,10 @@ let $dataModels := sc:selectDataModels($configuration)
 
 
 
-
 for $state in $state
 
+ return
+ (
  for $h in $state/sc:history
   let $insert := 
   
@@ -950,14 +985,56 @@ else
       <state ref="{$i/@id}"/> 
 else ()
 
-
 return 
   if (fn:empty(sc:getHistoryStates($h))) then
- (insert node <history ref = "{$h/@id}">{$insert}</history> into mba:getHistory($mba), mba:removestatesToInvoke($mba,$state))
+ (insert node <history ref = "{$h/@id}">{$insert}</history> into mba:getHistory($mba))
 
 else
-(replace node mba:getHistory($mba)/history[@ref=$h/@id]  with <history ref = "{$h/@id}">{$insert}</history> , mba:removestatesToInvoke($mba,$state))
+(replace node mba:getHistory($mba)/history[@ref=$h/@id]  with <history ref = "{$h/@id}">{$insert}</history> )
+,
 
+(
+  
+  
+  try
+  {
+let $srcChild:= mba:getChildInvokeQueue($mba)/invoke[@ref=$state/@id
+]
+
+
+for $src in $srcChild
+let $mbaData :=  
+             if (fn:substring-before($src, ':') = 'mba') then 
+             
+    
+            fn:substring-after($src,':')        
+            else()  
+        
+  let $mbadata :=fn:tokenize($mbaData, ',')
+  return if(fn:empty($mbadata)) then 
+  
+  ()
+  else
+  
+  
+  let $insertMba :=  mba:getMBA($mbadata[1],$mbadata[2],$mbadata[3])
+  let $sendid := 'mba:' ||$dbName || ',' || $collectionName ||',' ||$mbaName
+  let $cancelEvent := <event type="cancel" name="cancel" sendid="{$sendid}"> </event>
+
+ return
+  
+  
+  mba:enqueueExternalEvent($insertMba,$cancelEvent)
+}
+
+catch *
+{
+()  
+}
+
+)
+, mba:removestatesToInvoke($mba,$state)
+)
 
 };
 
@@ -1289,7 +1366,7 @@ if ($d/@expr) then
          catch *
          {
             let $test := fn:trace("hallo2")
-            let $event := <event name="error.execution" type="platform" xmlns=""></event>           
+            let $event := <event name="error.execution.initDb" type="platform" xmlns=""></event>           
            return mba:enqueueInternalEvent($mba,$event), insert node <data id="{$d/@id}"></data> into $s/sc:datamodel, delete node $d
            
          })
@@ -1312,7 +1389,7 @@ else if($d/@src)  then
          catch *
          {
             let $test := fn:trace("hallo2")
-            let $event := <event name="error.execution" type="platform" xmlns=""></event>           
+            let $event := <event name="error.execution.initDbsrc" type="platform" xmlns=""></event>           
            return mba:enqueueInternalEvent($mba,$event), insert node <data id="{$d/@id}"></data> into $scxml/sc:datamodel, delete node $d
            
          })
@@ -1463,8 +1540,26 @@ let $content :=
 if (fn:empty($src)) then 
 $stateInvoke/sc:content/*
 else
-fn:doc($src)
+   if (fn:substring-before($src, ':') = 'file') then 
+     fn:doc($src)
+   else
+   $src  
 
+
+let $content := 
+if (fn:empty($src)) then 
+if(fn:empty($stateInvoke/sc:content/@expr)) then 
+$stateInvoke/sc:content/*
+else
+(
+  
+  sc:evalWithError(($stateInvoke/sc:content/@expr),$dataModels))                   
+
+else
+   if (fn:substring-before($src, ':') = 'file') then 
+    fn:doc(fn:substring-after($src,':'))
+   else
+   $src  
 
 
 
@@ -1649,4 +1744,122 @@ return
 
     
     
+};
+
+
+
+
+declare  function kk:TESTinvokeStateswithNewDb($mba)
+{
+  let $scxml := mba:getSCXML($mba)
+
+let $configuration := mba:getConfiguration($mba)
+let $dataModels := sc:selectDataModels($configuration)
+
+ 
+  
+  let $states := mba:getStatesToInvoke($mba)
+    
+   
+   
+  for $s in $states
+ 
+  for $stateInvoke in $s/sc:invoke
+  
+
+      
+let $type := if (fn:empty($stateInvoke/@type)) then
+   if(fn:empty($stateInvoke/@typeexpr)) then 
+            ()
+            else 
+      sc:evalWithError($stateInvoke/@typeexpr,$dataModels)
+      else
+      $stateInvoke/@type     
+    
+    
+  
+let $src := if (fn:empty($stateInvoke/@src)) then
+   if(fn:empty($stateInvoke/@srcexpr)) then 
+            ()
+            else 
+      sc:evalWithError($stateInvoke/@srcexpr,$dataModels)
+      else
+      $stateInvoke/@src 
+      
+    
+let $id := if (fn:empty($stateInvoke/@id)) then
+      ()
+        else  $stateInvoke/@id/data()   
+        
+        
+        
+let $generateId := 
+
+
+        $s/@id || '.' || fn:generate-id($stateInvoke)
+
+        
+        let $idInsert := 
+        if(fn:empty($id)) then
+        $generateId
+        else
+        $id    
+      
+    
+    let $autoforwards := $stateInvoke/@autoforward
+ 
+
+
+let $content := 
+if (fn:empty($src)) then 
+$stateInvoke/sc:content/*
+else
+   if (fn:substring-before($src, ':') = 'file') then 
+     fn:doc($src)
+   else
+   $src  
+
+
+let $content := 
+if (fn:empty($src)) then 
+if(fn:empty($stateInvoke/sc:content/@expr)) then 
+$stateInvoke/sc:content/*
+else
+(
+  
+  sc:evalWithError(($stateInvoke/sc:content/@expr),$dataModels))                   
+
+else
+   if (fn:substring-before($src, ':') = 'file') then 
+     fn:doc($src)
+   else
+   $src  
+
+
+
+
+let $param := $stateInvoke/sc:param
+
+let $namelist := $stateInvoke/@namelist
+
+let $namelistData := 
+for $n in fn:tokenize($namelist, '\s')
+return 
+(<var name="{$n}">{sc:evalWithError($n,$dataModels)}</var>)
+
+
+let $insertMBA := 
+<mba xmlns="http://www.dke.jku.at/MBA" xmlns:sc="http://www.w3.org/2005/07/scxml" xmlns:sync="http://www.dke.jku.at/MBA/Synchronization" hierarchy="simple" name ="invoke">
+ <topLevel name="university">
+    <elements>
+    
+
+         {$content}
+          
+    </elements>
+    </topLevel>
+</mba>
+
+
+return $insertMBA
 };

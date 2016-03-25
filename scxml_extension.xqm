@@ -36,8 +36,19 @@ declare function scx:importModules() as xs:string {
   
  let $importscNamespace :=
    'import module namespace sc = "http://www.w3.org/2005/07/scxml"; '
+ 
+  let $importkkNamespace :=
+   'import module namespace kk = "http://www.w3.org/2005/07/kk"; '  
+   
+    let $importfunctxNamespace :=
+   'import module namespace functx = "http://www.functx.com"; '  
+   
   return $importMbaNamespace ||
          $importSyncNamespace || $importscNamespace
+         || $importkkNamespace || $importfunctxNamespace
+
+
+
 };
 
 declare function scx:builtInFunctionDeclarations() as xs:string {
