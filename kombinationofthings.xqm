@@ -315,11 +315,27 @@ return
       
        let $test := fn:trace("sc:nachSupportsType")
         let $test := fn:trace($content/sc:param, "params1")
-      let $params :=
+     
+     (:TODO params and namelist:) let $params :=
+      
+      
       
          for $p in $content/sc:param
          return 
-         element {$p/@name}{sc:evalWithError($p/@expr, $dataModels)}
+         <data id="{$p/@name}">{sc:evalWithError($p/@expr, $dataModels)}</data>
+        (: element {$p/@name}{sc:evalWithError($p/@expr, $dataModels)}:)
+       
+       
+       let $namelist := $content/@namelist
+        
+        let $namelistData := 
+        for $n in fn:tokenize($namelist, '\s')
+        return 
+        (<data id="{functx:substring-after-if-contains($n,'$')}">{sc:evalWithError($n,$dataModels)}</data>)
+
+
+       
+       
        
        let $test := fn:trace($params, "params")
        
@@ -359,7 +375,7 @@ else
  
       let $eventbody := 
       ($params, 
-       $content/sc:content/text())
+       $content/sc:content/text(), $namelistData)
         
         let $test := fn:trace($eventbody, "sc:send")
         
@@ -944,7 +960,7 @@ else
 
 
 
-declare updating function kk:exitStatesSingle($dbName,$collectionName,$mbaName,$state, $type)
+declare updating function kk:exitStatesSingle($dbName,$collectionName,$mbaName,$stateToExit, $type)
 {
   
   
@@ -966,24 +982,31 @@ let $dataModels := sc:selectDataModels($configuration)
 
 
 
-for $state in $state
+for $state in $stateToExit
 
  return
  (
  for $h in $state/sc:history
-  let $insert := 
   
-  for $i in  ($configuration,mba:getCurrentExitSet($mba))
-  return 
+  let $insert := 
+  fn:fold-left((functx:distinct-deep(($configuration,mba:getCurrentExitSet($mba)))),(), function($result, $curr)
+{
+  let $result := 
+   ($result,
+  
 (:for $h in kk:getStateHistoryNodes($state):)
 if ($h/@type = 'deep') then 
-  if(sc:isDescendant($i,$state) and sc:isAtomicState($i) and not (fn:deep-equal($i,$state))) then
-      <state ref="{$i/@id}"/>
+  if(sc:isDescendant($curr,$state) and sc:isAtomicState($curr) and not (fn:deep-equal($curr,$state))) then
+      <state ref="{$curr/@id}">
+      </state>
   else ()
 else
-  if(fn:deep-equal($h/parent::*,$i/parent::*)) then 
-      <state ref="{$i/@id}"/> 
+  if(fn:deep-equal($h/parent::*,$curr/parent::*)) then 
+      <state ref="{$curr/@id}"/> 
 else ()
+)
+return $result
+})
 
 return 
   if (fn:empty(sc:getHistoryStates($h))) then
