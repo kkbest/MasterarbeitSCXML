@@ -17,7 +17,7 @@ let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectDataModels($configuration)
 
 
-
+let $test := fn:trace("test")
 return $mba
 
 
