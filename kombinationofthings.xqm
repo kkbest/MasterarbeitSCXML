@@ -306,7 +306,7 @@ return
      
       let $supportsType := 
       
-   if (   functx:is-value-in-sequence($content/@type,  sc:eval('$_ioprocessors/processor/@name',$dataModels)) or fn:empty($content/@type)) then 
+   if (   functx:is-value-in-sequence($content/@type,  sc:evalWithError('$_ioprocessors/processor/@name',$dataModels)) or fn:empty($content/@type)) then 
       
      'true'
       else
@@ -1594,8 +1594,19 @@ let $namelist := $stateInvoke/@namelist
 let $namelistData := 
 for $n in fn:tokenize($namelist, '\s')
 return 
-(<var name="{$n}">{sc:evalWithError($n,$dataModels)}</var>)
-
+(<var xmlns="" name="{$n}">{sc:eval($n,$dataModels)}</var>)
+ 
+let $error := 
+ some $n in $namelistData satisfies
+ fn:matches($n/text(),'^err:') 
+ or not (fn:matches($namelist/data(),'\$'))
+ 
+return  
+ if ($error) then 
+ ()
+ else
+ (
+ 
 
 let $insertMBA := 
 <mba xmlns="http://www.dke.jku.at/MBA" xmlns:sc="http://www.w3.org/2005/07/scxml" xmlns:sync="http://www.dke.jku.at/MBA/Synchronization" hierarchy="simple" name ="invoke">
@@ -1765,124 +1776,6 @@ return
  else
      ()
 
+  )
     
-    
-};
-
-
-
-
-declare  function kk:TESTinvokeStateswithNewDb($mba)
-{
-  let $scxml := mba:getSCXML($mba)
-
-let $configuration := mba:getConfiguration($mba)
-let $dataModels := sc:selectDataModels($configuration)
-
- 
-  
-  let $states := mba:getStatesToInvoke($mba)
-    
-   
-   
-  for $s in $states
- 
-  for $stateInvoke in $s/sc:invoke
-  
-
-      
-let $type := if (fn:empty($stateInvoke/@type)) then
-   if(fn:empty($stateInvoke/@typeexpr)) then 
-            ()
-            else 
-      sc:evalWithError($stateInvoke/@typeexpr,$dataModels)
-      else
-      $stateInvoke/@type     
-    
-    
-  
-let $src := if (fn:empty($stateInvoke/@src)) then
-   if(fn:empty($stateInvoke/@srcexpr)) then 
-            ()
-            else 
-      sc:evalWithError($stateInvoke/@srcexpr,$dataModels)
-      else
-      $stateInvoke/@src 
-      
-    
-let $id := if (fn:empty($stateInvoke/@id)) then
-      ()
-        else  $stateInvoke/@id/data()   
-        
-        
-        
-let $generateId := 
-
-
-        $s/@id || '.' || fn:generate-id($stateInvoke)
-
-        
-        let $idInsert := 
-        if(fn:empty($id)) then
-        $generateId
-        else
-        $id    
-      
-    
-    let $autoforwards := $stateInvoke/@autoforward
- 
-
-
-let $content := 
-if (fn:empty($src)) then 
-$stateInvoke/sc:content/*
-else
-   if (fn:substring-before($src, ':') = 'file') then 
-     fn:doc($src)
-   else
-   $src  
-
-
-let $content := 
-if (fn:empty($src)) then 
-if(fn:empty($stateInvoke/sc:content/@expr)) then 
-$stateInvoke/sc:content/*
-else
-(
-  
-  sc:evalWithError(($stateInvoke/sc:content/@expr),$dataModels))                   
-
-else
-   if (fn:substring-before($src, ':') = 'file') then 
-     fn:doc($src)
-   else
-   $src  
-
-
-
-
-let $param := $stateInvoke/sc:param
-
-let $namelist := $stateInvoke/@namelist
-
-let $namelistData := 
-for $n in fn:tokenize($namelist, '\s')
-return 
-(<var name="{$n}">{sc:evalWithError($n,$dataModels)}</var>)
-
-
-let $insertMBA := 
-<mba xmlns="http://www.dke.jku.at/MBA" xmlns:sc="http://www.w3.org/2005/07/scxml" xmlns:sync="http://www.dke.jku.at/MBA/Synchronization" hierarchy="simple" name ="invoke">
- <topLevel name="university">
-    <elements>
-    
-
-         {$content}
-          
-    </elements>
-    </topLevel>
-</mba>
-
-
-return $insertMBA
 };

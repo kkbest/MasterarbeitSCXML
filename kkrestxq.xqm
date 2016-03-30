@@ -247,11 +247,10 @@ return document {
 
 declare %rest:path("update")
   %rest:POST("{$data}")
- 
- updating function page:change($data)
+updating function page:change($data)
    
 {
-  
+ 
   let $input :=
   <input>  
  { let $row :=  fn:tokenize($data,'&amp;')
@@ -260,25 +259,56 @@ declare %rest:path("update")
  return element{$data[1]}{$data[2]}
 }
  </input>
+ 
+ 
  let $dbName := $input/dbName/text()
  let $collectionName := $input/collectionName/text()
  let $mbaName := $input/mbaName/text()
   let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
  let $max := fn:count($input/*)+1
- let $eventData := $input/*[position()>4]
- let $eventName := $input/*[1]
+let $ownEvent :=  if  ($input/*[1]/text()='eigenesEvent') then
+fn:true()
+else
+fn:false()
+
+
+ let $eventName := 
+ 
+ if ( $ownEvent) then
+ $input/*[5]
+ else
+ $input/*[1]
+ 
+ 
+ let $eventData :=
+ 
+  if ( $ownEvent) then
+  $input/*[position()>5 and position()<=last()-2]
+ else
+  $input/*[position()>4 and position()<=last()-2]
+  
+  let $extraData := 
+  let $name :=  $input/*[position()=(last()-1)]
+  let $data := $input/*[position()=(last())]
+  return
+  if (not(fn:empty($name) and fn:empty($data))) then
+  element{$name/data()}{$data/data()}
+  else
+  ()
+
 
 
 return 
 
-(mba:enqueueExternalEvent($mba, <event name='{$eventName}' >{ $eventData ,  <id>{mba:getCounter( $mba )}</id> }</event>),
+(mba:enqueueExternalEvent($mba, <event name='{$eventName}' >{ $eventData , $extraData,  <id>{mba:getCounter( $mba )}</id> }</event>),
 kk:updateCounter($dbName,$collectionName,$mbaName),db:output(<response> 
   <result> added Eevent</result>
     <addText> {$eventName}</addText>
+    <addText> {$extraData}</addText>
+    <name> {$input/*[position()=last()-1]}</name>
+    <input> {$input}</input>
   <counter> {mba:getCounter( mba:getMBA($dbName, $collectionName, $mbaName) )}</counter>
 </response>))
-
-
 
 };
 
@@ -654,9 +684,22 @@ else
   ()
   else
    
-  let $insertMba :=  mba:getMBA($mbadata[1],$mbadata[2],$mbadata[3])
+  let $insertMba := 
+  try 
+  {
+   mba:getMBA($mbadata[1],$mbadata[2],$mbadata[3])
+  }
+  catch *
+  { 'err:special'}
   
-   return (mba:enqueueExternalEvent($insertMba, $event))))
+  
+  
+   return 
+   
+   if((fn:matches($insertMba,'^err:'))) then
+  ()
+  else
+  (mba:enqueueExternalEvent($insertMba, $event))))
    else())),
  
 
@@ -979,18 +1022,18 @@ let $configuration := mba:getConfiguration($mba)
 let $dataModels := sc:selectAllDataModels($mba)
 
 return
+(:im init vmlt to autoforwad:)
 
+if($transType != 'external' and $transType !='init') then
 
-if($transType != 'external') then
-
-   ( kk:changeCurrentStatus($mba,(),$exitSet),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
+   ( db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
 
    else
   
   if (mba:getRunning($mba)) then 
   ( 
    if( not(fn:empty(mba:getStatesToInvokeQueue($mba)/*))) then
-   ( kk:changeCurrentStatus($mba,(),$exitSet),db:output(<rest:forward>{fn:concat('/invokeStates/', string-join(($dbName,$collectionName,$mbaName,$transType), '/' ))}</rest:forward>) )
+   ( db:output(<rest:forward>{fn:concat('/invokeStates/', string-join(($dbName,$collectionName,$mbaName,$transType), '/' ))}</rest:forward>) )
    
    else
   if(fn:empty(sc:selectEventlessTransitions($configuration,$dataModels)) and fn:empty(mba:getInternalEventQueue($mba)/*) and fn:empty(mba:getExternalEventQueue($mba)/*)) then 
@@ -1000,15 +1043,14 @@ if($transType != 'external') then
    ) )
    
    else
-    ( kk:changeCurrentStatus($mba,(),$exitSet),db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
+    ( db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
 )
 
 else 
 db:output(<rest:forward>{fn:concat('/exitInterpreter/', string-join(($dbName,$collectionName,$mbaName,0), '/' ))}</rest:forward>)
-
-
 (:
-if($transType != 'external') then
+
+if($transType != 'external' and $transType !='init') then
 
    fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))
 
@@ -1034,9 +1076,8 @@ if($transType != 'external') then
 else 
 fn:concat('/exitInterpreter/', string-join(($dbName,$collectionName,$mbaName,0), '/' ))
 
+
 :)
-
-
 };
 
 
@@ -1139,6 +1180,7 @@ else
 
   return (mba:enqueueExternalEvent($insertMba, $event)
  , db:drop($dbName))
+
 
   else
   ())
