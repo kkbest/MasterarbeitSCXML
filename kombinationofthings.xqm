@@ -8,201 +8,91 @@ import module namespace sync = 'http://www.dke.jku.at/MBA/Synchronization';
 
 
 
-
-declare function kk:getNewMultilevelBusinessArtifacts($dbName, $collectionName)
-{
-  
-
-let $document := db:open($dbName, 'collections.xml')
-let $collectionEntry := $document/mba:collections/mba:collection[@name = $collectionName]
-
-for $entry in $collectionEntry/mba:new/mba:mba
-  return mba:getMBA($dbName, $collectionName, $entry/@ref)
-};
-
-
-declare updating function kk:initMBA($dbName,$collectionName,$mbaName as xs:string)
-{
-  
-  let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
- let $scxml :=  mba:getSCXML($mba)
-  return  mba:init($mba),kk:initSCXML($dbName,$collectionName,$mbaName), kk:removeFromUpdateLog($dbName,$collectionName,$mbaName)
-
-};
-
-
 declare updating function kk:initMBARest($dbName,$collectionName,$mbaName as xs:string)
 {
   
   let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
- let $scxml :=  mba:getSCXML($mba)
-  return  mba:init($mba), kk:removeFromUpdateLog($dbName,$collectionName,$mbaName)
+  let $scxml :=  mba:getSCXML($mba)
+  return  
+    mba:init($mba), kk:removeFromUpdateLog($dbName,$collectionName,$mbaName)
 };
 
 
 declare updating function kk:initSCXMLRest($dbName,$collectionName,$mbaName as xs:string)
 {
    let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
-let $scxml := mba:getSCXML($mba)
-
-let $configuration := mba:getConfiguration($mba)
-
-
-(: if not initialState enter First State  :)
-return
-  if (not ($configuration)) then 
-  
-  let $entrySet := sc:computeEntryInit($scxml)[1]
-  return
-  if (not(fn:empty($entrySet)))then
-   mba:updatecurrentEntrySet($mba,map:get($entrySet,'statesToEnter'))
-   else()
-   (: mba:addCurrentStates($mba, map:get(sc:computeEntryInit($scxml)[1],'statesToEnter')):)
-  else ()
-
-
+   let $scxml := mba:getSCXML($mba)
+   let $configuration := mba:getConfiguration($mba)
+   return
+      if (not ($configuration)) then 
+        let $entrySet := sc:computeEntryInit($scxml)[1]
+      return
+        if (not(fn:empty($entrySet)))then
+           mba:updatecurrentEntrySet($mba,map:get($entrySet,'statesToEnter'))
+           else()
+        else ()
 };
 
 
-
-
-
-declare updating function kk:initSCXML($dbName,$collectionName,$mbaName as xs:string)
+declare updating function kk:updateRunning($dbName,$collectionName,$mbaName as xs:string)
 {
+   let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+  let $currentEvent := mba:getCurrentEvent($mba)
+
+ return 
+ (
+   if (
+    $currentEvent/type = 'cancel')then 
+     mba:updateRunning($mba , fn:false()) 
+    else
+    () )
   
-  
-
-let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
-let $scxml := mba:getSCXML($mba)
-let $configuration := mba:getConfiguration($mba)
-return
-  if (not ($configuration)) then 
-    mba:addCurrentStates($mba, sc:getInitialStates($scxml))
-  else ()
-};
-
-
-
-declare function kk:getupdatedMBAS($dbName, $collectionName)
-{
-  let $document := db:open($dbName, 'collections.xml')
-let $collectionEntry := $document/mba:collections/mba:collection[@name = $collectionName]
-
-for $entry in $collectionEntry/mba:updated/mba:mba
-  return mba:getMBA($dbName, $collectionName, $entry/@ref)
-
 };
 
 
 declare updating function kk:removeFromInsertLog($dbName, $collectionName, $mbaName)
 {
-let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
-return mba:removeFromInsertLog($mba)
+  let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
+  return mba:removeFromInsertLog($mba)
 };
 
 
 declare updating function kk:markAsUpdated($dbName, $collectionName, $mbaName)
 {
-let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
-return mba:markAsUpdated($mba)
+  let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
+  return mba:markAsUpdated($mba)
 };
+
 
 declare updating function kk:getNextExternalEvent($dbName,$collectionName,$mbaName)
 {
-let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
-return mba:loadNextExternalEvent($mba)
+  let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
+  return mba:loadNextExternalEvent($mba)
 };
 
 
 declare updating function kk:getNextInternalEvent($dbName,$collectionName,$mbaName)
 {
-let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
-return mba:loadNextInternalEvent($mba)
+  let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
+  return mba:loadNextInternalEvent($mba)
 };
-
-declare function kk:getExecutableContents($dbName, $collectionName, $mbaName)
-{
-
-let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
-let $scxml := mba:getSCXML($mba)
-
-let $configuration := mba:getConfiguration($mba)
-let $dataModels := sc:selectDataModels($configuration)
-
-
-let $transitions := 
- mba:getCurrentTransitionsQueue($mba)/transitions/*
-  
-let $contents :=
-  for $t in $transitions
-    return $t/*
-    
-    
-
-
-let $exitSet := reverse(mba:getCurrentExitSet($mba))
-
-
-let $onExit := for $s in $exitSet
-return $s/sc:onexit/reverse(*)
-
-
-let $exitContents := $onExit
-
-
-                  
-(: TODO entryContents erweitern:)
-
-
-
-(: there has to be done more
-
- for content in s.onentry.sort(documentOrder):
-            executeContent(content)
-        if statesForDefaultEntry.isMember(s):
-            executeContent(s.initial.transition)
-        if defaultHistoryContent[s.id]:
-            executeContent(defaultHistoryContent[s.id]) 
-            
-            :)
-
-
-
-return  ($exitContents,$contents)
-};
-
 
 
 declare function kk:getExecutableContentsExit($dbName, $collectionName, $mbaName,$state)
 {
-
-
-let $onExit := for $s in $state
-return $s/sc:onexit/reverse(*)
-
-
-let $exitContents := $onExit
- 
-
-return  ($exitContents)
+  for $s in $state
+     return $s/sc:onexit/reverse(*)
 };
 
 
 declare function kk:getExecutableContentsTransitions($dbName, $collectionName, $mbaName)
 {
-
-
-let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
-let $transitions := 
- mba:getCurrentTransitionsQueue($mba)/transitions/*
-  
-let $contents :=
-  for $t in $transitions
-    return $t/*
-    
-
-
-return  ($contents)
+  let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+  let $transitions := mba:getCurrentTransitionsQueue($mba)/transitions/*
+  let $contents :=
+    for $t in $transitions
+      return $t/*
+  return  ($contents)
 };
 
 
@@ -210,23 +100,19 @@ return  ($contents)
 
 declare updating function kk:runExecutableContent($dbName, $collectionName, $mbaName , $content)
 {
-
-
-let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
-let $scxml := mba:getSCXML($mba)
-
-let $configuration := mba:getConfiguration($mba)
-let $dataModels := sc:selectAllDataModels($mba)
-let $counter := 
-if(fn:empty( mba:getCurrentEvent($mba)/data/id/text())) then 
-mba:getCounter($mba) -1 
-else
- mba:getCurrentEvent($mba)/data/id/text()
-
-return 
+  let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+  let $scxml := mba:getSCXML($mba)
+  
+  let $configuration := mba:getConfiguration($mba)
+  let $dataModels := sc:selectAllDataModels($mba)
+  let $counter := 
+      if(fn:empty( mba:getCurrentEvent($mba)/data/id/text())) then 
+        mba:getCounter($mba) -1 
+      else
+       mba:getCurrentEvent($mba)/data/id/text()
+  return 
   typeswitch($content)
     case element(sc:assign) return 
-    
     if (
       
       ( not(fn:empty($dataModels/sc:data[@id=substring(functx:substring-before-if-contains($content/@location,'/'),2)]))  and 
@@ -445,7 +331,7 @@ else
   else
   
   
-  let $parentmba :=  mba:getMBA($mbadata[1],$mbadata[2],$mbadata[3])
+  let $parentmba :=  kk:getMBAFromText(mba:getParentInvoke($mba)/parent)
            
            let $event := <event name="{$eventtext}" sendid="{$idlocation}" invokeid="{mba:getParentInvoke($mba)/id}" type="external" origintype="{$origintype}"  origin="{$origin}"  xmlns=""> {$eventbody}</event>           
            return (mba:enqueueExternalEvent($parentmba,$event) , (if (fn:empty($content/@idlocation)) then ()
@@ -459,20 +345,8 @@ else
     )
     else if (fn:matches($location, '#_scxml_' )) then 
       (
-        
-       let $mbaData :=
-        
-         fn:substring-after($location,':')
-
-
-  let $mbaData :=fn:tokenize($mbaData, ',')
-  return if(fn:empty($mbaData)) then 
-  
-  ()
-  else
-  
-  
-  let $sendMba :=  mba:getMBA($mbaData[1],$mbaData[2],$mbaData[3])
+         
+  let $sendMba :=  kk:getMBAFromText($location)
   
   let $event := <event name="{$eventtext}" sendid="{$idlocation}" invokeid="{mba:getParentInvoke($mba)/id}" type="external" origintype="{$origintype}"   origin="{$origin}"  xmlns=""> {$eventbody}</event>           
            return (mba:enqueueExternalEvent($sendMba,$event) , (if (fn:empty($content/@idlocation)) then ()
@@ -491,6 +365,7 @@ else
       else if (fn:matches($location, '#_' )) then 
       (
         
+        
        let $mbaData :=
         
          fn:substring-after(mba:getChildInvokeQueue($mba)/*[@id=fn:substring($location, 3)]/text(),':')
@@ -503,7 +378,7 @@ else
   else
   
   
-  let $sendMba :=  mba:getMBA($mbaData[1],$mbaData[2],$mbaData[3])
+  let $sendMba := kk:getMBAFromText(mba:getChildInvokeQueue($mba)/*[@id=fn:substring($location, 3)]/text())
   
   let $event := <event name="{$eventtext}" sendid="{$idlocation}" invokeid="{mba:getParentInvoke($mba)/id}" type="external" origintype="{$origintype}"  origin="{$origin}"  xmlns="" > {$eventbody}</event>           
            return (mba:enqueueExternalEvent($sendMba,$event) , (if (fn:empty($content/@idlocation)) then ()
@@ -519,29 +394,11 @@ else
            
         else
         ( 
-         let $test := fn:trace($location, "sc:send in else")
-         
-          let $mbaData :=
-        
-         fn:substring-after($location,':')
+  
+  let $sendMba := kk:getMBAFromText($location)
 
 
-  let $mbaData :=fn:tokenize($mbaData, ',')
-  return if(fn:empty($mbaData)) then 
-  
-  ()
-  else
-  
- 
-  
-  let $sendMba :=
-  try
-  {  mba:getMBA($mbaData[1],$mbaData[2],$mbaData[3])
-}
-catch *
-{
-  $err:code
-}
+
       let $test := fn:trace($sendMba, "sc:send sendMBA") 
         return 
         
@@ -624,36 +481,6 @@ return
 
 
 
-(:
-declare updating function kk:changeCurrentStatus($dbName, $collectionName, $mbaName)
-{
-
-
-let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
-let $scxml := mba:getSCXML($mba)
-
-let $currentEvent := mba:getCurrentEvent($mba)
-let $eventName    := $currentEvent/name
-
-let $configuration := mba:getConfiguration($mba)
-
-let $dataModels := sc:selectDataModels($configuration)
-
-let $transitions := 
-  if($eventName) then
-    sc:selectTransitions($configuration, $dataModels, $eventName)
-  else ()
-
-let $exitSet  := sc:computeExitSet($configuration, $transitions)
-let $entrySet := sc:computeEntrySet($transitions)
-
-return (
-  mba:removeCurrentStates($mba, $exitSet),
-  mba:addCurrentStates($mba, $entrySet)
-)
-
-};:)
-
 
 
 declare updating function kk:changeCurrentStatus($mba,$entrySet,$exitSet)
@@ -691,7 +518,7 @@ return mba:removeCurrentEvent($mba)
 
 
 
-
+(:
 declare function kk:getExecutableContentsEnter($dbName, $collectionName, $mbaName)
 {
 let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
@@ -726,7 +553,7 @@ if (not (fn:empty(sc:computeEntry($transitions)))) then
 
 return  ($content1,$content2)
 };
-
+:)
 
 
 declare function kk:getExecutableContentsEnter($dbName, $collectionName, $mbaName, $state, $historyContent)
@@ -758,42 +585,6 @@ return  ($content1,$content2)
 
 
 
-
-declare updating function kk:changeCurrentStatusEventless($dbName, $collectionName, $mbaName)
-{
-  let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
-let $scxml := mba:getSCXML($mba)
-
-let $configuration := mba:getConfiguration($mba)
-
-let $dataModels := sc:selectDataModels($configuration)
-
-let $transitions := 
-  sc:selectEventlessTransitions($configuration, $dataModels)
-
-let $exitSet  := sc:computeExitSet($configuration, $transitions)
-let $entrySet := if (not (fn:empty(sc:computeEntry($transitions)))) then 
- map:get(sc:computeEntry($transitions)[1],'statesToEnter')
- else
- ()
-
-return (
-  mba:removeCurrentStates($mba, $exitSet),
-  mba:addCurrentStates($mba, $entrySet)
-)
-};
-
-
-
-
-declare updating function kk:getandExecuteExecutablecontent($dbName, $collectionName, $mbaName,$counter)
-{
-  let $content := kk:getExecutableContents($dbName, $collectionName, $mbaName)
-  return kk:runExecutableContent($dbName, $collectionName, $mbaName, $content[$counter])
-};
-
-
-
 declare updating function kk:executeExecutablecontent($dbName, $collectionName, $mbaName,$content,$counter)
 {
   kk:runExecutableContent($dbName, $collectionName, $mbaName, $content[$counter])
@@ -802,14 +593,7 @@ declare updating function kk:executeExecutablecontent($dbName, $collectionName, 
 
 
 
-(: getExecutableContentsEventless runExecutableContent changeCurrentStatusEventless 
-declare updating function kk:getAndExecuteEventlessTransitions($dbName, $collectionName, $mbaName,$counter)
-{
-  let $executableContents := kk:getExecutableContentsEventless($dbName, $collectionName, $mbaName)
-  return kk:runExecutableContent($dbName, $collectionName, $mbaName, $executableContents[$counter])
-  
-};
-:)
+
 declare updating function kk:removeFromUpdateLog($dbName, $collectionName, $mbaName)
 {
   
@@ -838,25 +622,6 @@ declare updating function kk:dequeueExternalEvent($mba as element()) {
   
   return delete node ($queue/*)[1]
 };
-
-
-
-
-
-declare updating function kk:insertnode($mba as element(), $nextEvent, $nextEventName, $currentEvent, $nextEventData)
-{
-  if ($nextEvent) then insert node $nextEventName into $currentEvent else (),
-    if ($nextEvent) then insert node $nextEventData into $currentEvent else ()
-  
-};
-
-
- (: let $queue := mba:getExternalEventQueue($mba)
-  let $nextEvent := ($queue/event)[1]
-  let $nextEventName := <name xmlns="">{fn:string($nextEvent/@name)}</name>
-  let $nextEventData := <data xmlns="">{$nextEvent/*}</data>
-  let $currentEvent := mba:getCurrentEvent($mba)
-:)
 
 
 
@@ -895,67 +660,6 @@ declare updating function kk:updateCounter($dbName,$collectionName,$mbaName)
 
 
 
-
-
-declare updating function kk:exitStates($dbName,$collectionName,$mbaName,$type)
-{
-  
-  
-  
-let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
-let $scxml := mba:getSCXML($mba)
-
-let $currentEvent := mba:getCurrentEvent($mba)
-let $eventName    := $currentEvent/name
-
-let $configuration := mba:getConfiguration($mba)
-let $dataModels := sc:selectDataModels($configuration)
-
-
- let $transitions := 
- mba:getCurrentTransitionsQueue($mba)/transitions/*
- 
- 
-let $configuration := mba:getConfiguration($mba)
- 
-let $exitSet :=  sc:computeExitSetTrans($configuration,$transitions)
-
-
-(: remove from States to Invoke:)
-(:TODO Anschauen exitOrder -> reverted Documentorder:)
-(: configuration will be done after enterStates:)
-
-
-
-
-
-for $state in reverse($exitSet)
-
- for $h in $state/sc:history
-  let $insert := 
-  
-  for $i in  $configuration
-  return 
-(:for $h in kk:getStateHistoryNodes($state):)
-if ($h/@type = 'deep') then 
-  if(sc:isDescendant($i,$state) and sc:isAtomicState($i) and not (fn:deep-equal($i,$state))) then
-      <state ref="{$i/@id}"/>
-  else ()
-else
-  if(fn:deep-equal($h/parent::*,$i/parent::*)) then 
-      <state ref="{$i/@id}"/> 
-else ()
-
-
-return 
-  if (fn:empty(sc:getHistoryStates($h))) then
- (insert node <history ref = "{$h/@id}">{$insert}</history> into mba:getHistory($mba), mba:removestatesToInvoke($mba,$exitSet))
-
-else
-(replace node mba:getHistory($mba)/history[@ref=$h/@id]  with <history ref = "{$h/@id}">{$insert}</history> , mba:removestatesToInvoke($mba,$exitSet))
-
-
-};
 
 
 
@@ -1026,21 +730,14 @@ let $srcChild:= mba:getChildInvokeQueue($mba)/invoke[@ref=$state/@id
 
 
 for $src in $srcChild
-let $mbaData :=  
-             if (fn:substring-before($src, ':') = 'mba') then 
-             
-    
-            fn:substring-after($src,':')        
-            else()  
-        
-  let $mbadata :=fn:tokenize($mbaData, ',')
-  return if(fn:empty($mbadata)) then 
+
+
+let $insertMba := kk:getMBAFromText($src)
+return 
+if (fn:matches(fn:string($insertMba),'^err:') ) then 
+ ()
+else 
   
-  ()
-  else
-  
-  
-  let $insertMba :=  mba:getMBA($mbadata[1],$mbadata[2],$mbadata[3])
   let $sendid := 'mba:' ||$dbName || ',' || $collectionName ||',' ||$mbaName
   let $cancelEvent := <event type="cancel" name="cancel" sendid="{$sendid}"> </event>
 
@@ -1062,104 +759,6 @@ catch *
 };
 
 
-
-(:
-
-declare updating function kk:enterStates($dbName,$collectionName,$mbaName,$type)
-{
- 
-  
-let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
-let $scxml := mba:getSCXML($mba)
-
-let $currentEvent := mba:getCurrentEvent($mba)
-let $eventName    := $currentEvent/name
-
-let $configuration := mba:getConfiguration($mba)
-let $dataModels := sc:selectDataModels($configuration)
-
-
-let $transitions := 
- mba:getCurrentTransitionsQueue($mba)/transitions/*
-  
-let $entrySet  := if($type = 'init') then
-map:get(sc:computeEntryInit($scxml)[1],'statesToEnter')
-else 
-if (not (fn:empty(sc:computeEntry($transitions)))) then 
- map:get(sc:computeEntry($transitions)[1],'statesToEnter')
- else
- ()
-
-for $state in  $entrySet
-return
-if (sc:isFinalState($state)) then 
-  
-  if (fn:empty($state/parent::sc:scxml)) then
-  
-  (
-   let $parent:= $state/parent::*
-   let $grandparent := $parent/parent::*
-   let $eventname := "done.state." || $parent/@id
-
-
- let $params :=
-      
-         for $p in $state/sc:donedata/sc:param
-         return 
-         element {$p/@name}{sc:eval($p/@expr, $dataModels)}
-       
-       let $test := fn:trace($params, "params")
-       
-         
- let  $content :=
- 
-    for $c in $state/sc:donedata/sc:content
-    return 
-    if ($c/@expr) then
-     <data> (:{sc:eval($c/@expr,$dataModels)}:) 'blub'</data> 
-     
-     else <data>(:{$c/content/*}:) 'nas'</data>    
-         
-     (: let $eventbody := 
-      ($params, 
-       $state/sc:donedata/sc:content/text())
-       
-       
-    let $doneData := for $data in $state/sc:donedata/*
-                     return <data> {fn:string( $data/@expr)}</data>:)
-                     
-                     
-    let $test:= ($params,$content)                 
-   let $event := <event name="{$eventname} " type="platform">{ $test} </event> (:TODO donedata:)
-
-
-   return 
-     if(sc:isParallelState($grandparent)) then 
-                 
-        if (every $s in sc:getChildStates($grandparent) satisfies sc:isInFinalState($s,$configuration,$state)) then
-          
-          let $parallelEventName := "done.state." || $grandparent/@id
-            let $parallelEvent := <event name="{$parallelEventName}">  </event> 
-            return
-          (mba:enqueueInternalEvent($mba,$event),mba:enqueueInternalEvent($mba,$parallelEvent),  mba:addstatesToInvoke($mba,$state), kk:initDatamodel($state,$mba))
-
-else
-  (mba:enqueueInternalEvent($mba,$event) , mba:addstatesToInvoke($mba,$state) , kk:initDatamodel($state,$mba)  )
-    
-   else
-   (   mba:enqueueInternalEvent($mba,$event)  ,  mba:addstatesToInvoke($mba,$state), kk:initDatamodel($state,$mba)         )      
- )
- 
-  else
-  ( mba:addstatesToInvoke($mba,$state), kk:initDatamodel($state,$mba)
-
-
-)
-else
-( mba:addstatesToInvoke($mba,$state), kk:initDatamodel($state,$mba))
-
-};
-:)
 
 
 declare updating function kk:enterStatesSingle($dbName,$collectionName,$mbaName,$state as element())
@@ -1334,23 +933,8 @@ declare updating function kk:exitInterpreter($dbName,$collectionName,$mbaName)
   
   let $src := mba:getParentInvoke($mba)/parent
   
-  let $mbaData :=  
-             if (fn:substring-before($src, ':') = 'mba') then 
-             
-    
-            fn:substring-after($src,':')        
-            else()  
-        
-  let $mbadata :=fn:tokenize($mbaData, ',')
-  return if(fn:empty($mbadata)) then 
-  
-  ()
-  else
-  
-  
-  let $insertMba :=  mba:getMBA($mbadata[1],$mbadata[2],$mbadata[3])
-  
-  
+   let $insertMba :=  kk:getMBAFromText($src)
+   
 
   return (mba:enqueueExternalEvent($insertMba, $event))
   
@@ -1427,74 +1011,33 @@ else
   
 };
 
-
-declare updating function kk:invokeStates($mba)
+declare function kk:getMBAFromText($src as xs:string)
 {
-
-let $scxml := mba:getSCXML($mba)
-
-let $configuration := mba:getConfiguration($mba)
-let $dataModels := sc:selectDataModels($configuration)
-
- 
   
+    let $mbaData :=  
+             if (fn:substring-before($src, ':') = 'mba') then 
+             
+    
+            fn:substring-after($src,':')        
+            else()  
+        
+  let $mbadata :=fn:tokenize($mbaData, ',')
+  return if(fn:empty($mbadata)) then 
   
-    let $states := mba:getStatesToInvoke($mba)
-  
-let $invoke :=  for $s in $states
-  return $s/sc:invoke
-  
-  let $invoke :=  for $s in $states
-  return $s/sc:invoke
-  
-let $src := if (fn:empty($invoke/@src)) then
-   if(fn:empty($invoke/@srcexpr)) then 
-            ()
-            else 
-      sc:evalWithError($invoke/@srcexpr,$dataModels)
-      else
-      $invoke/@src 
-      
-      
-let $type := if (fn:empty($invoke/@type)) then
-   if(fn:empty($invoke/@typeexpr)) then 
-            ()
-            else 
-      sc:evalWithError($invoke/@typeexpr,$dataModels)
-      else
-      $invoke/@type 
-      
-let $id := if (fn:empty($invoke/@id)) then
-   if(fn:empty($invoke/@idlocation)) then 
-            ()
-            else 
-      sc:evalWithError($invoke/@idlocation,$dataModels)
-      else
-      $invoke/@id       
- 
- 
-let $mbaData :=  
-           if (fn:substring-before($src, ':') = 'mba') then 
-           
-             let $test := fn:trace("hallofile")
-          return fn:substring-after($src,':')        
-          else()  
-      
-let $mbadata :=fn:tokenize($mbaData, ',')
-return if(fn:empty($mbadata)) then 
+  (:else if ($location  matches ) :)
+  ()
+  else
+  let $parentmba := 
+  try
+  {
+   mba:getMBA($mbadata[1],$mbadata[2],$mbadata[3])
 
-()
-else
-
-
-let $insertMba :=  mba:getMBA($mbadata[1],$mbadata[2],$mbadata[3])
-let $event := <event invokeid=""> </event>
-
-(:invoke irgendwas tun das eclipse das aufgreift:)
-
-return mba:setParentInvoke($insertMba,$mba)
-
-
+}
+catch *
+ {
+  $err:code
+}
+return $parentmba
 };
 
 
