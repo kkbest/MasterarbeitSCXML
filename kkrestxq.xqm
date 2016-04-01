@@ -336,96 +336,30 @@ let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
  
  return 
  (
-   (if (
-    $currentEvent/type = 'cancel')then 
-     mba:updateRunning($mba , fn:false()) 
-    else
-    () )
-   
+    kk:updateRunning($dbName,$collectionName,$mbaName)
    ,
-    for $s in $configuration
-    for $inv in $s/sc:invoke
-   return
-  (
-     let $match := $s/@id || '.*'
-     return
-   ( 
-         if (fn:matches($currentEvent/invokeid,$match)) then
- 
- ( 
- let $content := $inv/sc:finalize/*
-  for $c in $content
-  return kk:runExecutableContent($dbName, $collectionName,$mbaName, $c))
-
-  else
-  ()),
-  (
-  if($inv/@autoforward = 'true') then
-  
-  ( 
-  
-  let $event := 
-  
-  if (fn:empty(sc:evalWithError('$_event/name/text()', $dataModel)) or fn:matches(fn:string(sc:evalWithError('$_event/name/text()', $dataModel)),'^err:')) then
-  
-  ()
-  else
-  (  
-   let $name := sc:evalWithError('$_event/name/text()', $dataModel)
-   let $type := sc:evalWithError('$_event/type/text()', $dataModel)
-   let $sendid :=sc:evalWithError("$_event/type/text()'", $dataModel)
-   let $origin := sc:evalWithError('$_event/origin/text()', $dataModel)
-   let $origintype := sc:evalWithError('$_event/origintype/text()', $dataModel)
-   let $invokeid := sc:evalWithError('$_event/invokeid/text()', $dataModel)
-   let $data :=sc:evalWithError('$_event/data', $dataModel)
-   return 
-
-  
-   <event name="{$name}" type="{$type}" sendid="{$sendid}" origin="{$origin}" origintype = "{$origintype}" invokeid ="{$invokeid}">{$data}</event>
-   
-)
-return
-if (fn:empty($event)) then 
-()
-else
-(
-   let $mbaData := mba:getChildInvokeQueue($mba)/*[@ref = $s/@id]/text()
-   
-    
-  let $mbaData :=  
-             if (fn:substring-before($mbaData, ':') = 'mba') then 
-             
-    
-            fn:substring-after($mbaData,':')        
-            else()  
-            
-     let $mbadata :=fn:tokenize($mbaData, ',')
-  return if(fn:empty($mbadata)) then 
-  
-  ()
-  else
-   
-  let $insertMba := 
-  try 
-  {
-   mba:getMBA($mbadata[1],$mbadata[2],$mbadata[3])
-  }
-  catch *
-  { 'err:special'}
-  
-  
-  
-   return 
-   
-   if((fn:matches($insertMba,'^err:'))) then
-  ()
-  else
-  (mba:enqueueExternalEvent($insertMba, $event))))
-   else())),
- 
-
-  
-db:output(<rest:forward>{fn:concat('/transitions/', string-join(($dbName,$collectionName,$mbaName,0,'external'), '/' ))}</rest:forward>) )
+   for $s in $configuration
+      for $inv in $s/sc:invoke
+       return
+       (
+         let $match := $s/@id || '.*'
+           return
+           (
+             if (fn:matches($currentEvent/invokeid,$match)) then
+             (
+               let $content := $inv/sc:finalize/*
+                 for $c in $content
+                 return kk:runExecutableContent($dbName, $collectionName,$mbaName, $c))
+              else()
+            ),
+            (
+              if($inv/@autoforward = 'true') then(
+                kk:autoForward($dbName, $collectionName,$mbaName, $s))
+               else()
+             )
+        ),
+     db:output(<rest:forward>{fn:concat('/transitions/', string-join(($dbName,$collectionName,$mbaName,0,'external'), '/' ))}</rest:forward>)
+ )
 
 };
 
@@ -438,55 +372,35 @@ declare
     $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $counter, $transType as xs:string)
 {
 
-let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
-let $scxml := mba:getSCXML($mba)
+  let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+  let $scxml := mba:getSCXML($mba)
+  let $configuration := mba:getConfiguration($mba)
+  let $dataModels := sc:selectAllDataModels($mba)
+  let $currentEvent := mba:getCurrentEvent($mba)
+  let $eventName    :=  $currentEvent/name
+  
+  let $transitions := (
+    switch($transType)
+      case('external')
+       return sc:selectTransitions($configuration, $dataModels, $eventName)
+      case('internal')
+      return sc:selectTransitions($configuration, $dataModels, $eventName)
+      case('eventless')
+        return sc:selectEventlessTransitions($configuration, $dataModels)
+      default
+        return ()
+  )
+    
+  let $insert :=   
+    for $t in $transitions
+      let $s :=  sc:getSourceState($t)
+      return <transitions ref="{$s/@id}">{$t}</transitions>
+             
+  let $exitSet :=  sc:computeExitSet2($configuration,$transitions)
 
-let $configuration := mba:getConfiguration($mba)
-let $dataModels := sc:selectAllDataModels($mba)
-
-let $currentEvent := mba:getCurrentEvent($mba)
-
-let $eventName    :=
-$currentEvent/name
-
-let $transitions := 
-(
-switch($transType)
-case('external')
- return 
-  sc:selectTransitions($configuration, $dataModels, $eventName)
-case('internal')
-return 
-  sc:selectTransitions($configuration, $dataModels, $eventName)
-case('eventless')
   return 
-  sc:selectEventlessTransitions($configuration, $dataModels)
-default
-  return ()
-)
-
-
-let $insert :=
-
-for $t in $transitions
-let $s :=  sc:getSourceState($t)
-return <transitions ref="{$s/@id}">
-{$t}</transitions>
-
-
-
- 
-let $exitSet :=  sc:computeExitSet2($configuration,$transitions)
-
-
-
-
-
-return 
-(mba:updateCurrentExitSet($mba,$exitSet),mba:updatecurrentTransitions($mba,$insert)
- , db:output(<rest:forward>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName, 0, 1, $transType), '/' ))}</rest:forward>))
-
-
+  (mba:updateCurrentExitSet($mba,$exitSet),mba:updatecurrentTransitions($mba,$insert),
+   db:output(<rest:forward>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName, 0, 1, $transType), '/' ))}</rest:forward>))
 };
 
 
@@ -499,26 +413,15 @@ declare
 {
   
  
-let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
-let $scxml := mba:getSCXML($mba)
-
-  
-   let $transitions := 
- mba:getCurrentTransitionsQueue($mba)/transitions/*
- 
- 
- let $exitSet :=  reverse(mba:getCurrentExitSet($mba))
- 
- let $state := $exitSet[$counterExit]
-  
- let $content :=  kk:getExecutableContentsExit($dbName, $collectionName, $mbaName,$state)
- 
- 
-
- let $max := fn:count($content)
-
- return
- if (fn:empty($state)) then 
+  let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+  let $scxml := mba:getSCXML($mba)
+  let $transitions := mba:getCurrentTransitionsQueue($mba)/transitions/*
+  let $exitSet :=  reverse(mba:getCurrentExitSet($mba))
+  let $state := $exitSet[$counterExit]
+  let $content :=  kk:getExecutableContentsExit($dbName, $collectionName, $mbaName,$state)
+  let $max := fn:count($content)
+  return
+    if (fn:empty($state)) then 
   
  db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,0, $transType), '/' ))}</rest:forward>) 
 
@@ -561,48 +464,30 @@ declare
   
  if (not($transType = 'exit')) then 
  (
-let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
-let $scxml := mba:getSCXML($mba)
-
-
-
-let $content := 
-   kk:getExecutableContentsTransitions($dbName, $collectionName, $mbaName)
-
-  
-  
-let $max := fn:count($content)
-let $counterneu := $counter + 1
-
-(:EnterStates with Content or transitions.. to Check:)
-
-
-return if ($counter = 0) then 
-(
-  (:kk:exitStates($dbName,$collectionName,$mbaName,$transType), :)
-   db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counterneu,$transType), '/' ))}</rest:forward>)
+    let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+    let $scxml := mba:getSCXML($mba)
+    let $content := kk:getExecutableContentsTransitions($dbName, $collectionName, $mbaName)
+    let $max := fn:count($content)
+    let $counterneu := $counter + 1
+    
+    return 
+    if ($counter = 0) then 
+      db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counterneu,$transType), '/' ))}</rest:forward>)
+    else if ($counter <= $max) then
+       (kk:executeExecutablecontent($dbName, $collectionName, $mbaName, $content, $counter),
+       db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counterneu, $transType), '/' ))}</rest:forward>))
+    else
+      let $transitions :=  mba:getCurrentTransitionsQueue($mba)/transitions/*
+      let $entrySet := 
+        if (not (fn:empty(sc:computeEntry($transitions)))) then 
+          map:get(sc:computeEntry($transitions)[1],'statesToEnter')
+        else ()
+      return
+        ( mba:updatecurrentEntrySet($mba,$entrySet),  
+        db:output(<rest:forward>{fn:concat('/enterContents/', string-join(($dbName,$collectionName,$mbaName, 0, 1, $transType), '/' ))}</rest:forward>))
 )
-else if ($counter <= $max) then
- (kk:executeExecutablecontent($dbName, $collectionName, $mbaName, $content, $counter),
-   db:output(<rest:forward>{fn:concat('/microstep/', string-join(($dbName,$collectionName,$mbaName,$counterneu, $transType), '/' ))}</rest:forward>))
- else
- (: (kk:enterStates($dbName, $collectionName, $mbaName,$transType), :)
- 
-      let $transitions := 
- mba:getCurrentTransitionsQueue($mba)/transitions/*
- 
-let $entrySet := if (not (fn:empty(sc:computeEntry($transitions)))) then 
- map:get(sc:computeEntry($transitions)[1],'statesToEnter')
- else
- ()
- 
- return
- 
- ( mba:updatecurrentEntrySet($mba,$entrySet),  db:output(<rest:forward>{fn:concat('/enterContents/', string-join(($dbName,$collectionName,$mbaName, 0, 1, $transType), '/' ))}</rest:forward>))
- )
- else
- (
-   db:output(<rest:forward>{fn:concat('/exitInterpreter/', string-join(($dbName,$collectionName,$mbaName,1), '/' ))}</rest:forward>))
+else
+ (db:output(<rest:forward>{fn:concat('/exitInterpreter/', string-join(($dbName,$collectionName,$mbaName,1), '/' ))}</rest:forward>))
    
 };
 
@@ -684,15 +569,7 @@ else if ($counterContent <= $max) then
  else 
  db:output(<rest:forward>{fn:concat('/controller/', string-join(($dbName,$collectionName,$mbaName, $transType), '/' ))}</rest:forward>) 
 
-
-
-
 };
-
-
-
-
-
 
 declare
   %rest:path("/controller/{$dbName}/{$collectionName}/{$mbaName}/{$transType}")
@@ -701,101 +578,27 @@ updating function page:controller(
     $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $transType as xs:string)
 {
  
- (: Wenn transtyp external 
- dann Check if running -> wann ja exit Interpreter
-  wenn nein  -> invoke states
-  
-  Sonst -> wieder von vorne  :)
-(:maybe not necessary
--> :)
-
-
  let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
- 
- let $transitions := 
- mba:getCurrentTransitionsQueue($mba)/transitions/*
- 
- 
-let $configuration := mba:getConfiguration($mba)
- 
-let $exitSet :=  sc:computeExitSetTrans2($configuration,$transitions)
-
-
-
-let $entrySet := if (not (fn:empty(sc:computeEntry($transitions)))) then 
- map:get(sc:computeEntry($transitions)[1],'statesToEnter')
- else
- ()
-
-
-let $ids := functx:value-intersect($exitSet/@id, $entrySet/@id)
-
-let $exitSet := $exitSet[not (@id=$ids)]
-
-let $exitSet := ()
-
-let $scxml := mba:getSCXML($mba)
-
-let $configuration := mba:getConfiguration($mba)
-let $dataModels := sc:selectAllDataModels($mba)
+ let $configuration := mba:getConfiguration($mba)
+ let $dataModels := sc:selectAllDataModels($mba)
 
 return
-(:im init vmlt to autoforwad:)
-
-if($transType != 'external' and $transType !='init') then
-
-   ( db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
-
-   else
-  
-  if (mba:getRunning($mba)) then 
-  ( 
-   if( not(fn:empty(mba:getStatesToInvokeQueue($mba)/*))) then
-   ( db:output(<rest:forward>{fn:concat('/invokeStates/', string-join(($dbName,$collectionName,$mbaName,$transType), '/' ))}</rest:forward>) )
-   
-   else
-  if(fn:empty(sc:selectEventlessTransitions($configuration,$dataModels)) and fn:empty(mba:getInternalEventQueue($mba)/*) and fn:empty(mba:getExternalEventQueue($mba)/*)) then 
-   
-   (kk:changeCurrentStatus($mba,(),$exitSet), db:output(
-     <response><trans> { $transType}</trans></response>
-   ) )
-   
-   else
-    ( db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
-)
-
-else 
-db:output(<rest:forward>{fn:concat('/exitInterpreter/', string-join(($dbName,$collectionName,$mbaName,0), '/' ))}</rest:forward>)
-(:
-
-if($transType != 'external' and $transType !='init') then
-
-   fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))
-
-   else
-  
-  if (mba:getRunning($mba)) then 
-  ( 
-   if( not(fn:empty(mba:getStatesToInvokeQueue($mba)/*))) then
-   ( fn:concat('/invokeStates/', string-join(($dbName,$collectionName,$mbaName,$transType), '/' )))
-   
-   else
-   
-  if(fn:empty(sc:selectEventlessTransitions($configuration,$dataModels)) and fn:empty(mba:getInternalEventQueue($mba)/*) and fn:empty(mba:getExternalEventQueue($mba)/*)) then 
-   
-   
-     <response><trans> { $transType}</trans></response>
-
-   
-   else
-    fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))
-)
-
-else 
-fn:concat('/exitInterpreter/', string-join(($dbName,$collectionName,$mbaName,0), '/' ))
-
-
-:)
+  if($transType != 'external' and $transType !='init') then
+     ( db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
+  else
+    if (mba:getRunning($mba)) then 
+    ( 
+     if( not(fn:empty(mba:getStatesToInvokeQueue($mba)/*))) then
+       (db:output(<rest:forward>{fn:concat('/invokeStates/', string-join(($dbName,$collectionName,$mbaName,$transType), '/' ))}</rest:forward>) )
+     else
+        if(fn:empty(sc:selectEventlessTransitions($configuration,$dataModels)) and 
+            fn:empty(mba:getInternalEventQueue($mba)/*) and fn:empty(mba:getExternalEventQueue($mba)/*))  then 
+            ()
+        else
+          db:output(<rest:forward>{fn:concat('/internalTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) 
+     )
+    else 
+      db:output(<rest:forward>{fn:concat('/exitInterpreter/', string-join(($dbName,$collectionName,$mbaName,0), '/' ))}</rest:forward>)
 };
 
 
@@ -811,8 +614,6 @@ declare
 {
   
   let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
- 
-  
   return 
   
   (kk:invokeStateswithNewDb($mba)
@@ -822,15 +623,6 @@ declare
 
 
 };
-
-
-
-
-
-
-
-
-
 declare
   %rest:path("/exitInterpreter/{$dbName}/{$collectionName}/{$mbaName}/{$counter}")
   %rest:GET
@@ -839,11 +631,7 @@ declare
 {
   
   let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
- 
   let $states := mba:getStatesToInvokeQueue($mba)
-  
-
-  
   let $configuration := mba:getConfiguration($mba)
   return
   if ($counter = 0) then 
@@ -857,8 +645,7 @@ declare
     let $exitSet := $configuration
     return 
     (mba:updateCurrentExitSet($mba,$exitSet),
-
-db:output(<rest:forward>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName, 0, 1, 'exit'), '/' ))}</rest:forward>)))
+    db:output(<rest:forward>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName, 0, 1, 'exit'), '/' ))}</rest:forward>)))
 else()
 )
 else
@@ -881,7 +668,8 @@ else
   let $insertMba := kk:getMBAFromText($src)
 
   return (mba:enqueueExternalEvent($insertMba, $event)
- , db:drop($dbName))
+ ,
+  db:drop($dbName))
 
 
   else
