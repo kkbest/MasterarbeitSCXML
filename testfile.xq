@@ -8,16 +8,9 @@ import module namespace sync = 'http://www.dke.jku.at/MBA/Synchronization';
 
 declare variable $dbName := 'myMBAse';
 declare variable $collectionName := 'JohannesKeplerUniversity';
-declare variable $mbaName := 'InformationSystems';
-declare variable $transType := 'internal';
+declare variable $mbaName := 'Medical';
+declare variable $transType := 'rnal';
 
 let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
-let $scxml := mba:getSCXML($mba)
-let $configuration := mba:getConfiguration($mba)
-let $dataModels := sc:selectDataModels($configuration)
-
-
-let $test := fn:trace("testtest")
 return $mba
-
 

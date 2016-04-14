@@ -165,6 +165,9 @@ declare function mba:concretize($parents as element()*,
                 <name xmlns="">{$name}</name>
                 <currentStatus xmlns=""/>
                 <externalEventQueue xmlns=""/>
+                 <isRunning xmlns="">{fn:true()}</isRunning>
+                 <parentInvoke xmlns=""/>
+                    <childInvoke xmlns=""/>
                 <internalEventQueue xmlns=""/>
                 <currentEntrySet xmlns=""/>
                 <currentExitSet xmlns=""/>

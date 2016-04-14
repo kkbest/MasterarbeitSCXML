@@ -6,7 +6,7 @@ import module namespace sc = 'http://www.w3.org/2005/07/scxml';
 import module namespace sync = 'http://www.dke.jku.at/MBA/Synchronization';
 
 
-declare updating function kk:initMBARest($dbName, $collectionName, $mbaName as xs:string)
+declare updating function kk:initMBARest($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string)
 {
 
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
@@ -16,7 +16,7 @@ declare updating function kk:initMBARest($dbName, $collectionName, $mbaName as x
 };
 
 
-declare updating function kk:initSCXMLRest($dbName, $collectionName, $mbaName as xs:string)
+declare updating function kk:initSCXMLRest($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string)
 {
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
     let $scxml := mba:getSCXML($mba)
@@ -32,11 +32,12 @@ declare updating function kk:initSCXMLRest($dbName, $collectionName, $mbaName as
 };
 
 
-declare updating function kk:updateRunning($dbName, $collectionName, $mbaName as xs:string)
+declare updating function kk:updateRunning($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string)
 {
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
     let $currentEvent := mba:getCurrentEvent($mba)
 
+(:TODO Check Cancel ID !!!:)
     return
         (
             if (
@@ -48,7 +49,7 @@ declare updating function kk:updateRunning($dbName, $collectionName, $mbaName as
 };
 
 
-declare updating function kk:autoForward($dbName, $collectionName, $mbaName as xs:string, $s)
+declare updating function kk:autoForward($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string, $s)
 {
 
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
@@ -91,42 +92,42 @@ declare updating function kk:autoForward($dbName, $collectionName, $mbaName as x
 };
 
 
-declare updating function kk:removeFromInsertLog($dbName, $collectionName, $mbaName)
+declare updating function kk:removeFromInsertLog($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string)
 {
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
     return mba:removeFromInsertLog($mba)
 };
 
 
-declare updating function kk:markAsUpdated($dbName, $collectionName, $mbaName)
+declare updating function kk:markAsUpdated($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string)
 {
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
     return mba:markAsUpdated($mba)
 };
 
 
-declare updating function kk:getNextExternalEvent($dbName, $collectionName, $mbaName)
+declare updating function kk:getNextExternalEvent($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string)
 {
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
     return mba:loadNextExternalEvent($mba)
 };
 
 
-declare updating function kk:getNextInternalEvent($dbName, $collectionName, $mbaName)
+declare updating function kk:getNextInternalEvent($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string)
 {
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
     return mba:loadNextInternalEvent($mba)
 };
 
 
-declare function kk:getExecutableContentsExit($dbName, $collectionName, $mbaName, $state)
+declare function kk:getExecutableContentsExit($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string, $state)
 {
     for $s in $state
     return $s/sc:onexit/reverse(*)
 };
 
 
-declare function kk:getExecutableContentsTransitions($dbName, $collectionName, $mbaName)
+declare function kk:getExecutableContentsTransitions($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string)
 {
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
     let $transitions := mba:getCurrentTransitionsQueue($mba)/transitions/*
@@ -137,7 +138,7 @@ declare function kk:getExecutableContentsTransitions($dbName, $collectionName, $
 };
 
 
-declare updating function kk:runExecutableContent($dbName, $collectionName, $mbaName, $content)
+declare updating function kk:runExecutableContent($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string, $content)
 {
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
     let $scxml := mba:getSCXML($mba)
@@ -364,7 +365,7 @@ declare updating function kk:runExecutableContent($dbName, $collectionName, $mba
 
 
 
-declare function kk:getExecutableContentsEnter($dbName, $collectionName, $mbaName, $state, $historyContent)
+declare function kk:getExecutableContentsEnter($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string, $state, $historyContent)
 {
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
     let $scxml := mba:getSCXML($mba)
@@ -391,13 +392,13 @@ declare function kk:getExecutableContentsEnter($dbName, $collectionName, $mbaNam
 };
 
 
-declare updating function kk:executeExecutablecontent($dbName, $collectionName, $mbaName, $content, $counter)
+declare updating function kk:executeExecutablecontent($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string, $content, $counter)
 {
     kk:runExecutableContent($dbName, $collectionName, $mbaName, $content[$counter])
 };
 
 
-declare updating function kk:removeFromUpdateLog($dbName, $collectionName, $mbaName)
+declare updating function kk:removeFromUpdateLog($dbName as xs:string, $collectionName as xs:string, $mbaName)
 {
 
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
@@ -418,7 +419,7 @@ declare function kk:getcurrentExternalEvent($mba)
 
 
 
-declare function kk:getResult($dbName, $collectionName, $mbaName, $id)
+declare function kk:getResult($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string, $id)
 {
 
 
@@ -428,14 +429,14 @@ declare function kk:getResult($dbName, $collectionName, $mbaName, $id)
 };
 
 
-declare function kk:getCounter($dbName, $collectionName, $mbaName)
+declare function kk:getCounter($dbName as xs:string, $collectionName as xs:string, $mbaName)
 {
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
     return $mba/*/*/sc:scxml/sc:datamodel/sc:data[@id = '_x']/response/counter/text()
 };
 
 
-declare updating function kk:updateCounter($dbName, $collectionName, $mbaName)
+declare updating function kk:updateCounter($dbName as xs:string, $collectionName as xs:string, $mbaName)
 {
 
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
@@ -919,7 +920,7 @@ declare updating function kk:invokeStateswithNewDb($mba)
 
                 let $insertMBA :=
                     <mba xmlns="http://www.dke.jku.at/MBA" xmlns:sc="http://www.w3.org/2005/07/scxml" xmlns:sync="http://www.dke.jku.at/MBA/Synchronization" hierarchy="simple" name="invoke">
-                        <topLevel name="university">
+                        <topLevel name="invokeLevel">
                             <elements>
 
 
