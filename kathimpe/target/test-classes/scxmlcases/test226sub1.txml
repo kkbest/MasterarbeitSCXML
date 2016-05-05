@@ -1,0 +1,19 @@
+<!-- when invoked, if var1 has a value notify parent. Then terminate.   -->
+<scxml name="InformationSystemsProgram" xmlns="http://www.w3.org/2005/07/scxml" xmlns:sc="http://www.w3.org/2005/07/scxml" xmlns:conf="http://www.w3.org/2005/scxml-conformance" initial="s0" datamodel="xpath" version="1.0">
+   <datamodel>
+      <data id="Var1" />
+   </datamodel>
+   <state id="s0">
+                        <sc:onentry>
+                     <sc:log expr="School  Existing  on Entry log" />
+                  </sc:onentry>
+      <transition cond="not(fn:empty($Var1/text()))" target="final">
+      <sc:log expr="Waere da log" />
+         <sc:send target="#_parent" event="varBound" />
+      </transition>
+      <transition target="final">
+       <sc:log expr="Not empty log" />
+      </transition>
+   </state>
+   <final id="final" />
+</scxml>

@@ -1,0 +1,353 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mba xmlns="http://www.dke.jku.at/MBA" xmlns:sc="http://www.w3.org/2005/07/scxml" xmlns:sync="http://www.dke.jku.at/MBA/Synchronization" name="JohannesKeplerUniversity" hierarchy="simple">
+   <topLevel name="university">
+      <elements>
+         <scxml xmlns="http://www.w3.org/2005/07/scxml" xmlns:conf="http://www.w3.org/2005/scxml-conformance" name="University" initial="s11p112 s11p122" conf:datamodel="" version="1.0">
+            <state id="s0">
+               <transition conf:targetfail="" />
+            </state>
+            <state id="s1">
+               <onentry>
+                  <send event="timeout" delay="1s" />
+               </onentry>
+               <transition event="timeout" conf:targetfail="" />
+               <state id="s11" initial="s111">
+                  <state id="s111" />
+                  <parallel id="s11p1">
+                     <state id="s11p11" initial="s11p111">
+                        <state id="s11p111" />
+                        <state id="s11p112">
+                           <onentry>
+                              <raise event="In-s11p112" />
+                           </onentry>
+                        </state>
+                     </state>
+                     <state id="s11p12" initial="s11p121">
+                        <state id="s11p121" />
+                        <state id="s11p122">
+                           <transition event="In-s11p112" conf:targetpass="" />
+                        </state>
+                     </state>
+                  </parallel>
+               </state>
+            </state>
+            <conf:pass />
+            <conf:fail />
+         </scxml>
+      </elements>
+      <childLevel name="school">
+         <elements>
+            <scxml xmlns="http://www.w3.org/2005/07/scxml" xmlns:conf="http://www.w3.org/2005/scxml-conformance" name="School" initial="s11p112 s11p122" conf:datamodel="" version="1.0">
+               <state id="s0">
+                  <transition conf:targetfail="" />
+               </state>
+               <state id="s1">
+                  <onentry>
+                     <send event="timeout" delay="1s" />
+                  </onentry>
+                  <transition event="timeout" conf:targetfail="" />
+                  <state id="s11" initial="s111">
+                     <state id="s111" />
+                     <parallel id="s11p1">
+                        <state id="s11p11" initial="s11p111">
+                           <state id="s11p111" />
+                           <state id="s11p112">
+                              <onentry>
+                                 <raise event="In-s11p112" />
+                              </onentry>
+                           </state>
+                        </state>
+                        <state id="s11p12" initial="s11p121">
+                           <state id="s11p121" />
+                           <state id="s11p122">
+                              <transition event="In-s11p112" conf:targetpass="" />
+                           </state>
+                        </state>
+                     </parallel>
+                  </state>
+               </state>
+               <conf:pass />
+               <conf:fail />
+            </scxml>
+         </elements>
+         <childLevel name="program">
+            <elements>
+               <scxml xmlns="http://www.w3.org/2005/07/scxml" xmlns:conf="http://www.w3.org/2005/scxml-conformance" name="Program" initial="s11p112 s11p122" conf:datamodel="" version="1.0">
+                  <state id="s0">
+                     <transition conf:targetfail="" />
+                  </state>
+                  <state id="s1">
+                     <onentry>
+                        <send event="timeout" delay="1s" />
+                     </onentry>
+                     <transition event="timeout" conf:targetfail="" />
+                     <state id="s11" initial="s111">
+                        <state id="s111" />
+                        <parallel id="s11p1">
+                           <state id="s11p11" initial="s11p111">
+                              <state id="s11p111" />
+                              <state id="s11p112">
+                                 <onentry>
+                                    <raise event="In-s11p112" />
+                                 </onentry>
+                              </state>
+                           </state>
+                           <state id="s11p12" initial="s11p121">
+                              <state id="s11p121" />
+                              <state id="s11p122">
+                                 <transition event="In-s11p112" conf:targetpass="" />
+                              </state>
+                           </state>
+                        </parallel>
+                     </state>
+                  </state>
+                  <conf:pass />
+                  <conf:fail />
+               </scxml>
+            </elements>
+         </childLevel>
+      </childLevel>
+   </topLevel>
+   <concretizations>
+      <mba name="SocialAndEconomicSciences" hierarchy="simple">
+         <topLevel name="school">
+            <elements>
+               <scxml xmlns="http://www.w3.org/2005/07/scxml" xmlns:conf="http://www.w3.org/2005/scxml-conformance" name="SocialAndEconomicSciencesSchool" initial="s11p112 s11p122" conf:datamodel="" version="1.0">
+                  <state id="s0">
+                     <transition conf:targetfail="" />
+                  </state>
+                  <state id="s1">
+                     <onentry>
+                        <send event="timeout" delay="1s" />
+                     </onentry>
+                     <transition event="timeout" conf:targetfail="" />
+                     <state id="s11" initial="s111">
+                        <state id="s111" />
+                        <parallel id="s11p1">
+                           <state id="s11p11" initial="s11p111">
+                              <state id="s11p111" />
+                              <state id="s11p112">
+                                 <onentry>
+                                    <raise event="In-s11p112" />
+                                 </onentry>
+                              </state>
+                           </state>
+                           <state id="s11p12" initial="s11p121">
+                              <state id="s11p121" />
+                              <state id="s11p122">
+                                 <transition event="In-s11p112" conf:targetpass="" />
+                              </state>
+                           </state>
+                        </parallel>
+                     </state>
+                  </state>
+                  <conf:pass />
+                  <conf:fail />
+               </scxml>
+            </elements>
+            <childLevel name="program">
+               <elements>
+                  <scxml xmlns="http://www.w3.org/2005/07/scxml" xmlns:conf="http://www.w3.org/2005/scxml-conformance" name="SocialAndEconomicSciencesProgram" initial="s11p112 s11p122" conf:datamodel="" version="1.0">
+                     <state id="s0">
+                        <transition conf:targetfail="" />
+                     </state>
+                     <state id="s1">
+                        <onentry>
+                           <send event="timeout" delay="1s" />
+                        </onentry>
+                        <transition event="timeout" conf:targetfail="" />
+                        <state id="s11" initial="s111">
+                           <state id="s111" />
+                           <parallel id="s11p1">
+                              <state id="s11p11" initial="s11p111">
+                                 <state id="s11p111" />
+                                 <state id="s11p112">
+                                    <onentry>
+                                       <raise event="In-s11p112" />
+                                    </onentry>
+                                 </state>
+                              </state>
+                              <state id="s11p12" initial="s11p121">
+                                 <state id="s11p121" />
+                                 <state id="s11p122">
+                                    <transition event="In-s11p112" conf:targetpass="" />
+                                 </state>
+                              </state>
+                           </parallel>
+                        </state>
+                     </state>
+                     <conf:pass />
+                     <conf:fail />
+                  </scxml>
+               </elements>
+               <childLevel name="course">
+                  <elements>
+                     <scxml xmlns="http://www.w3.org/2005/07/scxml" xmlns:conf="http://www.w3.org/2005/scxml-conformance" name="SocialAndEconomicSciencesCourse" initial="s11p112 s11p122" conf:datamodel="" version="1.0">
+                        <state id="s0">
+                           <transition conf:targetfail="" />
+                        </state>
+                        <state id="s1">
+                           <onentry>
+                              <send event="timeout" delay="1s" />
+                           </onentry>
+                           <transition event="timeout" conf:targetfail="" />
+                           <state id="s11" initial="s111">
+                              <state id="s111" />
+                              <parallel id="s11p1">
+                                 <state id="s11p11" initial="s11p111">
+                                    <state id="s11p111" />
+                                    <state id="s11p112">
+                                       <onentry>
+                                          <raise event="In-s11p112" />
+                                       </onentry>
+                                    </state>
+                                 </state>
+                                 <state id="s11p12" initial="s11p121">
+                                    <state id="s11p121" />
+                                    <state id="s11p122">
+                                       <transition event="In-s11p112" conf:targetpass="" />
+                                    </state>
+                                 </state>
+                              </parallel>
+                           </state>
+                        </state>
+                        <conf:pass />
+                        <conf:fail />
+                     </scxml>
+                  </elements>
+                  <childLevel name="courseInstance">
+                     <elements>
+                        <scxml xmlns="http://www.w3.org/2005/07/scxml" xmlns:conf="http://www.w3.org/2005/scxml-conformance" name="SocialAndEconomicSciencesCourseInstance" initial="s11p112 s11p122" conf:datamodel="" version="1.0">
+                           <state id="s0">
+                              <transition conf:targetfail="" />
+                           </state>
+                           <state id="s1">
+                              <onentry>
+                                 <send event="timeout" delay="1s" />
+                              </onentry>
+                              <transition event="timeout" conf:targetfail="" />
+                              <state id="s11" initial="s111">
+                                 <state id="s111" />
+                                 <parallel id="s11p1">
+                                    <state id="s11p11" initial="s11p111">
+                                       <state id="s11p111" />
+                                       <state id="s11p112">
+                                          <onentry>
+                                             <raise event="In-s11p112" />
+                                          </onentry>
+                                       </state>
+                                    </state>
+                                    <state id="s11p12" initial="s11p121">
+                                       <state id="s11p121" />
+                                       <state id="s11p122">
+                                          <transition event="In-s11p112" conf:targetpass="" />
+                                       </state>
+                                    </state>
+                                 </parallel>
+                              </state>
+                           </state>
+                           <conf:pass />
+                           <conf:fail />
+                        </scxml>
+                     </elements>
+                  </childLevel>
+               </childLevel>
+            </childLevel>
+         </topLevel>
+         <concretization>
+            <mba name="InformationSystems" hierarchy="simple">
+               <topLevel name="program">
+                  <elements>
+				  
+				  
+<!-- Test that at the end of a macrostep, the processor executes all invokes in states
+that have been entered and not exited during the step.  (The invokes are supposed to be executed
+in document order, but we can test that since each invocation is separate and they may take
+different amounts to time to start up.)  In this case, there are three invoke statements,
+in states s1, s11 and s12.  Each invoked process returns an event named after its parent state.
+The invokes in s1 and s12 should execute, but not the one
+in s11. So we should receive invokeS1, invokeS12, but not invokeS12.  Furthermore, when the timeout fires, var1 should equal 2.-->
+<scxml name="InformationSystemsProgram" xmlns="http://www.w3.org/2005/07/scxml" xmlns:conf="http://www.w3.org/2005/scxml-conformance" version="1.0" initial="s1" datamodel="xpath">
+   <datamodel>
+      <data id="Var1">0</data>
+   </datamodel>
+   <state id="s1" initial="s11">
+      <onentry>
+         <!--- <send event="timeout" delayexpr="'2s'" /> -->
+      </onentry>
+      <transition event="invokeS1 invokeS12">
+         <assign location="$Var1" expr="$Var1 + 1" />
+      </transition>
+      <transition event="invokeS11" target="fail" />
+      <transition event="timeout" cond="$Var1=2" target="pass" />
+      <transition event="timeout" target="fail" />
+      <invoke>
+         <content>
+            <!-- when invoked, send 'foo' to parent, then terminate.   -->
+            <scxml initial="sub0" version="1.0" datamodel="xpath">
+               <state id="sub0">
+                  <onentry>
+                     <send target="#_parent" event="invokeS1" />
+                  </onentry>
+                  <transition target="subFinal0" />
+               </state>
+               <final id="subFinal0" />
+            </scxml>
+         </content>
+      </invoke>
+      <state id="s11">
+         <invoke>
+            <content>
+               <!-- when invoked, send 'foo' to parent, then terminate.   -->
+               <scxml initial="sub1" version="1.0" datamodel="xpath">
+                  <state id="sub1">
+                     <onentry>
+                        <send target="#_parent" event="invokeS11" />
+                     </onentry>
+                     <transition target="subFinal1" />
+                  </state>
+                  <final id="subFinal1" />
+               </scxml>
+            </content>
+         </invoke>
+         <transition target="s12" />
+      </state>
+      <state id="s12">
+         <invoke>
+            <content>
+               <!-- when invoked, send 'foo' to parent, then terminate.   -->
+               <scxml initial="sub2" version="1.0" datamodel="xpath">
+                  <state id="sub2">
+                     <onentry>
+                        <send target="#_parent" event="invokeS12" />
+                     </onentry>
+                     <transition target="subFinal2" />
+                  </state>
+                  <final id="subFinal2" />
+               </scxml>
+            </content>
+         </invoke>
+      </state>
+   </state>
+   <final id="pass">
+      <onentry>
+         <log expr="'pass'" label="Outcome" />
+      </onentry>
+   </final>
+   <final id="fail">
+      <onentry>
+         <log expr="'fail'" label="Outcome" />
+      </onentry>
+   </final>
+</scxml>
+
+				  
+				  
+                  </elements>
+               </topLevel>
+            </mba>
+         </concretization>
+      </mba>
+   </concretizations>
+</mba>
+

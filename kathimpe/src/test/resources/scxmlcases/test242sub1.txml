@@ -1,0 +1,4 @@
+<!-- when invoked, just terminate.  -->
+<scxml name="InformationSystemsProgram" xmlns="http://www.w3.org/2005/07/scxml" xmlns:conf="http://www.w3.org/2005/scxml-conformance" initial="final" version="1.0" datamodel="xpath">
+   <final id="final" />
+</scxml>
