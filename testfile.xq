@@ -8,9 +8,9 @@ import module namespace sync = 'http://www.dke.jku.at/MBA/Synchronization';
 
 declare variable $dbName := 'myMBAse';
 declare variable $collectionName := 'JohannesKeplerUniversity';
-declare variable $mbaName := 'Medical';
-declare variable $transType := 'rnal';
+declare variable $mbaName := 'InformationSystems';
+
 
 let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
-return $mba
+return mba:getLog($mba)
 

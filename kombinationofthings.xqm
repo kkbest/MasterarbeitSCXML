@@ -4,8 +4,8 @@ import module namespace functx = 'http://www.functx.com';
 import module namespace mba = 'http://www.dke.jku.at/MBA';
 import module namespace sc = 'http://www.w3.org/2005/07/scxml';
 import module namespace sync = 'http://www.dke.jku.at/MBA/Synchronization';
-
-
+declare namespace xes = 'www.xes-standard.org/';
+declare namespace concept = 'www.xes-standard.org/concept';
 declare updating function kk:initMBARest($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string)
 {
 
@@ -120,7 +120,7 @@ declare updating function kk:getNextInternalEvent($dbName as xs:string, $collect
 };
 
 
-declare function kk:getExecutableContentsExit($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string, $state)
+declare function kk:getExecutableContentsExit($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string, $state as element()*)
 {
     for $s in $state
     return $s/sc:onexit/reverse(*)
@@ -392,11 +392,11 @@ declare function kk:getExecutableContentsEnter($dbName as xs:string, $collection
 };
 
 
-declare updating function kk:executeExecutablecontent($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string, $content, $counter)
+(:declare updating function kk:executeExecutablecontent($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string, $content, $counter)
 {
     kk:runExecutableContent($dbName, $collectionName, $mbaName, $content[$counter])
 };
-
+:)
 
 declare updating function kk:removeFromUpdateLog($dbName as xs:string, $collectionName as xs:string, $mbaName)
 {
@@ -406,7 +406,7 @@ declare updating function kk:removeFromUpdateLog($dbName as xs:string, $collecti
 };
 
 
-declare function kk:getcurrentExternalEvent($mba)
+(:declare function kk:getcurrentExternalEvent($mba)
 {
     let $queue := mba:getExternalEventQueue($mba)
     let $nextEvent := ($queue/event)[1]
@@ -414,12 +414,12 @@ declare function kk:getcurrentExternalEvent($mba)
     let $nextEventData := <data xmlns="">{$nextEvent/*}</data>
     let $currentEvent := mba:getCurrentEvent($mba)
     return $currentEvent
-};
+};:)
 
 
 
 
-declare function kk:getResult($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string, $id)
+declare function kk:getResult($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string, $id as xs:integer)
 {
 
 
@@ -429,7 +429,7 @@ declare function kk:getResult($dbName as xs:string, $collectionName as xs:string
 };
 
 
-declare function kk:getCounter($dbName as xs:string, $collectionName as xs:string, $mbaName)
+declare function kk:getCounter($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string)
 {
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
     return $mba/*/*/sc:scxml/sc:datamodel/sc:data[@id = '_x']/response/counter/text()
@@ -690,7 +690,6 @@ declare updating function kk:exitInterpreter($dbName, $collectionName, $mbaName)
 
 {let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
 
-let $states := mba:getStatesToInvokeQueue($mba)
 
 
 let $configuration := mba:getConfiguration($mba)
@@ -816,7 +815,7 @@ declare function kk:getMBAFromText($src as xs:string)
 };
 
 
-declare updating function kk:invokeStateswithNewDb($mba)
+declare updating function kk:invokeStates($mba)
 {
     let $scxml := mba:getSCXML($mba)
 
@@ -1083,3 +1082,90 @@ declare updating function kk:invokeStateswithNewDb($mba)
             )
 
 };
+
+declare updating function kk:doLogging($mba,$transition,$transType)
+{
+ let $log :=  mba:getLog($mba)
+ let $time := fn:current-dateTime()
+ 
+ let $insert := 
+ 
+ if($transType != 'init') then 
+ 
+ 
+ let $von :=  sc:getSourceStateTrans($transition)
+
+ let $to := sc:getTargetStates($transition)
+
+ let $cond := $transition/@cond
+ let $event := $transition/@event
+ let $currentEvent := mba:getCurrentEvent($mba)
+ 
+ let $insert :=  <xes:event>
+ <xes:date key="time:timestamp"
+value="{$time}"/>
+
+{
+  <xes:string key="sc:state" value="{$von/@id}"/>
+  ,
+ if( $transType = 'external' or 'internal' ) then
+   <xes:string key="concept:name" value="{$currentEvent/name}"/>
+ else
+ (), 
+  if( $transType = 'external' or 'internal' ) then
+    <xes:string key="sc:event" value="{$event}"/>
+ else
+ (), 
+ if(not(fn:empty($to))) then 
+ <xes:string key="sc:target" value="{$to/@id}"/>
+ else
+ (),
+   if(not(fn:empty($cond))) then 
+ <xes:string key="sc:cond" value="{$cond}"/>
+ else
+ ()
+}
+
+ </xes:event>
+
+return $insert
+else
+
+let $scxml := mba:getSCXML($mba)
+let $states := 
+sc:getInitialStates($scxml)
+
+
+let $insert :=
+
+for $s in $states
+return 
+  <xes:event>
+ <xes:date key="time:timestamp"
+value="{$time}"/>
+
+{
+  if($transType = 'init') then 
+  <xes:string key="sc:inital" value="{$scxml/@name}"/>
+  else
+  ()
+  ,
+ <xes:string key="sc:target" value="{$s/@id}"/>
+
+}
+
+ </xes:event>
+
+return $insert
+
+
+ return
+ insert node $insert
+  into $log
+ 
+};
+
+(:(:<xs:transition> {$transition}</xs:transition>
+  <xs:test> {$von/@id}</xs:test>
+   <xs:test> {$to/@id}</xs:test>
+  <xs:test> {$toN}</xs:test> :):)

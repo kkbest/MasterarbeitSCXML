@@ -400,15 +400,15 @@ declare
 
   return 
   (mba:updateCurrentExitSet($mba,$exitSet),mba:updatecurrentTransitions($mba,$insert),
-   db:output(<rest:forward>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName, 0, 1, $transType), '/' ))}</rest:forward>))
+   db:output(<rest:forward>{fn:concat('/exitStates/', string-join(($dbName,$collectionName,$mbaName, 0, 1, $transType), '/' ))}</rest:forward>))
 };
 
 
 
 declare
-  %rest:path("/exitContents/{$dbName}/{$collectionName}/{$mbaName}/{$counterContent}/{$counterExit}/{$transType}")
+  %rest:path("/exitStates/{$dbName}/{$collectionName}/{$mbaName}/{$counterContent}/{$counterExit}/{$transType}")
   %rest:GET
-  updating function page:exitContents(
+  updating function page:exitStates(
     $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $counterContent as xs:integer, $counterExit as xs:integer,  $transType as xs:string)
 {
   
@@ -431,11 +431,11 @@ else
    if ($counterContent = 0 ) then 
    
 (   mba:removeCurrentStates($mba, $state),mba:removestatesToInvoke($mba,$state), kk:exitStatesSingle($dbName,$collectionName,$mbaName,$state,$transType),
-   db:output(<rest:forward>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName, $counterContent+1, $counterExit, $transType), '/' ))}</rest:forward>))
+   db:output(<rest:forward>{fn:concat('/exitStates/', string-join(($dbName,$collectionName,$mbaName, $counterContent+1, $counterExit, $transType), '/' ))}</rest:forward>))
   
 else if ($counterContent <= $max) then
   
-  ( kk:executeExecutablecontent($dbName, $collectionName, $mbaName, $content, $counterContent),  db:output(<rest:forward>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName, $counterContent+1, $counterExit, $transType), '/' ))}</rest:forward>))
+  ( kk:runExecutableContent($dbName, $collectionName, $mbaName, $content[$counterContent]),  db:output(<rest:forward>{fn:concat('/exitStates/', string-join(($dbName,$collectionName,$mbaName, $counterContent+1, $counterExit, $transType), '/' ))}</rest:forward>))
  
  
  else
@@ -443,7 +443,7 @@ else if ($counterContent <= $max) then
  let $maxStates := fn:count($exitSet)
  return 
  if ($counterExit <= $maxStates) then 
-  db:output(<rest:forward>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName,0, $counterExit +1 , $transType), '/' ))}</rest:forward>)
+  db:output(<rest:forward>{fn:concat('/exitStates/', string-join(($dbName,$collectionName,$mbaName,0, $counterExit +1 , $transType), '/' ))}</rest:forward>)
  else 
  db:output(<rest:forward>{fn:concat('/runTransitionContent/', string-join(($dbName,$collectionName,$mbaName,0, $transType), '/' ))}</rest:forward>) 
 
@@ -474,7 +474,7 @@ declare
     if ($counter = 0) then 
       db:output(<rest:forward>{fn:concat('/runTransitionContent/', string-join(($dbName,$collectionName,$mbaName,$counterneu,$transType), '/' ))}</rest:forward>)
     else if ($counter <= $max) then
-       (kk:executeExecutablecontent($dbName, $collectionName, $mbaName, $content, $counter),
+       (kk:runExecutableContent($dbName, $collectionName, $mbaName, $content[$counter]),
        db:output(<rest:forward>{fn:concat('/runTransitionContent/', string-join(($dbName,$collectionName,$mbaName,$counterneu, $transType), '/' ))}</rest:forward>))
     else
       let $transitions :=  mba:getCurrentTransitionsQueue($mba)/transitions/*
@@ -557,7 +557,7 @@ else
   
 else if ($counterContent <= $max) then
   
-  ( kk:executeExecutablecontent($dbName, $collectionName, $mbaName, $content, $counterContent),  db:output(<rest:forward>{fn:concat('/enterStates/', string-join(($dbName,$collectionName,$mbaName, $counterContent+1, $counterEntry, $transType), '/' ))}</rest:forward>))
+  ( kk:runExecutableContent($dbName, $collectionName, $mbaName, $content[$counterContent]),  db:output(<rest:forward>{fn:concat('/enterStates/', string-join(($dbName,$collectionName,$mbaName, $counterContent+1, $counterEntry, $transType), '/' ))}</rest:forward>))
  
  
  else
@@ -616,7 +616,7 @@ declare
   let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
   return 
   
-  (kk:invokeStateswithNewDb($mba)
+  (kk:invokeStates($mba)
  ,mba:deleteStatesToInvokeQueue($mba), 
   db:output(<rest:forward>{fn:concat('/processPendingTransitions/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )  
   
@@ -645,7 +645,7 @@ declare
     let $exitSet := $configuration
     return 
     (mba:updateCurrentExitSet($mba,$exitSet),
-    db:output(<rest:forward>{fn:concat('/exitContents/', string-join(($dbName,$collectionName,$mbaName, 0, 1, 'exit'), '/' ))}</rest:forward>)))
+    db:output(<rest:forward>{fn:concat('/exitStates/', string-join(($dbName,$collectionName,$mbaName, 0, 1, 'exit'), '/' ))}</rest:forward>)))
 else()
 )
 else

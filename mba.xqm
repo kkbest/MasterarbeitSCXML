@@ -28,7 +28,7 @@
 module namespace mba = 'http://www.dke.jku.at/MBA';
 
 import module namespace functx = 'http://www.functx.com';
-
+declare namespace xes = 'www.xes-standard.org/';
 import module namespace sc = 'http://www.w3.org/2005/07/scxml';
 
 declare updating function mba:createMBAse($newDb as xs:string) {
@@ -177,6 +177,10 @@ declare function mba:concretize($parents as element()*,
                     <counter xmlns="">1</counter>
                 </response>
                 <historyStates xmlns=""/>
+                                        <xes:log>
+                        <xes:trace>
+                        </xes:trace>
+                        </xes:log>
             </sc:data>
             into $c/mba:topLevel/mba:elements/sc:scxml[1]/sc:datamodel
         else ()
@@ -432,6 +436,15 @@ declare function mba:getInternalEventQueue($mba as element()) as element() {
     return $scxml/sc:datamodel/sc:data[@id = '_x']/internalEventQueue
 };
 
+
+declare function mba:getLog($mba as element()) as element()
+{
+      let $scxml := mba:getSCXML($mba)
+
+    return $scxml/sc:datamodel/sc:data[@id = '_x']/xes:log/xes:trace
+};
+
+
 declare function mba:getCurrentEntrySet($mba as element()) as node()* {
     let $scxml := mba:getSCXML($mba)
 
@@ -629,7 +642,7 @@ declare updating function mba:updatecurrentTransitions($mba as element(),
 
 
 declare updating function mba:updatechildInvoke($mba as element(),
-        $state, $dbName, $collectionName, $mbaName, $id) {
+        $state as element(), $dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string, $id as xs:string) {
     let $queue := mba:getChildInvokeQueue($mba)
 
 
@@ -726,6 +739,7 @@ declare updating function mba:dequeueInternalEvent($mba as element()) {
 
     return delete node ($queue/*)[1]
 };
+
 
 
 declare function mba:getCurrentEvent($mba as element()) as element() {
@@ -859,6 +873,10 @@ declare updating function mba:init($mba as element()) {
                         <counter xmlns="">1</counter>
                     </response>
                     <historyStates xmlns=""/>
+                                            <xes:log>
+                        <xes:trace>
+                        </xes:trace>
+                        </xes:log>
                 </sc:data>
             </sc:datamodel> into $scxml
             )
@@ -904,7 +922,10 @@ declare updating function mba:init($mba as element()) {
                             <counter xmlns="">1</counter>
                         </response>
                         <historyStates xmlns=""/>
-
+                        <xes:log>
+                        <xes:trace>
+                        </xes:trace>
+                        </xes:log>
                     </sc:data>
                     into $scxml/sc:datamodel
                 else (),
