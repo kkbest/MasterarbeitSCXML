@@ -10,13 +10,13 @@
             </sc:initial>
             <sc:state id="Accredited">
                <sc:onentry>
-                  <sc:log expr="University  Accredited  on Entry log" />
+                  <sc:log expr="'University  Accredited  on Entry log'" />
                </sc:onentry>
                <sc:transition event="addSchool">
                   <sync:newDescendant name="$_event/data/name" level="school" />
                </sc:transition>
                <sc:onexit>
-                  <sc:log expr="University Accredited on Exit log" />
+                  <sc:log expr="'University Accredited on Exit log'" />
                </sc:onexit>
             </sc:state>
          </sc:scxml>
@@ -32,10 +32,10 @@
                </sc:initial>
                <sc:state id="Existing">
                   <sc:onentry>
-                     <sc:log expr="School  Existing  on Entry log" />
+                     <sc:log expr="'School  Existing  on Entry log'" />
                   </sc:onentry>
                   <sc:onexit>
-                     <sc:log expr="School Existing on Exit log" />
+                     <sc:log expr="'School Existing on Exit log'" />
                   </sc:onexit>
                   <sc:transition event="addDegree" cond="not $offeredDegrees/degree[name=$_event/data/text()]">
                      <sc:assign location="$offeredDegrees" expr="&lt;degree name='{$_event/data/text()}'/&gt;" type="lastchild" />
@@ -63,15 +63,15 @@
                   </sc:initial>
                   <sc:state id="Developing">
                      <sc:onentry>
-                        <sc:log expr="Programm Developing on Entry log" />
+                        <sc:log expr="'Programm Developing on Entry log'" />
                      </sc:onentry>
                      <sc:onexit>
-                        <sc:log expr="Programm Developing on Exit log" />
+                        <sc:log expr="'Programm Developing on Exit log'" />
                      </sc:onexit>
                      <sc:transition event="setDegree" cond="$_ancestorAtLevelSatisfies('school', '$offeredDegrees/* = &quot;' || $_event/data/degree || '&quot;')">
                         <sc:assign location="$degree" expr="$_event/data/degree/text()" />
                         <sc:getValue location="$degree" />
-                        <sc:log expr="Ein Program developing log fuer unseren Log" />
+                        <sc:log expr="'Ein Program developing log fuer unseren Log'" />
                      </sc:transition>
                      <sc:transition event="addCourse">
                         <sync:newDescendant name="$_event/data/name" level="course" />
@@ -183,15 +183,15 @@
                      </sc:initial>
                      <sc:state id="Developing">
                         <sc:onentry>
-                           <sc:log expr="Developing on Entry log" />
+                           <sc:log expr="'Developing on Entry log'" />
                         </sc:onentry>
                         <sc:onexit>
-                           <sc:log expr="Developing on Exit log" />
+                           <sc:log expr="'Developing on Exit log'" />
                         </sc:onexit>
                         <sc:transition event="setDegree" cond="$_ancestorAtLevelSatisfies('school', '$offeredDegrees/* = &quot;' || $_event/data/degree || '&quot;')">
                            <sc:assign location="$degree" expr="$_event/data/degree/text()" />
                            <sc:getValue location="$degree" />
-                           <sc:log expr="SocialAndEconomicSciencesProgram log fuer unseren Log" />
+                           <sc:log expr="'SocialAndEconomicSciencesProgram log fuer unseren Log'" />
                         </sc:transition>
                         <sc:transition event="addCourse">
                            <sync:newDescendant name="$_event/data/name" level="course" />
@@ -299,10 +299,10 @@
                         </sc:initial>
                         <sc:state id="Developing">
                            <sc:onentry>
-                              <sc:log expr="InformationSystemsProgram on Entry log" />
+                              <sc:log expr="'InformationSystemsProgram on Entry log'" />
                            </sc:onentry>
                            <sc:onexit>
-                              <sc:log expr="InformationSystemsProgram on Exit log" />
+                              <sc:log expr="'InformationSystemsProgram on Exit log'" />
                            </sc:onexit>
                            <sc:history type="deep" id="history-actions">
                               <sc:transition target="Discontinued" />
@@ -310,7 +310,7 @@
                            <sc:transition event="setDegree" cond="$_ancestorAtLevelSatisfies('school', '$offeredDegrees/* = &quot;' || $_event/data/degree || '&quot;')">
                               <sc:assign location="$degree" expr="$_event/data/degree/text()" />
                               <sc:getValue location="$degree" />
-                              <sc:log expr="Ein InformationSystemsProgram log fuer unseren Log" />
+                              <sc:log expr="'Ein InformationSystemsProgram log fuer unseren Log'" />
                            </sc:transition>
                            <sc:transition event="addCourse">
                               <sync:newDescendant name="$_event/data/name" level="course" parents="$_event/data/mod/text()" />
@@ -325,10 +325,10 @@
                         </sc:state>
                         <sc:state id="Active">
                            <sc:onentry>
-                              <sc:log expr="InformationSystemsProgram  Active  on Entry log" />
+                              <sc:log expr="'InformationSystemsProgram  Active  on Entry log'" />
                            </sc:onentry>
                            <sc:onexit>
-                              <sc:log expr="InformationSystemsProgram  Active on Entry log" />
+                              <sc:log expr="'InformationSystemsProgram  Active on Entry log'" />
                            </sc:onexit>
                            <sc:initial>
                               <sc:transition target="Test2Sub1" />
@@ -461,10 +461,10 @@
                                  </sc:state>
                                  <sc:state id="InProgress">
                                     <sc:onentry>
-                                       <sc:log expr="SocialAndEconomicSciencesCourseInstance  InProgress  on Entry log" />
+                                       <sc:log expr="'SocialAndEconomicSciencesCourseInstance  InProgress  on Entry log'" />
                                     </sc:onentry>
                                     <sc:onexit>
-                                       <sc:log expr="SocialAndEconomicSciencesCourseInstance InProgress on Exit log" />
+                                       <sc:log expr="'SocialAndEconomicSciencesCourseInstance InProgress on Exit log'" />
                                     </sc:onexit>
                                     <sc:transition event="finish" target="Finished" />
                                  </sc:state>

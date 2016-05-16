@@ -6,6 +6,9 @@ import module namespace mba='http://www.dke.jku.at/MBA';
 import module namespace sc = 'http://www.w3.org/2005/07/scxml';
 import module namespace sync = 'http://www.dke.jku.at/MBA/Synchronization';
 
+(:      <link rel="stylesheet" type="text/css" href="static/style.css"/>
+:)
+
 declare
   %rest:path("/modify")
   %output:method("xhtml")
@@ -18,26 +21,60 @@ declare
   <html xmlns="http://www.w3.org/1999/xhtml">
     <head>
       <title>Event Adding Service</title>
-      <link rel="stylesheet" type="text/css" href="static/style.css"/>
+      <link rel="stylesheet" href="static/bootstrap/css/bootstrap.min.css" /> 
+
+      <script src="static/bootstrap/js/bootstrap.min.js"></script>  
     </head>
     <body>
-      <div class="right"><img src="static/basex.svg" width="96"/></div>
-      <h2>Event Adding Service</h2>
-      <div>Welcome to the Modify Service, which allows you to add Certain Events for Transitions</div>
-      <h3>Adding Event 2</h3>
-      <p>This allows one to add Prepared and own events to Event Queue</p>
-      <form method="post" action="index">
-        <p>Your dbName:<br />
-        <input name="dbName" size="50"></input> <br />
-                Your collectionName:<br />
-        <input name="collectionName" size="50"></input> <br />
-               Your mbaName:<br />
-        <input name="mbaName" size="50"></input> <br />
-        <input type="submit" /></p>
-      </form>
+    <div class="navbar navbar-inverse">
+  <div class="navbar-header">
+    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-inverse-collapse">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </button>
+    <a class="navbar-brand" href="#">SCXML-Interpreter</a>
+  </div>
+  </div>
+
+ <div class="container">
+<div class="page-header" id="banner">
+        <div class="row">
+          <div class="col-lg-6">
+            <h1> SCXML - Interpreter</h1>
+            <p class="lead">Hinzufügen von Events</p>
+          </div>
+        </div>
+      </div>
+
+
+<form action="index" method="POST" role="form" class="form-horizontal">
+  <div class="form-group">
+  <label for="dbName">dbName</label>
+  <input type="text" class="form-control" id="dbName" name="dbName" />
+</div>
+
+<div class="form-group">
+  <label for="collectionName">collectionName</label>
+  <input type="text" class="form-control" id="collectionName" name="collectionName"  />
+</div>
+
+<div class="form-group">
+  <label for="mbaName">mbaName</label>
+  <input type="text" class="form-control" id="mbaName" name="mbaName"/>
+</div>
+  <div class="form-group">
+    <div class="col-sm-offset-2 col-sm-10">
+      <button type="submit" class="btn btn-default">Search</button>
+    </div>
+  </div>
+</form>
+
+     </div>
     </body>
   </html>
 };
+
 
 
 declare
@@ -179,6 +216,10 @@ updating function page:change($data)
    
 {
  
+ 
+let $target := 'xml-stylesheet',
+$content := 'href="../static/update.xsl" type="text/xsl" '
+
   let $input :=
   <input>  
  { let $row :=  fn:tokenize($data,'&amp;')
@@ -226,17 +267,23 @@ fn:false()
 
 
 
+
+
 return 
 
-(mba:enqueueExternalEvent($mba, <event name='{$eventName}' >{ $eventData , $extraData,  <id>{mba:getCounter( $mba )}</id> }</event>),
-sc:updateCounter($dbName,$collectionName,$mbaName),db:output(<response> 
+(mba:enqueueExternalEvent($mba, <event name='{$eventName}' >{ $eventData , $extraData,  <id>{mba:getCounter( $mba )}</id> }</event>),sc:updateCounter($dbName,$collectionName,$mbaName),
+db:output(
+  document {
+ processing-instruction {$target} {$content},
+<response> 
   <result> added Eevent</result>
     <addText> {$eventName}</addText>
     <addText> {$extraData}</addText>
     <name> {$input/*[position()=last()-1]}</name>
     <input> {$input}</input>
   <counter> {mba:getCounter( mba:getMBA($dbName, $collectionName, $mbaName) )}</counter>
-</response>))
+</response>})
+)
 
 };
 
@@ -244,16 +291,170 @@ sc:updateCounter($dbName,$collectionName,$mbaName),db:output(<response>
 this function returns a Result for an mba with an certain Id
 :)
 declare
-  %rest:path("/getResult/{$dbName}/{$collectionName}/{$mbaName}/{$id}")
+  %rest:path("/getResult/{$dbName}/{$collectionName}/{$mbaName}")
   %rest:GET
   function page:getResult(
-    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $id as xs:string)
+    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string) as node()*
 {
 
-sc:getResult($dbName, $collectionName, $mbaName, $id)
 
+
+let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+let $scxml := mba:getSCXML($mba)
+let $configuration := mba:getConfiguration($mba)
+let $dataModels := mba:selectDataModels($configuration)
+let $events :=
+
+<auswahl>
+{
+  
+ for $event in $configuration/sc:transition/@event
+return 
+<event>{$event/data()}</event>
+}
+</auswahl>
+
+
+let $target := 'xml-stylesheet',
+$content := 'href="../static/start.xsl" type="text/xsl" '
+
+return document {
+   processing-instruction {$target} {$content},
+
+  <output>
+  {($events,
+ <hidden>
+<dbName>{$dbName}</dbName>
+<collectionName>{$collectionName}</collectionName>
+<mbaName>{$mbaName}</mbaName>
+</hidden>)}
+</output> 
+}
+
+(:
+ 
+ sc:getResult($dbName, $collectionName, $mbaName, $id)
+
+:)
 };
 
+
+
+declare
+  %rest:path("/getData")
+  %output:method("xhtml")
+  %output:omit-xml-declaration("no")
+  %output:doctype-public("-//W3C//DTD XHTML 1.0 Transitional//EN")
+  %output:doctype-system("http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd")
+  function page:getData()
+  as element(Q{http://www.w3.org/1999/xhtml}html)
+{
+  <html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+      <title>Event Adding Service</title>
+      <link rel="stylesheet" href="static/bootstrap/css/bootstrap.min.css" /> 
+
+      <script src="static/bootstrap/js/bootstrap.min.js"></script>  
+    </head>
+    <body>
+    <div class="navbar navbar-inverse">
+  <div class="navbar-header">
+    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-inverse-collapse">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </button>
+    <a class="navbar-brand" href="#">SCXML-Interpreter</a>
+  </div>
+  </div>
+
+ <div class="container">
+<div class="page-header" id="banner">
+        <div class="row">
+          <div class="col-lg-6">
+            <h1> SCXML - Interpreter</h1>
+            <p class="lead">Hinzufügen von Events</p>
+          </div>
+        </div>
+      </div>
+
+
+<form action="getResult" method="POST" role="form" class="form-horizontal">
+  <div class="form-group">
+  <label for="dbName">dbName</label>
+  <input type="text" class="form-control" id="dbName" name="dbName" />
+</div>
+
+<div class="form-group">
+  <label for="collectionName">collectionName</label>
+  <input type="text" class="form-control" id="collectionName" name="collectionName"  />
+</div>
+
+<div class="form-group">
+  <label for="mbaName">mbaName</label>
+  <input type="text" class="form-control" id="mbaName" name="mbaName"/>
+</div>
+
+<div class="form-group">
+  <label for="mbaName">Counter</label>
+  <input type="text" class="form-control" id="counter" name="counter"/>
+</div>
+
+  <div class="form-group">
+    <div class="col-sm-offset-2 col-sm-10">
+      <button type="submit" class="btn btn-default">Search</button>
+    </div>
+  </div>
+</form>
+
+     </div>
+    </body>
+  </html>
+};
+
+
+
+
+declare
+  %rest:path("/getResult")
+    %rest:POST
+  %rest:form-param("dbName","{$dbName}", "(no dbName)")
+%rest:form-param("collectionName","{$collectionName}", "(no collectionName)")
+%rest:form-param("mbaName","{$mbaName}", "(no mbaName)")
+%rest:form-param("counter","{$counter}", "(no counter)")
+ function page:hello-result(
+    $dbName, $collectionName, $mbaName, $counter)
+    as node()*
+{
+  
+  
+let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+let $scxml := mba:getSCXML($mba)
+let $configuration := mba:getConfiguration($mba)
+let $dataModels := mba:selectDataModels($configuration)
+let $events :=
+
+sc:getResult($dbName, $collectionName, $mbaName, $counter)
+
+
+let $target := 'xml-stylesheet',
+$content := 'href="../static/getResult.xsl" type="text/xsl" '
+
+return document {
+   processing-instruction {$target} {$content},
+
+  <output>
+  {($events,
+ <hidden>
+<dbName>{$dbName}</dbName>
+<collectionName>{$collectionName}</collectionName>
+<mbaName>{$mbaName}</mbaName>
+<counter>{$counter}</counter>
+</hidden>)}
+</output> 
+}
+
+};
 
 
 declare
@@ -312,7 +513,7 @@ declare
       return
         if(fn:empty($internalEvent)) then
           (sc:getNextExternalEvent($dbName, $collectionName, $mbaName),
-          db:output(<rest:forward>{fn:concat('/doFinalizeandAutoforward/', string-join(($dbName,$collectionName,$mbaName,0,0), '/' ))}</rest:forward>)) 
+          db:output(<rest:forward>{fn:concat('/doFinalizeandAutoforward/', string-join(($dbName,$collectionName,$mbaName,0), '/' ))}</rest:forward>)) 
         else
             (sc:getNextInternalEvent($dbName, $collectionName, $mbaName),
             db:output(<rest:forward>{fn:concat('/calculateTransitions/', string-join(($dbName,$collectionName,$mbaName,'internal'), '/' ))}</rest:forward>))
@@ -322,10 +523,10 @@ declare
 
 
 declare
-  %rest:path("/doFinalizeandAutoforward/{$dbName}/{$collectionName}/{$mbaName}/{$finalizeCounter}/{$stepCounter}")
+  %rest:path("/doFinalizeandAutoforward/{$dbName}/{$collectionName}/{$mbaName}/{$finalizeCounter}")
   %rest:GET
   updating function page:doFinalizeandAutoforward(
-    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $finalizeCounter as xs:integer, $stepCounter as xs:integer)
+    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $finalizeCounter as xs:integer)
 {
   
 
@@ -334,8 +535,10 @@ let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
   let $currentEvent := mba:getCurrentEvent($mba)
   let $dataModel :=  mba:selectAllDataModels($mba)
 
- 
- return 
+return
+
+  if($finalizeCounter = 0) then 
+  
  (
     sc:updateRunning($dbName,$collectionName,$mbaName)
    ,
@@ -349,8 +552,7 @@ let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
              if (fn:matches($currentEvent/invokeid,$match)) then
              (
                let $content := $inv/sc:finalize/*
-                 for $c in $content
-                 return sc:runExecutableContent($dbName, $collectionName,$mbaName, $c))
+                 return sc:runExecutableContent($dbName, $collectionName,$mbaName, $content[1]))
               else()
             ),
             (
@@ -359,8 +561,44 @@ let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
                else()
              )
         ),
-     db:output(<rest:forward>{fn:concat('/calculateTransitions/', string-join(($dbName,$collectionName,$mbaName,'external'), '/' ))}</rest:forward>)
+     db:output(<rest:forward>{fn:concat('/doFinalizeandAutoforward/', string-join(($dbName,$collectionName,$mbaName,2), '/' ))}</rest:forward>) 
  )
+ else
+ (
+   let $content := 
+
+      for $s in $configuration
+      for $inv in $s/sc:invoke
+       return
+         let $match := $s/@id || '.*'
+           return
+           (
+             if (fn:matches($currentEvent/invokeid,$match)) then
+             (
+               $inv/sc:finalize/*
+             )
+             else
+             () )
+             
+             
+  let $max := fn:count($content)
+  return if ($finalizeCounter > $max) then
+      db:output(<rest:forward>{fn:concat('/calculateTransitions/', string-join(($dbName,$collectionName,$mbaName,'external'), '/' ))}</rest:forward>)
+       else
+           (sc:runExecutableContent($dbName, $collectionName,$mbaName, $content[$finalizeCounter])),
+           db:output(<rest:forward>{fn:concat('/doFinalizeandAutoforward/', string-join(($dbName,$collectionName,$mbaName,$finalizeCounter+1), '/' ))}</rest:forward>)
+           
+         
+
+       
+       
+           
+         
+       
+ )
+        
+        
+ 
 
 };
 

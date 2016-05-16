@@ -1698,7 +1698,8 @@ declare function sc:getResult($dbName as xs:string, $collectionName as xs:string
 
 
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
-    return $mba/mba:topLevel/mba:elements/sc:scxml/sc:datamodel/sc:data[@id = '_x']/response/response[@ref = $id]
+    return
+    $mba/mba:topLevel/mba:elements/sc:scxml/sc:datamodel/sc:data[@id = '_x']/response/response[@ref = $id]
 
 };
 

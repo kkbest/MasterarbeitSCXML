@@ -638,28 +638,6 @@ public class DataAccessObject {
 		}
 	}
 
-	/**
-	 * Processes an event from the given MBA's external event queue.
-	 * 
-	 * @param mba
-	 *            the MBA the event of which is executed
-	 */
-
-
-
-	public String[] getExecutableContents(MultilevelBusinessArtifact mba) {
-		String[] returnValue = null;
-
-		try (InputStream xquery = getClass().getResourceAsStream("/xquery/getExecutableContents.xq")) {
-			returnValue = runXQuery(mba, xquery);
-		} catch (IOException e) {
-			logger.error("Could not read XQuery file.", e);
-		}
-
-		return returnValue;
-	}
-
-	
 
 	
 

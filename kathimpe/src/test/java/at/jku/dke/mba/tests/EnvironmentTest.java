@@ -243,14 +243,20 @@ logger.info("dao" + dao.getmbaagain(mba));
 
 	@Test
 	public void startTest() throws Exception {
+	
+
 		String dbName = "myMBAse";
 		String collectionName = "JohannesKeplerUniversity";
 
-		this.setUpDb("/xml/academic_simplen.xml", dbName, collectionName);
+		this.setUpDb2("/xml/academic_simplen.xml", dbName, collectionName);
 		this.initDb(dbName, collectionName);
 		MultilevelBusinessArtifact mba = dao.getMultilevelBusinessArtifact(dbName, collectionName,
 				"InformationSystems");
 
+		assertTrue(mba.isInState("Developing"));
+		assertFalse(mba.isInState("Active"));
+		assertFalse(mba.isInState("Discontinued"));
+		
 		
 	}
 
