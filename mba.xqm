@@ -29,7 +29,8 @@ module namespace mba = 'http://www.dke.jku.at/MBA';
 
 import module namespace functx = 'http://www.functx.com';
 declare namespace xes = 'www.xes-standard.org/';
-import module namespace sc = 'http://www.w3.org/2005/07/scxml';
+declare namespace sc = 'http://www.w3.org/2005/07/scxml';
+
 
 declare updating function mba:createMBAse($newDb as xs:string) {
     let $dbDimSchemaFileName := 'xsd/collections.xsd'
@@ -936,96 +937,35 @@ declare updating function mba:init($mba as element()) {
 };
 
 
-declare updating function mba:createDatamodel($mba)
-{
+(:~
+ : Selects the data models that are valid in the current configuration.
+ : 
+ : Note: The configuration must consist of the original nodes (not copies) from
+ :       the SCXML document.
+ : Note: All states in the configuration are assumed to have been taken from the
+ :       same SCXML document.
+ : 
+ : @param $configuration the list of active nodes
+ : 
+ : @return a list of data models; original nodes, not copies.
+ :)
+declare function mba:selectDataModels($configuration as element()*)
+as element()* {
+    let $global :=
+        $configuration[1]/ancestor::sc:scxml/sc:datamodel
 
-    let $scxml := mba:getSCXML($mba)
-    let $configuration := mba:getConfiguration($mba)
+    let $local := for $s in $configuration return $s/sc:datamodel
 
-    let $dataModels :=
-
-        if (fn:empty($configuration)) then
-            sc:selectAllDataModels($mba)[not(./ancestor::sc:invoke)]
-        else
-            sc:selectDataModels($configuration)[not(./ancestor::sc:invoke)]
-
-    let $data :=
-        if ($scxml/@binding = 'late') then
-            $scxml/sc:datamodel/sc:data[not(fn:matches(@id, '^_'))]
-        else
-            $scxml//sc:datamodel/sc:data[not(fn:matches(@id, '^_')) and not(./ancestor::sc:invoke)]
-
-    for $d in $data
-
-    return
-
-        if ($d/@expr) then
-            (try
-            {
-                let $value := sc:eval($d/@expr, $dataModels)
-                let $test := fn:trace("hallo")
-                return insert node <data id="{$d/@id}">{$value} </data> into $scxml/sc:datamodel, delete node $d
-
-            }
-            catch *
-            {
-                let $test := fn:trace("hallo2")
-                let $test := fn:trace($err:description, "errdesc")
-                let $event := <event name="error.execution" xmlns="">
-                    <data>{$err:code, $err:description}</data></event>
-                return mba:enqueueInternalEvent($mba, $event), insert node <data id="{$d/@id}"></data> into $scxml/sc:datamodel, delete node $d
-
-            })
-
-        else if ($d/@src) then
-            (try
-            {
-                let $value :=
-                    if (fn:substring-before($d/@src, ':') = 'file') then
-
-                        let $test := fn:trace("hallofile")
-                        return fn:unparsed-text(fn:substring-after($d/@src, ':'))
-                    else
-                        ()
-
-                let $test := fn:trace("hallo")
-                return insert node <data id="{$d/@id}">{$value} </data> into $scxml/sc:datamodel, delete node $d
-
-            }
-            catch *
-            {
-                let $test := fn:trace("hallo2")
-                let $event := <event name="error.execution" xmlns=""></event>
-                return mba:enqueueInternalEvent($mba, $event), insert node <data id="{$d/@id}">{$err:code}</data> into $d/parent::*, delete node $d
-
-            })
-
-        else if ($d/@systemsrc) then
-                (try
-                {
-                    let $value :=
-                        if (fn:matches($d/@systemsrc, '\$_ioprocessors')) then sc:evalWithError($d/@systemsrc, $dataModels)
-                        else
-                            sc:evalWithError($d/@systemsrc, $dataModels)/text()
-
-
-                    let $test := fn:trace("hallo")
-                    return insert node <data id="{$d/@id}">{$value} </data> into $d/parent::*, delete node $d
-
-                }
-                catch *
-                {
-                    let $test := fn:trace("hallo2")
-                    let $event := <event name="error.execution" xmlns=""></event>
-                    return mba:enqueueInternalEvent($mba, $event), insert node <data id="{$d/@id}">{$err:code}</data> into $d/parent::*, delete node $d
-
-                })
-
-            else
-                ()
-
+    return ($global, $local)
 };
 
+
+declare function mba:selectAllDataModels($mba as element()*)
+as element()* {
+
+    $mba/*/*/sc:scxml//sc:datamodel
+
+};
 
 
 

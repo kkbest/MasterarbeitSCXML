@@ -94,3 +94,4 @@ declare function scx:builtInFunctionDeclarations() as xs:string {
          $syncAncestorAtLevelInState ||
          $syncAncestorAtLevelSatisfies
 };
+

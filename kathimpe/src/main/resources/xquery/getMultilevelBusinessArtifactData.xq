@@ -5,7 +5,7 @@ declare variable $mba external;
 
 let $configuration := mba:getConfiguration($mba)
 
-let $dataModels := sc:selectDataModels($configuration)
+let $dataModels := mba:selectDataModels($configuration)
 
 for $dataModel in $dataModels
   return $dataModel/sc:data

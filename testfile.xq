@@ -12,5 +12,5 @@ declare variable $mbaName := 'InformationSystems';
 
 
 let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
-return mba:getLog($mba)
+return $mba
 

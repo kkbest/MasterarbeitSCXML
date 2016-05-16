@@ -282,7 +282,11 @@ the transtitions.   -->
                                  </scxml>
                               </content>
                               <finalize>
+                               <sc:log expr="$Var1" label="First: " />
                                  <assign location="$Var1" expr="$_event/data/data[@id='aParam']/text()" />
+                                  <sc:log expr="$Var1" label="After: " />
+                                  <sc:log expr="'Test'" />
+                                   <sc:log expr="'Another thing'" />
                               </finalize>
                            </invoke>
                            <transition event="childToParent" cond="$Var1=2" target="pass" />

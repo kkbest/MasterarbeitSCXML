@@ -25,8 +25,8 @@
 module namespace sync='http://www.dke.jku.at/MBA/Synchronization';
 
 import module namespace mba = 'http://www.dke.jku.at/MBA';
-import module namespace sc = 'http://www.w3.org/2005/07/scxml';
 import module namespace functx = 'http://www.functx.com';
+declare namespace sc = 'http://www.w3.org/2005/07/scxml';
 
 declare function sync:eval($expr       as xs:string,
                            $dataModels as element()*) {
@@ -71,8 +71,8 @@ declare function sync:everyDescendantAtLevelSatisfies
   
   return every $descendant in $descendants satisfies
     let $dataModels :=
-      sc:selectDataModels(mba:getConfiguration($descendant))
-    return sc:eval($cond, $dataModels)
+      mba:selectDataModels(mba:getConfiguration($descendant))
+    return sync:eval($cond, $dataModels)
 };
 
 declare function sync:someDescendantAtLevelSatisfies
@@ -82,9 +82,9 @@ declare function sync:someDescendantAtLevelSatisfies
   let $descendants := mba:getDescendantsAtLevel($mba, $level)
     return some $descendant in $descendants satisfies
       let $dataModels :=
-        sc:selectDataModels(mba:getConfiguration($descendant))
+        mba:selectDataModels(mba:getConfiguration($descendant))
   
-  return sc:eval($cond, $dataModels)
+  return sync:eval($cond, $dataModels)
 };
 
 declare function sync:ancestorAtLevelSatisfies
@@ -92,7 +92,7 @@ declare function sync:ancestorAtLevelSatisfies
      $level as xs:string,
      $cond  as xs:string) as xs:boolean {
   let $ancestor   := mba:getAncestorAtLevel($mba, $level)
-  let $dataModels := sc:selectDataModels(mba:getConfiguration($ancestor))
+  let $dataModels := mba:selectDataModels(mba:getConfiguration($ancestor))
   
   return sync:eval($cond, $dataModels)
 };
@@ -115,7 +115,7 @@ declare updating function sync:sendAncestor($mba     as element(),
   
   let $event := 
     <event xmlns="" name="{$eventId}">
-      {let $dataModels := sc:selectDataModels(mba:getConfiguration($mba))
+      {let $dataModels := mba:selectDataModels(mba:getConfiguration($mba))
        return
        if ($content) then ( 
          if ($content/@expr) then sync:eval($content/@expr, $dataModels)
@@ -141,19 +141,21 @@ declare updating function sync:assignAncestor($mba        as element(),
   let $ancestor := mba:getAncestorAtLevel($mba, $level)
   
   let $configuration := mba:getConfiguration($ancestor)
-  let $dataModels := sc:selectDataModels($configuration)
+  let $dataModels := mba:selectDataModels($configuration)
   
   
   let $dbName := mba:getDatabaseName($mba)
   let $collectionName := mba:getCollectionName($mba)
   let  $mbaName := $mba/@name
-
+(:
   return sc:assign($dataModels, 
                    $location, 
                    $expression, 
                    $type, 
                    $attribute, 
-                   $nodelist, $dbName, $collectionName, $mbaName)
+                   $nodelist, $dbName, $collectionName, $mbaName):)
+                   
+                   return ()
 };
 
 (:~
@@ -177,7 +179,7 @@ declare updating function sync:sendDescendants($mba     as element(),
     if($cond and not($cond = '')) then
       for $descendant in $descendants
         let $dataModels := 
-          sc:selectDataModels(mba:getConfiguration($descendant))
+          mba:selectDataModels(mba:getConfiguration($descendant))
         return
           if (sync:eval($cond, $dataModels)) then $descendant
           else ()
@@ -185,7 +187,7 @@ declare updating function sync:sendDescendants($mba     as element(),
   
   let $event := 
     <event xmlns="" name="{$eventId}">
-      {let $dataModels := sc:selectDataModels(mba:getConfiguration($mba))
+      {let $dataModels := mba:selectDataModels(mba:getConfiguration($mba))
        return
        if ($content) then ( 
          if ($content/@expr) then sync:eval($content/@expr, $dataModels)
@@ -222,7 +224,7 @@ declare updating function sync:assignDescendants($mba        as element(),
     if($cond and not($cond = '')) then
       for $descendant in $descendants
         let $dataModels := 
-          sc:selectDataModels(mba:getConfiguration($descendant))
+          mba:selectDataModels(mba:getConfiguration($descendant))
         return
           if (sync:eval($cond, $dataModels)) then $descendant
           else ()
@@ -230,18 +232,19 @@ declare updating function sync:assignDescendants($mba        as element(),
   
   for $descendant in $filtered
     let $configuration := mba:getConfiguration($descendant)
-    let $dataModels := sc:selectDataModels($configuration)
+    let $dataModels := mba:selectDataModels($configuration)
       
   let $dbName := mba:getDatabaseName($mba)
   let $collectionName := mba:getCollectionName($mba)
   let  $mbaName := $mba/@name
   
-      return sc:assign($dataModels, 
+    (:  return sc:assign($dataModels, 
                        $location, 
                        $expression, 
                        $type, 
                        $attribute, 
-                       $nodelist, $dbName, $collectionName, $mbaName)
+                       $nodelist, $dbName, $collectionName, $mbaName):)
+                       return ()
 };
 
 declare updating function sync:newDescendant(
@@ -259,7 +262,7 @@ declare updating function sync:newDescendant(
   let $scxml := mba:getSCXML($mba)
   
   let $configuration := mba:getConfiguration($mba)
-  let $dataModels := sc:selectDataModels($configuration)
+  let $dataModels := mba:selectDataModels($configuration)
   
   let $name := 
     if ($name) then sync:eval($name, $dataModels) 
@@ -290,7 +293,7 @@ declare function sync:assignNewDescendant($mba        as element(),
   
   let $scxml := mba:getSCXML($mba)
   let $configuration := mba:getConfiguration($mba)
-  let $dataModels := sc:selectDataModels($configuration)
+  let $dataModels := mba:selectDataModels($configuration)
     
   let $variables :=
     for $dataModel at $pos in $dataModels
@@ -319,7 +322,7 @@ declare function sync:assignNewDescendant($mba        as element(),
     'copy $new := $mba modify ( ' ||
       'let $scxml := mba:getSCXML($new) ' ||
       'let $configuration := mba:getConfiguration($new) ' ||
-      'let $dataModels := sc:selectDataModels($configuration) ' ||
+      'let $dataModels := mba:selectDataModels($configuration) ' ||
       
       fn:string-join($variables) ||
             
@@ -363,3 +366,6 @@ declare function sync:assignNewDescendant($mba        as element(),
     map:merge((map:entry('mba', $mba), map:entry('nodelist', $nodelist)))
   )
 };
+
+
+

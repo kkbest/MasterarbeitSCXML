@@ -9,7 +9,7 @@ let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
 let $scxml := mba:getSCXML($mba)
 
 let $configuration := mba:getConfiguration($mba)
-let $dataModels := sc:selectDataModels($configuration)
+let $dataModels := mba:selectDataModels($configuration)
 
 let $transitions := 
   sc:selectEventlessTransitions($configuration, $dataModels)

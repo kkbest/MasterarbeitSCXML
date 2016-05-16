@@ -14,7 +14,7 @@ let $eventName    := $currentEvent/name
 
 let $configuration := mba:getConfiguration($mba)
 
-let $dataModels := sc:selectDataModels($configuration)
+let $dataModels := mba:selectDataModels($configuration)
 
 let $transitions := 
   if($eventName) then
