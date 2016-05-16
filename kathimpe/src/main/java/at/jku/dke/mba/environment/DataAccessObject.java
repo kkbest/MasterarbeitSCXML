@@ -369,17 +369,6 @@ public class DataAccessObject {
 	public void initMba(MultilevelBusinessArtifact mba) throws Exception {
 		XQConnection con = this.getConnection();
 
-		/*
-		 * logger.info(mba.getName()); logger.info("Name: und DBname " +
-		 * mba.getCollectionName() + ";" + mba.getDatabaseName()); try
-		 * (InputStream xqueryInitComponents =
-		 * getClass().getResourceAsStream("/xquery/initComponents.xq")) {
-		 * 
-		 * runXQueryUpdate(mba, xqueryInitComponents);
-		 * 
-		 * // removeFromInsertLog(mba); } catch (IOException e) { logger.error(
-		 * "Could not read XQuery file.", e); }
-		 */
 
 		String url = "http://localhost:8984/initMBA/" + mba.getDatabaseName() + '/' + mba.getCollectionName() + '/'
 				+ mba.getName();
@@ -655,50 +644,8 @@ public class DataAccessObject {
 	 * @param mba
 	 *            the MBA the event of which is executed
 	 */
-	/*
-	 * public void macrostep(MultilevelBusinessArtifact mba) { XQConnection con
-	 * = this.getConnection();
-	 * 
-	 * removeFromUpdateLog(mba); loadNextExternalEvent(mba);
-	 * 
-	 * String[] executableContents = getExecutableContents(mba);
-	 * 
-	 * for (Object content : executableContents) { runExecutableContent(mba,
-	 * content); }
-	 * 
-	 * changeCurrentStatus(mba); removeCurrentExternalEvent(mba);
-	 * processEventlessTransitions(mba);
-	 * 
-	 * try { if (!con.getAutoCommit()) { con.commit(); } } catch (XQException e)
-	 * { logger.error("Error committing macrostep.", e); } finally { if (con !=
-	 * null) { try { con.close(); } catch (XQException e) { // ignore } } } }
-	 */
 
-	private void removeFromUpdateLog(MultilevelBusinessArtifact mba) {
-		try (InputStream xquery = getClass().getResourceAsStream("/xquery/removeFromUpdateLog.xq")) {
-			runXQueryUpdate(mba, xquery);
-		} catch (IOException e) {
-			logger.error("Could not read XQuery file.", e);
-		}
-	}
 
-	private void removeFromInsertLog(MultilevelBusinessArtifact mba) {
-		try (InputStream xquery = getClass().getResourceAsStream("/xquery/removeFromInsertLog.xq")) {
-			runXQueryUpdate(mba, xquery);
-		} catch (IOException e) {
-			logger.error("Could not read XQuery file.", e);
-		}
-	}
-
-	private void processEventlessTransitions(MultilevelBusinessArtifact mba) {
-		Object[] executableContents = getExecutableContentsEventless(mba);
-
-		for (Object content : executableContents) {
-			runExecutableContent(mba, content);
-		}
-
-		changeCurrentStatusEventless(mba);
-	}
 
 	public String[] getExecutableContents(MultilevelBusinessArtifact mba) {
 		String[] returnValue = null;
@@ -712,61 +659,9 @@ public class DataAccessObject {
 		return returnValue;
 	}
 
-	private Object[] getExecutableContentsEventless(MultilevelBusinessArtifact mba) {
-		Object[] returnValue = null;
+	
 
-		try (InputStream xquery = getClass().getResourceAsStream("/xquery/getExecutableContentsEventless.xq")) {
-			returnValue = runXQuery(mba, xquery);
-		} catch (IOException e) {
-			logger.error("Could not read XQuery file.", e);
-		}
-
-		return returnValue;
-	}
-
-	private void runExecutableContent(MultilevelBusinessArtifact mba, Object content) {
-		try (InputStream xquery = getClass().getResourceAsStream("/xquery/runExecutableContent.xq")) {
-			runXQueryUpdate(mba, new Binding[] { new Binding("content", content,
-					getConnection().createElementType(null, XQItemType.XQITEMKIND_ELEMENT)) }, xquery);
-		} catch (IOException e) {
-			logger.error("Could not read XQuery file.", e);
-		} catch (XQException e) {
-			logger.error("Could not create element() type for binding.", e);
-		}
-	}
-
-	private void loadNextExternalEvent(MultilevelBusinessArtifact mba) {
-		try (InputStream xquery = getClass().getResourceAsStream("/xquery/loadNextExternalEvent.xq")) {
-			logger.info("isempty? : " + mba.getName() + mba.getDatabaseName() + mba.getCollectionName());
-			runXQueryUpdate(mba, xquery);
-		} catch (IOException e) {
-			logger.error("Could not read XQuery file.", e);
-		}
-	}
-
-	private void removeCurrentExternalEvent(MultilevelBusinessArtifact mba) {
-		try (InputStream xquery = getClass().getResourceAsStream("/xquery/removeCurrentExternalEvent.xq")) {
-			runXQueryUpdate(mba, xquery);
-		} catch (IOException e) {
-			logger.error("Could not read XQuery file.", e);
-		}
-	}
-
-	private void changeCurrentStatus(MultilevelBusinessArtifact mba) {
-		try (InputStream xquery = getClass().getResourceAsStream("/xquery/changeCurrentStatus.xq")) {
-			runXQueryUpdate(mba, xquery);
-		} catch (IOException e) {
-			logger.error("Could not read XQuery file.", e);
-		}
-	}
-
-	private void changeCurrentStatusEventless(MultilevelBusinessArtifact mba) {
-		try (InputStream xquery = getClass().getResourceAsStream("/xquery/changeCurrentStatusEventless.xq")) {
-			runXQueryUpdate(mba, xquery);
-		} catch (IOException e) {
-			logger.error("Could not read XQuery file.", e);
-		}
-	}
+	
 
 	private void runXQueryUpdate(MultilevelBusinessArtifact mba, InputStream xquery) {
 		XQConnection con = this.getConnection();
@@ -986,13 +881,7 @@ public class DataAccessObject {
 		}
 	}
 
-	private void startProcess(MultilevelBusinessArtifact mba) {
-		try (InputStream xquery = getClass().getResourceAsStream("/xquery/startProcess.xq")) {
-			runXQueryUpdate(mba, xquery);
-		} catch (IOException e) {
-			logger.error("Could not read XQuery file.", e);
-		}
-	}
+
 
 	public List<String> getNextEvent(MultilevelBusinessArtifact mba) {
 		List<String> returnValue = new LinkedList<String>();

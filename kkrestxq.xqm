@@ -286,7 +286,8 @@ declare
      let $configuration := mba:getConfiguration($mba)
      return
         if (not ($configuration)) then 
-          db:output(<rest:forward>{fn:concat('/enterStates/', string-join(($dbName,$collectionName,$mbaName, 0, 1, 'init'), '/' ))}</rest:forward>)
+           db:output(<rest:forward>{fn:concat('/doLogging/', string-join(($dbName,$collectionName,$mbaName, 'init'), '/' ))}</rest:forward>)  
+
         else
         ( db:output(<rest:forward>{fn:concat('/controller/', string-join(($dbName,$collectionName,$mbaName,'external'), '/' ))}</rest:forward>)))) 
 };
@@ -400,8 +401,10 @@ declare
 
   return 
   (mba:updateCurrentExitSet($mba,$exitSet),mba:updatecurrentTransitions($mba,$insert),
-   db:output(<rest:forward>{fn:concat('/exitStates/', string-join(($dbName,$collectionName,$mbaName, 0, 1, $transType), '/' ))}</rest:forward>))
+     db:output(<rest:forward>{fn:concat('/exitStates/', string-join(($dbName,$collectionName,$mbaName, 0, 1, $transType), '/' ))}</rest:forward>))
+
 };
+
 
 
 
@@ -484,11 +487,33 @@ declare
         else ()
       return
         ( mba:updatecurrentEntrySet($mba,$entrySet),  
-        db:output(<rest:forward>{fn:concat('/enterStates/', string-join(($dbName,$collectionName,$mbaName, 0, 1, $transType), '/' ))}</rest:forward>))
+    db:output(<rest:forward>{fn:concat('/doLogging/', string-join(($dbName,$collectionName,$mbaName, $transType), '/' ))}</rest:forward>)  
+)
 )
 else
  (db:output(<rest:forward>{fn:concat('/exitInterpreter/', string-join(($dbName,$collectionName,$mbaName,1), '/' ))}</rest:forward>))
    
+};
+
+declare 
+  %rest:path("/doLogging/{$dbName}/{$collectionName}/{$mbaName}/{$transType}")
+    %rest:GET
+  updating function page:exitStates(
+    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string,   $transType as xs:string)
+{
+     let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
+  let $scxml := mba:getSCXML($mba)
+  let $transitions := mba:getCurrentTransitionsQueue($mba)/transitions/*
+
+  return
+   ( for $t in $transitions
+  return kk:doLogging($mba,$t,$transType)),
+ ( if ($transType = 'init') then 
+  kk:doLogging(mba:getMBA($dbName, $collectionName, $mbaName),(),$transType) 
+  else
+  ()),
+        db:output(<rest:forward>{fn:concat('/enterStates/', string-join(($dbName,$collectionName,$mbaName, 0, 1, $transType), '/' ))}</rest:forward>)
+
 };
 
 

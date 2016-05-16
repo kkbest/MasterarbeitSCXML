@@ -1083,7 +1083,7 @@ declare updating function kk:invokeStates($mba)
 
 };
 
-declare updating function kk:doLogging($mba as element(),$transition as element(),$transType as xs:string)
+declare updating function kk:doLogging($mba as element(),$transition as element()*,$transType as xs:string)
 {
  let $log :=  mba:getLog($mba)
  let $time := fn:current-dateTime()
