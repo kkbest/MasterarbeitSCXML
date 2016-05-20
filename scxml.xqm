@@ -1666,30 +1666,12 @@ declare function sc:getExecutableContentsEnter($dbName as xs:string, $collection
 };
 
 
-(:declare updating function sc:executeExecutablecontent($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string, $content, $counter)
-{
-    sc:runExecutableContent($dbName, $collectionName, $mbaName, $content[$counter])
-};
-:)
-
 declare updating function sc:removeFromUpdateLog($dbName as xs:string, $collectionName as xs:string, $mbaName)
 {
 
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
     return mba:removeFromUpdateLog($mba)
 };
-
-
-(:declare function sc:getcurrentExternalEvent($mba)
-{
-    let $queue := mba:getExternalEventQueue($mba)
-    let $nextEvent := ($queue/event)[1]
-    let $nextEventName := <name xmlns="">{fn:string($nextEvent/@name)}</name>
-    let $nextEventData := <data xmlns="">{$nextEvent/*}</data>
-    let $currentEvent := mba:getCurrentEvent($mba)
-    return $currentEvent
-};:)
-
 
 
 

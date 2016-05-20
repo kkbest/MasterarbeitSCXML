@@ -36,10 +36,21 @@
         </div>
       </div>
 	
+	<div class="table-responsive">
+  <table class="table">
+ <thead>
+     <tr>
+        <th>Element</th>
+		 <th>Id</th>
+        <th>Value</th>
+      </tr>
+    </thead>
 	
 
   <xsl:apply-templates/> 
  
+  </table>
+</div>
 
 	
     </div>
@@ -53,10 +64,19 @@
 <xsl:template match="response">
 
 <xsl:for-each select="*">
-  <xsl:value-of select="local-name(.)"/> : 
+  
+     <tr>
+		<td> <xsl:value-of select="local-name(.)"/> </td>
+		<td>  <xsl:value-of select="./@id"/> </td>
+        <td> <xsl:value-of select="."/> </td>
+
+      </tr>
+	  
+  <!-- <xsl:value-of select="local-name(.)"/> : 
   <xsl:value-of select="./@id"/> : 
 		  <xsl:value-of select="."/>
-		  <br />
+		  <br /> 
+		  --> 
 		  
 	
 		</xsl:for-each>	 
@@ -68,10 +88,17 @@
 <xsl:template match="hidden">
 
 		<xsl:for-each select="*">
-  <xsl:value-of select="local-name(.)"/> : 
+  <!-- <xsl:value-of select="local-name(.)"/> : 
 		  <xsl:value-of select="."/>
-		  <br />
+		  <br /> --> 
 		  
+	<tr>
+		<td> <xsl:value-of select="local-name(.)"/> </td>
+		<td>  <xsl:value-of select="./@id"/> </td>
+        <td> <xsl:value-of select="."/> </td>
+
+      </tr>
+	
 	
 		</xsl:for-each>	 
 </xsl:template> 
