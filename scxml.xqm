@@ -565,30 +565,6 @@ declare function sc:computeExitSet2($configuration as element()*,
 };
 
 
-declare function sc:computeExitSetTrans($configuration as element()*,
-        $transitions as element()*) as element()*{
-    let $statesToExit :=
-        for $t in $transitions
-        let $domain := sc:getTransitionDomainTrans($t)
-        for $s in $configuration
-        return if (sc:isDescendant($s, $domain)) then $s else ()
-
-    return $statesToExit
-};
-
-declare function sc:computeExitSetTrans2($configuration as element()*,
-        $transitions as element()*){
-    let $statesToExit :=
-        for $t in $transitions
-        let $domain := sc:getTransitionDomainTransExit($t)
-        return if (not(fn:empty($domain))) then
-            for $s in $configuration
-            return if (sc:isDescendant($s, $domain)) then $s else ()
-        else
-            ()
-    return $statesToExit
-};
-
 
 declare function sc:computeEntry($transitions as element()*) {
     if (fn:empty($transitions)) then ()
@@ -1243,18 +1219,6 @@ declare function sc:getTransitionDomainTrans($transition as element()) as elemen
         else sc:findLCCA(($sourceState, $targetStates))
 };
 
-declare function sc:getTransitionDomainTransExit($transition as element()) as element()? {
-    let $targetStates := sc:getEffectiveTargetStates($transition)
-    let $sourceState := sc:getSourceStateTrans($transition)
-
-    return
-        if (empty($targetStates)) then ()
-        else if (sc:isInternalTransition($transition) and
-                sc:isCompoundState($sourceState) and
-                (every $s in $targetStates satisfies sc:isDescendant($s, $sourceState)))
-        then $sourceState
-        else sc:findLCCA(($sourceState, $targetStates))
-};
 
 
 declare function sc:findLCCA($states as element()*) as element() {
@@ -1299,9 +1263,13 @@ declare function sc:eval($expr as xs:string,
         for $data in $dataModel/sc:data
         return 'declare variable $' || $data/@id || ' external; '
 
-    return xquery:eval(fn:string-join($declare) ||
-    $expr,
-            map:merge($dataBindings))
+    return          
+             xquery:eval(scx:importModules() ||
+        fn:string-join($declare) ||
+        scx:builtInFunctionDeclarations() ||
+        'return ' || $expr,
+                map:merge($dataBindings))
+                
 };
 
 
@@ -1440,14 +1408,12 @@ declare updating function sc:createDatamodel($mba)
             (try
             {
                 let $value := sc:eval($d/@expr, $dataModels)
-                let $test := fn:trace("hallo")
                 return insert node <data id="{$d/@id}">{$value} </data> into $scxml/sc:datamodel, delete node $d
 
             }
             catch *
             {
-                let $test := fn:trace("hallo2")
-                let $test := fn:trace($err:description, "errdesc")
+         
                 let $event := <event name="error.execution" xmlns="">
                     <data>{$err:code, $err:description}</data></event>
                 return mba:enqueueInternalEvent($mba, $event), insert node <data id="{$d/@id}"></data> into $scxml/sc:datamodel, delete node $d
@@ -2639,7 +2605,7 @@ declare updating function sc:invokeStates($mba)
 
 
                                     )),
-                                mba:updatechildInvoke($mba, $s, $dbNameNew, 'invoke', 'invoke', $idInsert)
+                                mba:updateChildInvoke($mba, $s, $dbNameNew, 'invoke', 'sinvoke', $idInsert)
                             )
 
                         else

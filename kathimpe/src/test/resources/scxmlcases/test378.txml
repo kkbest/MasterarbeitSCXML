@@ -258,30 +258,37 @@
             <mba name="InformationSystems" hierarchy="simple">
                <topLevel name="program">
                   <elements>
-                     <!-- test that each onexithandler is a separate block.  The <send> of event1 will cause an error but
+
+<!-- test that each onexithandler is a separate block.  The <send> of event1 will cause an error but
  the increment to var1 should happen anyways -->
-                     <scxml xmlns="http://www.w3.org/2005/07/scxml" xmlns:conf="http://www.w3.org/2005/scxml-conformance" name="InformationSystemsProgram" version="1.0" conf:datamodel="">
-                        <datamodel>
-                           <data id = "eins">1</data>
-                        </datamodel>
-                        <state id="s0">
-                           <onexit>
-                              <send conf:illegalTarget="" event="event1" />
-                           </onexit>
-                           <onexit>
-                              <sc:assign location="$eins" expr="$eins + 1" />
-                           </onexit>
-                           <transition target="s1" />
-                        </state>
-                        <state id="s1">
-                           <transition cond="$eins=2" target="s3" />
-                           <transition target="s4" />
-                        </state>
-                                                <state id ="s3"> </state>
-                        <state id ="s4"></state>
-                        <conf:pass />
-                        <conf:fail />
-                     </scxml>
+<scxml xmlns="http://www.w3.org/2005/07/scxml" xmlns:conf="http://www.w3.org/2005/scxml-conformance" version="1.0" datamodel="xpath">
+   <datamodel>
+      <data id="Var1" expr="1" />
+   </datamodel>
+   <state id="s0">
+      <onexit>
+         <send conf:illegalTarget="" event="event1" />
+      </onexit>
+      <onexit>
+         <assign location="$Var1" expr="$Var1 + 1" />
+      </onexit>
+      <transition target="s1" />
+   </state>
+   <state id="s1">
+      <transition cond="$Var1=2" target="pass" />
+      <transition target="fail" />
+   </state>
+   <final id="pass">
+      <onentry>
+         <log expr="'pass'" label="Outcome" />
+      </onentry>
+   </final>
+   <final id="fail">
+      <onentry>
+         <log expr="'fail'" label="Outcome" />
+      </onentry>
+   </final>
+</scxml>
                   </elements>
                </topLevel>
             </mba>

@@ -68,7 +68,7 @@ public class SCXMLImplementationTests {
 
 	public void initDb(String dbName, String collectionName) {
 		MultilevelBusinessArtifact[] mbaSeq = dao.getMultilevelBusinessArtifacts(dbName, collectionName);
-
+		logger.info("test" + mbaSeq.length);
 		for (MultilevelBusinessArtifact mba : mbaSeq) {
 
 			logger.info("MBA:" + mba.getCollectionName() + mba.getDatabaseName() + mba.getName());
@@ -126,16 +126,16 @@ public class SCXMLImplementationTests {
 		String dbName = "myMBAse";
 		String collectionName = "JohannesKeplerUniversity";
 
-		this.setUpDb("/scxmlcases/test355.xml", dbName, collectionName);
+		this.setUpDb("/scxmlcases/test355.txml", dbName, collectionName);
 		this.initDb(dbName, collectionName);
-
-		MultilevelBusinessArtifact mba = dao.getMultilevelBusinessArtifact(dbName, collectionName,
+		
+	MultilevelBusinessArtifact mba = dao.getMultilevelBusinessArtifact(dbName, collectionName,
 				"InformationSystems");
-		dao.startProcessNew(mba);
+	dao.startProcessNew(mba); 
 		mba = dao.getMultilevelBusinessArtifact(dbName, collectionName, "InformationSystems");
 
-		assertFalse(mba.isInState("s1"));
-		assertTrue(mba.isInState("s0"));
+		assertFalse(mba.isInState("fail"));
+		assertTrue(mba.isInState("pass"));
 
 	};
 
@@ -159,17 +159,22 @@ public class SCXMLImplementationTests {
 
 	}
 
-	@Test
+	//@Test
 	public void test364() throws Exception {
 		String dbName = "myMBAse";
 		String collectionName = "JohannesKeplerUniversity";
 
-		this.setUpDb("/scxmlcases/test364.txml", dbName, collectionName);
+		this.setUpDb("/scxmlcases/test364a.xml", dbName, collectionName);
 		this.initDb(dbName, collectionName);
 
 		MultilevelBusinessArtifact mba = dao.getMultilevelBusinessArtifact(dbName, collectionName,
 				"InformationSystems");
+		logger.info("before");
+
 		dao.startProcessNew(mba);
+		logger.info("after");
+		
+		
 		mba = dao.getMultilevelBusinessArtifact(dbName, collectionName, "InformationSystems");
 
 		logger.info("status" + mba.getCurrentStatus());
@@ -282,7 +287,7 @@ public class SCXMLImplementationTests {
 
 	}
 
-	@Test
+	//@Test
 	public void test378() throws Exception {
 		String dbName = "myMBAse";
 		String collectionName = "JohannesKeplerUniversity";
@@ -294,9 +299,9 @@ public class SCXMLImplementationTests {
 				"InformationSystems");
 		dao.startProcessNew(mba);
 		mba = dao.getMultilevelBusinessArtifact(dbName, collectionName, "InformationSystems");
-
-		assertTrue(mba.isInState("s3"));
-		assertFalse(mba.isInState("s1"));
+	assertTrue(mba.isInState("pass"));
+		assertFalse(mba.isInState("fail"));
+	
 
 	}
 
@@ -343,7 +348,7 @@ public class SCXMLImplementationTests {
 	}
 
 	
-	@Test
+	//@Test
 	public void test580() throws Exception {
 		String dbName = "myMBAse";
 		String collectionName = "JohannesKeplerUniversity";

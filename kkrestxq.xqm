@@ -1,10 +1,9 @@
 module namespace page = 'http://basex.org/kk/web-page';
-import module namespace kk = 'http://www.w3.org/2005/07/kk';
-import module namespace scx='http://www.w3.org/2005/07/scxml/extension/';
+
 import module namespace functx = 'http://www.functx.com';
 import module namespace mba='http://www.dke.jku.at/MBA'; 
 import module namespace sc = 'http://www.w3.org/2005/07/scxml';
-import module namespace sync = 'http://www.dke.jku.at/MBA/Synchronization';
+
 
 (:      <link rel="stylesheet" type="text/css" href="static/style.css"/>
 :)

@@ -267,7 +267,8 @@ either we get done.invoke in both cases or in neither case (in which case we tim
          <!-- <send event="timeout1" delay="1s" /> -->
       </onentry>
       <transition event="timeout" target="fail" />
-      <invoke type="http://www.w3.org/TR/scxml/" src="file:C:\Users\Katharina\workspace\kathimpe\src\test\resources\scxmlcases\test242sub1.txml" />
+      <invoke type="http://www.w3.org/TR/scxml/"  src="file:C:\Users\Katharina\Documents\SCXMLInterpreter\kathimpe\src\test\resources\scxmlcases\test242sub1.txml"/>
+         
       <transition event="done.invoke" target="s02" />
       <transition event="timeout1" target="s03" />
    </state>

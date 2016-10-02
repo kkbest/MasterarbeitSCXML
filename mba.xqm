@@ -154,16 +154,37 @@ declare function mba:concretize($parents as element()*,
             <mba:concretizations/>
         </mba:mba>
 
+let $mbaSession := 'mba:' || mba:getDatabaseName($parent) || ',' || mba:getCollectionName($parent) || ',' || $name
+
     let $concretization := copy $c := $concretization modify (
         if (not($c/mba:topLevel/mba:elements/sc:scxml[1]/sc:datamodel/sc:data[@id = '_event'])) then
             insert node <sc:data id="_event"/> into $c/mba:topLevel/mba:elements/sc:scxml[1]/sc:datamodel
         else (),
+        if (not($c/mba:topLevel/mba:elements/sc:scxml[1]/sc:datamodel/sc:data[@id = '_sessionid'])) then
+           
+                   insert node  <sc:data id="_sessionid">{$mbaSession} </sc:data> into $c/mba:topLevel/mba:elements/sc:scxml[1]/sc:datamodel
+        else (),
+        if (not($c/mba:topLevel/mba:elements/sc:scxml[1]/sc:datamodel/sc:data[@id = '_name'])) then
+            insert node  <sc:data id="_name">  {$name} </sc:data> into $c/mba:topLevel/mba:elements/sc:scxml[1]/sc:datamodel
+        else (),
+                if (not($c/mba:topLevel/mba:elements/sc:scxml[1]/sc:datamodel/sc:data[@id = '_ioprocessors'])) then
+            insert node  <sc:data id="_ioprocessors">
+                    <processor name="{'http://www.w3.org/TR/scxml/#SCXMLEventProcessor'}" xmlns="">
+                        <location xmlns="">{$mbaSession}</location></processor>
+                </sc:data>
+                 into $c/mba:topLevel/mba:elements/sc:scxml[1]/sc:datamodel
+        else (),
+                         
         if (not($c/mba:topLevel/mba:elements/sc:scxml[1]/sc:datamodel/sc:data[@id = '_x'])) then
             insert node
             <sc:data id="_x">
+            
+            
                 <db xmlns="">{mba:getDatabaseName($parent)}</db>
                 <collection xmlns="">{mba:getCollectionName($parent)}</collection>
                 <name xmlns="">{$name}</name>
+                
+                
                 <currentStatus xmlns=""/>
                 <externalEventQueue xmlns=""/>
                  <isRunning xmlns="">{fn:true()}</isRunning>
@@ -642,7 +663,7 @@ declare updating function mba:updatecurrentTransitions($mba as element(),
 };
 
 
-declare updating function mba:updatechildInvoke($mba as element(),
+declare updating function mba:updateChildInvoke($mba as element(),
         $state as element(), $dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string, $id as xs:string) {
     let $queue := mba:getChildInvokeQueue($mba)
 
@@ -896,6 +917,8 @@ declare updating function mba:init($mba as element()) {
                     insert node <sc:data id="_name">{$scxml/@name/data()} </sc:data> into $scxml/sc:datamodel
                 else (),
 
+                
+                
                 if (not($scxml/sc:datamodel/sc:data[@id = '_ioprocessors'])) then
                     insert node <sc:data id="_ioprocessors">
                         <processor  xmlns="" name="{'http://www.w3.org/TR/scxml/#SCXMLEventProcessor'}">
