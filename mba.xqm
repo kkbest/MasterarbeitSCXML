@@ -32,6 +32,12 @@ declare namespace xes = 'www.xes-standard.org/';
 declare namespace sc = 'http://www.w3.org/2005/07/scxml';
 
 
+(:~
+ : Create an new JKU-MBA
+ :
+ : @param $newDb the name of the database.
+ :)
+ 
 declare updating function mba:createMBAse($newDb as xs:string) {
     let $dbDimSchemaFileName := 'xsd/collections.xsd'
     let $dbDimFileName := 'collections.xml'
@@ -139,6 +145,13 @@ declare updating function mba:insertAsCollection($db as xs:string,
     else ()(: can only insert MBAs with simple hierarchy as collection :)
 };
 
+(:~
+ : Adds a new concretization
+ :
+ : @param $parents the parent of the new concretization
+ : @param $name the name of the new concretization.
+ : @param $topLevel the top level of the new concretization 
+ :)
 declare function mba:concretize($parents as element()*,
         $name as xs:string,
         $topLevel as xs:string) as element() {
@@ -211,6 +224,14 @@ let $mbaSession := 'mba:' || mba:getDatabaseName($parent) || ',' || mba:getColle
     return $concretization
 };
 
+
+(:~
+ : Returns MBA
+ :
+ : @param $db name of the db
+ : @param $collectionName name of the collection
+ : @param $mbaName name of the mba 
+ :)
 declare function mba:getMBA($db as xs:string,
         $collectionName as xs:string,
         $mbaName as xs:string) {
@@ -227,6 +248,13 @@ declare function mba:getMBA($db as xs:string,
     return $mba
 };
 
+
+(:~
+ : Returns the collection with this parameters
+ :
+ : @param $db name of the db
+ : @param $collectionName name of the collection 
+ :)
 declare function mba:getCollection($db as xs:string,
         $collectionName as xs:string) {
     let $collection :=
@@ -238,10 +266,21 @@ declare function mba:getCollection($db as xs:string,
     return $document
 };
 
+(:~
+ : Returns the topLevelName of the MBa
+ :
+ : @param $mba the MBA
+ :)
 declare function mba:getTopLevelName($mba as element()) as xs:string {
     if ($mba/@hierarchy = 'simple') then $mba/mba:topLevel/@name else ()
 };
 
+(:~
+ : Returns the Elements of a MBA at a certain level
+ :
+ : @param $mba the MBA
+ : @param $levelName The relevant level
+ :)
 declare function mba:getElementsAtLevel($mba as element(),
         $levelName as xs:string) as element()* {
     let $level :=
@@ -253,6 +292,11 @@ declare function mba:getElementsAtLevel($mba as element(),
     return $level/mba:elements
 };
 
+(:~
+ : Returns the SCXML within an MBA
+ :
+ : @param $mba the MBA
+ :)
 declare function mba:getSCXML($mba as element()) as element() {
     let $levelName := mba:getTopLevelName($mba)
     let $elements := mba:getElementsAtLevel($mba, $levelName)
@@ -265,6 +309,13 @@ declare function mba:getSCXML($mba as element()) as element() {
     return $scxml
 };
 
+(:~
+ : Adds an SCXML to an MBA at a certain Level
+ :
+ : @param $mba the MBA
+  : @param $mba the MBA
+   : @param $mba the MBA
+ :)
 declare updating function mba:addSCXML($mba as element(),
         $levelName as xs:string,
         $scxml as element()) {

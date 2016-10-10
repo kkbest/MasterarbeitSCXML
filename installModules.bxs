@@ -1,0 +1,7 @@
+REPO INSTALL mba.xqm
+REPO INSTALL synchronization.xqm
+REPO INSTALL scxml.xqm
+REPO INSTALL scxml_extension.xqm
+
+
+REPO LIST
