@@ -5,11 +5,12 @@ import module namespace mba='http://www.dke.jku.at/MBA';
 import module namespace sc = 'http://www.w3.org/2005/07/scxml';
 
 
-(:      <link rel="stylesheet" type="text/css" href="static/style.css"/>
-:)
 
+(:~
+:
+ :)
 declare
-  %rest:path("/modify")
+  %rest:path("/enterMBA")
   %output:method("xhtml")
   %output:omit-xml-declaration("no")
   %output:doctype-public("-//W3C//DTD XHTML 1.0 Transitional//EN")
@@ -41,13 +42,13 @@ declare
         <div class="row">
           <div class="col-lg-6">
             <h1> SCXML - Interpreter</h1>
-            <p class="lead">Hinzufügen von Events</p>
+            <p class="lead">Add an event to a MBA</p>
           </div>
         </div>
       </div>
 
 
-<form action="index" method="POST" role="form" class="form-horizontal">
+<form action="getEvents" method="GET" role="form" class="form-horizontal">
   <div class="form-group">
   <label for="dbName">dbName</label>
   <input type="text" class="form-control" id="dbName" name="dbName" />
@@ -75,19 +76,26 @@ declare
 };
 
 
-
+(:~
+  Returns the possible Events for the given MBA
+  : @param $dbName  The name of the database
+ : @param $collectionName  The name of the collection
+  : @param $mbaName The name of the MBA
+ :@return list of Events
+ :)
 declare
-  %rest:path("/index")
-    %rest:POST
-  %rest:form-param("dbName","{$dbName}", "(no dbName)")
-%rest:form-param("collectionName","{$collectionName}", "(no collectionName)")
-%rest:form-param("mbaName","{$mbaName}", "(no mbaName)")
+  %rest:path("/getEvents")
+    %rest:GET
+  %rest:query-param("dbName","{$dbName}", "(no dbName)")
+%rest:query-param("collectionName","{$collectionName}", "(no collectionName)")
+%rest:query-param("mbaName","{$mbaName}", "(no mbaName)")
  function page:hello-index(
     $dbName, $collectionName, $mbaName)
     as node()*
 {
-  
-  
+
+ try
+ { 
 let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
 let $scxml := mba:getSCXML($mba)
 let $configuration := mba:getConfiguration($mba)
@@ -119,16 +127,32 @@ return document {
 </hidden>)}
 </output> 
 }
+}
+catch *
+{
+  <test>
+  <msg>MBA nicht vorhanden </msg>
+  <info>{$mbaName}</info>
+  </test>
+}
+
 
 };
 
-
-declare %rest:path("addEventWithName")
-%rest:form-param("dbName","{$dbName}", "(no dbName)")
-%rest:form-param("collectionName","{$collectionName}", "no collectionName")
-%rest:form-param("mbaName","{$mbaName}", "no mbaName")
-%rest:form-param("event","{$event}", "no event")
-%rest:POST
+(:~
+  Returns the possible Dataelement for Events
+  : @param $dbName  The name of the database
+ : @param $collectionName  The name of the collection
+  : @param $mbaName The name of the MBA
+  : @param $event The name of the event
+ :@return list of dataelements
+ :)
+declare %rest:path("getDataElements")
+%rest:query-param("dbName","{$dbName}", "(no dbName)")
+%rest:query-param("collectionName","{$collectionName}", "no collectionName")
+%rest:query-param("mbaName","{$mbaName}", "no mbaName")
+%rest:query-param("event","{$event}", "no event")
+%rest:GET
   function page:change(
     $event as xs:string, $dbName as xs:untypedAtomic*, $collectionName as xs:untypedAtomic*, $mbaName as xs:untypedAtomic*)
     as item()*
@@ -198,6 +222,7 @@ return document {
 <collectionName>{$collectionName}</collectionName>
 <mbaName>{$mbaName}</mbaName>
 </hidden>
+<event>{$event}</event>
   </input>
  }
  
@@ -208,14 +233,17 @@ return document {
 
 
 
-
-declare %rest:path("update")
+(:~
+: Inserts the event to the list of external Events. 
+  : @param $data 
+ :)
+declare %rest:path("insertEvent")
   %rest:POST("{$data}")
 updating function page:change($data)
    
 {
  
- 
+
 let $target := 'xml-stylesheet',
 $content := 'href="../static/update.xsl" type="text/xsl" '
 
@@ -233,38 +261,19 @@ $content := 'href="../static/update.xsl" type="text/xsl" '
  let $collectionName := $input/collectionName/text()
  let $mbaName := $input/mbaName/text()
   let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
- let $max := fn:count($input/*)+1
-let $ownEvent :=  if  ($input/*[1]/text()='eigenesEvent') then
-fn:true()
-else
-fn:false()
+  let $eventName := $input/event/text()
 
-
- let $eventName := 
- 
- if ( $ownEvent) then
- $input/*[5]
- else
- $input/*[1]
- 
- 
  let $eventData :=
- 
-  if ( $ownEvent) then
-  $input/*[position()>5 and position()<=last()-2]
- else
-  $input/*[position()>4 and position()<=last()-2]
-  
+   $input/*[not(functx:is-value-in-sequence(name(.),("mbaName","dbName","collectionName","event","ownDataName","ownDataData")))]
+     
   let $extraData := 
-  let $name :=  $input/*[position()=(last()-1)]
-  let $data := $input/*[position()=(last())]
+  let $name :=  $input/ownDataName/text()
+  let $data := $input/ownDataData/text()
   return
   if (not($name/data()='' or $data/data() = '' or fn:empty($name/data()) or fn:empty($data/data()))) then
   element{$name/data()}{$data/data()}
   else
   ()
-
-
 
 
 
@@ -286,61 +295,15 @@ db:output(
 
 };
 
-(:
-this function returns a Result for an mba with an certain Id
-:)
+
+
+
+
+(:~
+: 
+ :)
 declare
-  %rest:path("/getResult/{$dbName}/{$collectionName}/{$mbaName}")
-  %rest:GET
-  function page:getResult(
-    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string) as node()*
-{
-
-
-
-let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
-let $scxml := mba:getSCXML($mba)
-let $configuration := mba:getConfiguration($mba)
-let $dataModels := mba:selectDataModels($configuration)
-let $events :=
-
-<auswahl>
-{
-  
- for $event in $configuration/sc:transition/@event
-return 
-<event>{$event/data()}</event>
-}
-</auswahl>
-
-
-let $target := 'xml-stylesheet',
-$content := 'href="../static/start.xsl" type="text/xsl" '
-
-return document {
-   processing-instruction {$target} {$content},
-
-  <output>
-  {($events,
- <hidden>
-<dbName>{$dbName}</dbName>
-<collectionName>{$collectionName}</collectionName>
-<mbaName>{$mbaName}</mbaName>
-</hidden>)}
-</output> 
-}
-
-(:
- 
- sc:getResult($dbName, $collectionName, $mbaName, $id)
-
-:)
-};
-
-
-
-declare
-  %rest:path("/getData")
+  %rest:path("/queryMBA")
   %output:method("xhtml")
   %output:omit-xml-declaration("no")
   %output:doctype-public("-//W3C//DTD XHTML 1.0 Transitional//EN")
@@ -413,14 +376,21 @@ declare
 
 
 
-
+(:~
+  Returns the Result for a given Counter-Element
+  : @param $dbName  The name of the database
+ : @param $collectionName  The name of the collection
+  : @param $mbaName The name of the MBA
+  : @param $counter The user counter 
+ :@return list of dataelement 
+ :)
 declare
   %rest:path("/getResult")
-    %rest:POST
-  %rest:form-param("dbName","{$dbName}", "(no dbName)")
-%rest:form-param("collectionName","{$collectionName}", "(no collectionName)")
-%rest:form-param("mbaName","{$mbaName}", "(no mbaName)")
-%rest:form-param("counter","{$counter}", "(no counter)")
+    %rest:GET
+  %rest:query-param("dbName","{$dbName}", "(no dbName)")
+%rest:query-param("collectionName","{$collectionName}", "(no collectionName)")
+%rest:query-param("mbaName","{$mbaName}", "(no mbaName)")
+%rest:query-param("counter","{$counter}", "(no counter)")
  function page:hello-result(
     $dbName, $collectionName, $mbaName, $counter)
     as node()*
@@ -456,6 +426,12 @@ return document {
 };
 
 
+(:~
+   initializes the MBA 
+  : @param $dbName  The name of the database
+ : @param $collectionName  The name of the collection
+  : @param $mbaName The name of the MBA 
+ :)
 declare
   %rest:path("/initMBA/{$dbName}/{$collectionName}/{$mbaName}")
   %rest:GET
@@ -468,6 +444,13 @@ declare
 };
 
 
+(:~
+   initializes the SCXML 
+  : @param $dbName  The name of the database
+ : @param $collectionName  The name of the collection
+  : @param $mbaName The name of the MBA
+  : @param $counter The counter of the function
+ :)
 declare
   %rest:path("/initSCXML/{$dbName}/{$collectionName}/{$mbaName}/{$counter}")
   %rest:GET
@@ -493,6 +476,13 @@ declare
 };
 
 
+
+(:~
+   loads the next Event and calls the correct function
+  : @param $dbName  The name of the database
+  : @param $collectionName  The name of the collection
+  : @param $mbaName The name of the MBA
+ :)
 declare
   %rest:path("/processPendingTransitions/{$dbName}/{$collectionName}/{$mbaName}")
   %rest:GET
@@ -521,6 +511,13 @@ declare
 };
 
 
+(:~
+   call finalizeEvents and send autoforward events to the invoked mbas. 
+  : @param $dbName  The name of the database
+ : @param $collectionName  The name of the collection
+  : @param $mbaName The name of the MBA
+  : @param $finalizeCounter The counter of the function
+ :)
 declare
   %rest:path("/doFinalizeandAutoforward/{$dbName}/{$collectionName}/{$mbaName}/{$finalizeCounter}")
   %rest:GET
@@ -602,7 +599,13 @@ return
 };
 
 
-
+(:~
+   calculate the current active Transitions 
+  : @param $dbName  The name of the database
+ : @param $collectionName  The name of the collection
+  : @param $mbaName The name of the MBA
+  : @param $transType The transtype of the transition
+ :)
 declare
   %rest:path("/calculateTransitions/{$dbName}/{$collectionName}/{$mbaName}/{$transType}")
   %rest:GET
@@ -644,7 +647,15 @@ declare
 
 
 
-
+(:~
+   exit the active States
+  : @param $dbName  The name of the database
+ : @param $collectionName  The name of the collection
+  : @param $mbaName The name of the MBA
+  : @param $counterContent The  counter for the Content in an state
+    : @param $counterExit The counter for the to be exited state 
+      : @param $transType The transtype of the transition
+ :)
 declare
   %rest:path("/exitStates/{$dbName}/{$collectionName}/{$mbaName}/{$counterContent}/{$counterExit}/{$transType}")
   %rest:GET
@@ -694,7 +705,15 @@ else if ($counterContent <= $max) then
 
 
 
-
+(:~
+   run the transitionContent
+  : @param $dbName  The name of the database
+ : @param $collectionName  The name of the collection
+  : @param $mbaName The name of the MBA
+  : @param $counter The  counter for the Content in an state
+    : @param $transType The transtype of the transition
+   
+ :)
 declare
   %rest:path("/runTransitionContent/{$dbName}/{$collectionName}/{$mbaName}/{$counter}/{$transType}")
   %rest:GET
@@ -732,6 +751,14 @@ else
    
 };
 
+
+(:~
+   does the logging 
+  : @param $dbName  The name of the database
+  : @param $collectionName  The name of the collection
+  : @param $mbaName The name of the MBA
+    : @param $transType The current TransitionsType
+ :)
 declare 
   %rest:path("/doLogging/{$dbName}/{$collectionName}/{$mbaName}/{$transType}")
     %rest:GET
@@ -754,7 +781,15 @@ declare
 };
 
 
-
+(:~
+   entering the next acitve States 
+  : @param $dbName  The name of the database
+  : @param $collectionName  The name of the collection
+  : @param $mbaName The name of the MBA
+    : @param $counterContent The counter of the currently run content
+      : @param $counterEntry the state in the list that is currently entered
+    : @param $transType The current TransitionsType
+ :)
 declare
   %rest:path("/enterStates/{$dbName}/{$collectionName}/{$mbaName}/{$counterContent}/{$counterEntry}/{$transType}")
   %rest:GET
@@ -833,6 +868,13 @@ else if ($counterContent <= $max) then
 
 };
 
+(:~
+   controlls the to be called functions 
+  : @param $dbName  The name of the database
+  : @param $collectionName  The name of the collection
+  : @param $mbaName The name of the MBA
+  : @param $transType The current TransitionsType
+ :)
 declare
   %rest:path("/controller/{$dbName}/{$collectionName}/{$mbaName}/{$transType}")
   %rest:GET
@@ -851,7 +893,7 @@ return
     if (mba:getRunning($mba)) then 
     ( 
      if( not(fn:empty(mba:getStatesToInvokeQueue($mba)/*))) then
-       (db:output(<rest:forward>{fn:concat('/invokeStates/', string-join(($dbName,$collectionName,$mbaName,$transType), '/' ))}</rest:forward>) )
+       (db:output(<rest:forward>{fn:concat('/invokeStates/', string-join(($dbName,$collectionName,$mbaName), '/' ))}</rest:forward>) )
      else
         if(fn:empty(sc:selectEventlessTransitions($configuration,$dataModels)) and 
             fn:empty(mba:getInternalEventQueue($mba)/*) and fn:empty(mba:getExternalEventQueue($mba)/*))  then 
@@ -867,12 +909,17 @@ return
 
 
 
-
+(:~
+   create The States to be invoked
+  : @param $dbName  The name of the database
+  : @param $collectionName  The name of the collection
+  : @param $mbaName The name of the MBA
+ :)
 declare
-  %rest:path("/invokeStates/{$dbName}/{$collectionName}/{$mbaName}/{$transType}")
+  %rest:path("/invokeStates/{$dbName}/{$collectionName}/{$mbaName}")
   %rest:GET
   updating function page:invoke(
-    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string, $transType as xs:string)
+    $dbName as xs:string, $collectionName as xs:string , $mbaName as xs:string)
 {
   
   let $mba   := mba:getMBA($dbName, $collectionName, $mbaName)
@@ -885,6 +932,15 @@ declare
 
 
 };
+
+
+(:~
+   exiting the interpreter (leaving all states)
+  : @param $dbName  The name of the database
+  : @param $collectionName  The name of the collection
+  : @param $mbaName The name of the MBA
+  : @param $mbaName The name of the MBA
+ :)
 declare
   %rest:path("/exitInterpreter/{$dbName}/{$collectionName}/{$mbaName}/{$counter}")
   %rest:GET

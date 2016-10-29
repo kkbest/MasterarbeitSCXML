@@ -24,6 +24,7 @@
  : databases for multilevel business artifacts (MBAs). 
  
  : @author Christoph Schütz
+ : @author Katharina Kaiser
  :)
 module namespace mba = 'http://www.dke.jku.at/MBA';
 
@@ -311,10 +312,9 @@ declare function mba:getSCXML($mba as element()) as element() {
 
 (:~
  : Adds an SCXML to an MBA at a certain Level
- :
  : @param $mba the MBA
-  : @param $mba the MBA
-   : @param $mba the MBA
+ : @param $levelName The LEvel where it is inserted
+ : @param $scxml The SCXML that is inserted
  :)
 declare updating function mba:addSCXML($mba as element(),
         $levelName as xs:string,
@@ -327,6 +327,12 @@ declare updating function mba:addSCXML($mba as element(),
         else ()
 };
 
+(:~
+ : Removes SCXML of an  MBA at a certain Level
+ : @param $mba the MBA
+ : @param $levelName The LEvel where it is removed
+ : @param $scxmlName The SCXML that is removed
+ :)
 declare updating function mba:removeSCXML($mba as element(),
         $levelName as xs:string,
         $scxmlName as xs:string) {
@@ -336,6 +342,16 @@ declare updating function mba:removeSCXML($mba as element(),
         delete node $elements/sc:scxml[@name = $scxmlName]
 };
 
+
+(:~
+ : Adds a Level th an MBA 
+ 
+ : @param $mba the MBA
+ : @param $levelName The name of the new Level
+ : @param $parentLevelName The name of the parent Level
+ : @param $childLevelName The name of the child Level
+ :)
+ 
 declare updating function mba:insertLevel($mba as element(),
         $levelName as xs:string,
         $parentLevelName as xs:string,
@@ -356,6 +372,12 @@ declare updating function mba:insertLevel($mba as element(),
     return insert node $newLevel into $parentLevel
 };
 
+(:~
+ : Adds a AncestorAtLevel 
+ 
+ : @param $mba the MBA
+ : @param $level The name of the Level
+ :)
 declare function mba:getAncestorAtLevel($mba as element(),
         $level as xs:string) as element() {
     if ($mba/@hierarchy = 'simple') then
@@ -363,18 +385,36 @@ declare function mba:getAncestorAtLevel($mba as element(),
     else ()
 };
 
+(:~
+ : Gets the Ancestors of a MBA
+ 
+ : @param $mba the MBA
+ :)
+ 
 declare function mba:getAncestors($mba as element()) as element() {
     if ($mba/@hierarchy = 'simple') then
         $mba/ancestor::mba:mba
     else ()
 };
 
+(:~
+ : Gets the Descendants of a MBA 
+ 
+ : @param $mba the MBA
+ :)
 declare function mba:getDescendants($mba as element()) as element()* {
     if ($mba/@hierarchy = 'simple') then
         $mba/descendant::mba:mba
     else ()
 };
 
+(:~
+ : Returns Descendats at a certain Level
+ 
+ : @param $mba the MBA
+ : @param $level The name of the Level
+ :)
+ 
 declare function mba:getDescendantsAtLevel($mba as element(),
         $level as xs:string) as element()* {
     if ($mba/@hierarchy = 'simple') then
@@ -382,6 +422,13 @@ declare function mba:getDescendantsAtLevel($mba as element(),
     else ()
 };
 
+(:~
+ : Checks if a MBA is in a certain state
+ 
+ : @param $mba the MBA
+ : @param $stateId The ID of the State
+ :)
+ 
 declare function mba:isInState($mba as element(),
         $stateId as xs:string) as xs:boolean {
     let $currentStatus := mba:getCurrentStatus($mba)
@@ -389,6 +436,12 @@ declare function mba:isInState($mba as element(),
     return fn:exists($currentStatus/state[@ref = $stateId])
 };
 
+(:~
+ : Returns the current Status of the MBA (active States)
+ 
+ : @param $mba the MBA
+
+ :)
 declare function mba:getCurrentStatus($mba as element()) as element()* {
     let $scxml := mba:getSCXML($mba)
     let $_x := $scxml/sc:datamodel/sc:data[@id = '_x']
@@ -398,7 +451,12 @@ declare function mba:getCurrentStatus($mba as element()) as element()* {
     return $currentStatus
 };
 
+(:~
+ : Returns if the MBA ist still running
+ 
+ : @param $mba the MBA
 
+ :)
 declare function mba:getRunning($mba as element()) as xs:boolean
 {
 
@@ -412,7 +470,12 @@ declare function mba:getRunning($mba as element()) as xs:boolean
 
 };
 
-
+(:~
+ : Updates the running variable of the MBA
+ 
+ : @param $mba the MBA
+ : @param $value the value to update
+ :)
 declare updating function mba:updateRunning($mba as element(), $value as xs:boolean)
 {
     let $running :=
@@ -424,6 +487,11 @@ declare updating function mba:updateRunning($mba as element(), $value as xs:bool
 
 };
 
+(:~
+ : Returns the Configuration (The Current active states)
+ 
+ : @param $mba the MBA
+ :)
 declare function mba:getConfiguration($mba as element()) as element()* {
     let $scxml := mba:getSCXML($mba)
     let $currentStatus := mba:getCurrentStatus($mba)
@@ -440,6 +508,12 @@ declare function mba:getConfiguration($mba as element()) as element()* {
     else ()
 };
 
+(:~
+ : Add States to the current active States
+ 
+ : @param $mba the MBA
+ : @param $states the states to be added
+ :)
 declare updating function mba:addCurrentStates($mba as element(),
         $states as element()*){
     let $currentStatus := mba:getCurrentStatus($mba)
@@ -452,6 +526,12 @@ declare updating function mba:addCurrentStates($mba as element(),
     return insert nodes $newStates into $currentStatus
 };
 
+(:~
+ : Add States to the current active States
+ 
+ : @param $mba the MBA
+ : @param $states the states to be added
+ :)
 declare updating function mba:addCurrentState($mba as element(),
         $state as element()){
     let $currentStatus := mba:getCurrentStatus($mba)
@@ -462,6 +542,12 @@ declare updating function mba:addCurrentState($mba as element(),
     return insert node $newState into $currentStatus
 };
 
+(:~
+ : Remove States from the current active States
+ 
+ : @param $mba the MBA
+ : @param $states the states to be removed
+ :)
 declare updating function mba:removeCurrentStates($mba as element(),
         $states as element()*){
     let $currentStatus := mba:getCurrentStatus($mba)
@@ -490,6 +576,12 @@ declare updating function mba:removeCurrentStates($mba as element(),
     return delete nodes $removeStates
 };
 
+(:~
+ : Remove state from the current active States
+ 
+ : @param $mba the MBA
+ : @param $state the state to be removed
+ :)
 declare updating function mba:removeCurrentState($mba as element(),
         $state as element()){
     let $currentStatus := mba:getCurrentStatus($mba)
@@ -497,19 +589,33 @@ declare updating function mba:removeCurrentState($mba as element(),
     return delete node $currentStatus/state[@ref = $state/@id]
 };
 
+(:~
+ : Returns the current external eventQueue
+ 
+ : @param $mba the MBA
+ :)
 declare function mba:getExternalEventQueue($mba as element()) as element() {
     let $scxml := mba:getSCXML($mba)
 
     return $scxml/sc:datamodel/sc:data[@id = '_x']/externalEventQueue
 };
 
+(:~
+ : Returns the current internal eventQueue
+ 
+ : @param $mba the MBA
+ :)
 declare function mba:getInternalEventQueue($mba as element()) as element() {
     let $scxml := mba:getSCXML($mba)
 
     return $scxml/sc:datamodel/sc:data[@id = '_x']/internalEventQueue
 };
 
-
+(:~
+ : Returns the saved Log
+ 
+ : @param $mba the MBA
+ :)
 declare function mba:getLog($mba as element()) as element()
 {
       let $scxml := mba:getSCXML($mba)
@@ -517,7 +623,11 @@ declare function mba:getLog($mba as element()) as element()
     return $scxml/sc:datamodel/sc:data[@id = '_x']/xes:log/xes:trace
 };
 
-
+(:~
+ : Returns the current Entry Set
+ 
+ : @param $mba the MBA
+ :)
 declare function mba:getCurrentEntrySet($mba as element()) as node()* {
     let $scxml := mba:getSCXML($mba)
 
@@ -525,13 +635,21 @@ declare function mba:getCurrentEntrySet($mba as element()) as node()* {
     return $scxml//*[@id = $s/@ref]
 };
 
-
+(:~
+ : Returns the current Entry Queue
+ 
+ : @param $mba the MBA
+ :)
 declare function mba:getCurrentEntryQueue($mba as element()) as node()* {
     let $scxml := mba:getSCXML($mba)
     return $scxml/sc:datamodel/sc:data[@id = '_x']/currentEntrySet
 };
 
-
+(:~
+ : Returns the current Exit Set
+ 
+ : @param $mba the MBA
+ :)
 declare function mba:getCurrentExitSet($mba as element()) as node()* {
     let $scxml := mba:getSCXML($mba)
 
@@ -539,30 +657,51 @@ declare function mba:getCurrentExitSet($mba as element()) as node()* {
     return $scxml//*[@id = $s/@ref]
 };
 
-
+(:~
+ : Returns the current ExitQueue
+ 
+ : @param $mba the MBA
+ :)
 declare function mba:getCurrentExitQueue($mba as element()) as node()* {
     let $scxml := mba:getSCXML($mba)
     return $scxml/sc:datamodel/sc:data[@id = '_x']/currentExitSet
 };
 
-
+(:~
+ : Returns the current TransitionQueue
+ 
+ : @param $mba the MBA
+ :)
 declare function mba:getCurrentTransitionsQueue($mba as element()) as node()* {
     let $scxml := mba:getSCXML($mba)
     return $scxml/sc:datamodel/sc:data[@id = '_x']/currentTransitions
 };
 
-
+(:~
+ : Returns the childInvokeQueue
+ 
+ : @param $mba the MBA
+ :)
 declare function mba:getChildInvokeQueue($mba as element()) as node()* {
     let $scxml := mba:getSCXML($mba)
     return $scxml/sc:datamodel/sc:data[@id = '_x']/childInvoke
 };
 
-
+(:~
+ : Returns the statestoInvokeQueue
+ 
+ : @param $mba the MBA
+ :)
 declare function mba:getStatesToInvokeQueue($mba as element()) as node()* {
     let $scxml := mba:getSCXML($mba)
     return $scxml/sc:datamodel/sc:data[@id = '_x']/statesToInvoke
 };
 
+(:~
+ : Returns the states that have to be invoked
+ 
+ : @param $mba the MBA
+ :)
 declare function mba:getStatesToInvoke($mba as element())
 {
 
@@ -574,6 +713,11 @@ declare function mba:getStatesToInvoke($mba as element())
 };
 
 
+(:~
+ : Deletes all States in the Invoke queue
+ 
+ : @param $mba the MBA
+ :)
 declare updating function mba:deleteStatesToInvokeQueue($mba as element())
 {
 
@@ -583,13 +727,21 @@ declare updating function mba:deleteStatesToInvokeQueue($mba as element())
 
 };
 
-
+(:~
+ : Returns the invoking parent
+ 
+ : @param $mba the MBA
+ :)
 declare function mba:getParentInvoke($mba as element()) as node()* {
     let $scxml := mba:getSCXML($mba)
     return $scxml/sc:datamodel/sc:data[@id = '_x']/parentInvoke
 };
 
-
+(:~
+ : Sets the invoking parent
+ 
+ : @param $mba the MBA
+ :)
 declare updating function mba:setParentInvoke($mba as element(),
         $mbaparent as element()) {
     let $parentinvoke := mba:getParentInvoke($mba)
@@ -608,6 +760,11 @@ declare updating function mba:setParentInvoke($mba as element(),
 };
 
 
+(:~
+ : Returns the history of an MBA
+ 
+ : @param $mba the MBA
+ :)
 declare function mba:getHistory($mba as element()) {
     let $scxml := mba:getSCXML($mba)
 
@@ -619,6 +776,12 @@ declare function mba:getHistory($mba as element()) {
 };
 
 
+(:~
+ : Enqueues an external Event 
+ 
+ : @param $mba the MBA
+  : @param $event the MBA
+ :)
 declare updating function mba:enqueueExternalEvent($mba as element(),
         $event as element()) {
     let $queue := mba:getExternalEventQueue($mba)
@@ -629,6 +792,12 @@ declare updating function mba:enqueueExternalEvent($mba as element(),
     )
 };
 
+(:~
+ : Enqueues an internal Event 
+ 
+ : @param $mba the MBA
+  : @param $event the added Event
+ :)
 declare updating function mba:enqueueInternalEvent($mba as element(),
         $event as element()) {
     let $queue := mba:getInternalEventQueue($mba)
@@ -638,7 +807,12 @@ declare updating function mba:enqueueInternalEvent($mba as element(),
     )
 };
 
-
+(:~
+ : Sets the CurrentEntry set with $entrySet 
+ 
+ : @param $mba the MBA
+  : @param $entrySet list of states to be entered
+ :)
 declare updating function mba:updatecurrentEntrySet($mba as element(),
         $entrySet as element()*) {
     let $queue := mba:getCurrentEntryQueue($mba)
@@ -655,7 +829,12 @@ declare updating function mba:updatecurrentEntrySet($mba as element(),
             replace node $queue with <currentEntrySet xmlns="" > {$entrySet}</currentEntrySet>
 };
 
-
+(:~
+ : Sets the CurrentExitSet set with $exitSet 
+ 
+ : @param $mba the MBA
+  : @param $exitSet list of states to be exited
+ :)
 declare updating function mba:updateCurrentExitSet($mba as element(),
         $exitSet as element()*) {
     let $queue := mba:getCurrentExitQueue($mba)
@@ -672,7 +851,12 @@ declare updating function mba:updateCurrentExitSet($mba as element(),
             replace node $queue with <currentExitSet xmlns="" > {$exitSet}</currentExitSet>
 };
 
-
+(:~
+ : Adds multiple States to the statestoInvokeQueue
+ 
+ : @param $mba the MBA
+  : @param $entrySet states to be added
+ :)
 declare updating function mba:addstatesToInvoke($mba as element(),
         $entrySet as element()*) {
     let $queue := mba:getStatesToInvokeQueue($mba)
@@ -689,6 +873,12 @@ declare updating function mba:addstatesToInvoke($mba as element(),
 };
 
 
+(:~
+ :  Removes multiple States from the statestoInvokeQueue
+ 
+ : @param $mba the MBA
+  : @param $exitSet list of states to be removed
+ :)
 declare updating function mba:removestatesToInvoke($mba as element(),
         $exitSet as element()*) {
 
@@ -700,7 +890,12 @@ declare updating function mba:removestatesToInvoke($mba as element(),
 
 };
 
-
+(:~
+ :  updates the currect active Transitions
+ 
+ : @param $mba the MBA
+  : @param $transitions list of active transitions
+ :)
 declare updating function mba:updatecurrentTransitions($mba as element(),
         $transitions) {
     let $queue := mba:getCurrentTransitionsQueue($mba)
@@ -730,13 +925,22 @@ declare updating function mba:updateChildInvoke($mba as element(),
 
 };
 
-
+(:~
+ :  returns the databaseName of the MBA
+ 
+ : @param $mba the MBA
+ :)
 declare function mba:getDatabaseName($mba) {
     let $dbName := db:name($mba)
 
     return $dbName
 };
 
+(:~
+ :  returns the databaseName of the collection
+ 
+ : @param $mba the MBA
+ :)
 declare function mba:getCollectionName($mba) {
     let $dbName := mba:getDatabaseName($mba)
     let $path := db:path($mba)
@@ -749,6 +953,12 @@ declare function mba:getCollectionName($mba) {
     return fn:string($collectionName)
 };
 
+
+(:~
+ :  Maks a MBA as updated
+ 
+ : @param $mba the MBA
+ :)
 declare updating function mba:markAsUpdated($mba as element()) {
     let $dbName := mba:getDatabaseName($mba)
     let $collectionName := mba:getCollectionName($mba)
@@ -761,6 +971,11 @@ declare updating function mba:markAsUpdated($mba as element()) {
         insert node <mba:mba ref="{$mba/@name}"/> into $collectionEntry/mba:updated
 };
 
+(:~
+ :  Maks a MBA as new
+ 
+ : @param $mba the MBA
+ :)
 declare updating function mba:markAsNew($mba as element()) {
     let $dbName := mba:getDatabaseName($mba)
     let $collectionName := mba:getCollectionName($mba)
@@ -773,6 +988,12 @@ declare updating function mba:markAsNew($mba as element()) {
         insert node <mba ref="{$mba/@name}"/> into $collectionEntry/mba:new
 };
 
+
+(:~
+ :  remove MBA from Updated List
+ 
+ : @param $mba the MBA
+ :)
 declare updating function mba:removeFromUpdateLog($mba as element()) {
     let $dbName := mba:getDatabaseName($mba)
     let $collectionName := mba:getCollectionName($mba)
@@ -787,6 +1008,10 @@ declare updating function mba:removeFromUpdateLog($mba as element()) {
         )
 };
 
+(:~
+ :  remove MBA from  List of new MBAS
+ : @param $mba the MBA
+ :)
 declare updating function mba:removeFromInsertLog($mba as element()) {
     let $dbName := mba:getDatabaseName($mba)
     let $collectionName := mba:getCollectionName($mba)
@@ -801,12 +1026,21 @@ declare updating function mba:removeFromInsertLog($mba as element()) {
         )
 };
 
+
+(:~
+ :  dequeues first Element form External Queue
+ : @param $mba the MBA
+ :)
 declare updating function mba:dequeueExternalEvent($mba as element()) {
     let $queue := mba:getExternalEventQueue($mba)
 
     return delete node ($queue/*)[1]
 };
 
+(:~
+ :  dequeues first Element form internal Queue
+ : @param $mba the MBA
+ :)
 declare updating function mba:dequeueInternalEvent($mba as element()) {
     let $queue := mba:getInternalEventQueue($mba)
 
@@ -814,13 +1048,20 @@ declare updating function mba:dequeueInternalEvent($mba as element()) {
 };
 
 
-
+(:~
+ :  dequeues first Element form External Queue
+ : @param $mba the MBA
+ :)
 declare function mba:getCurrentEvent($mba as element()) as element() {
     let $scxml := mba:getSCXML($mba)
 
     return $scxml/sc:datamodel/sc:data[@id = '_event']
 };
 
+(:~
+ :  loads Event from external Event queue as current Event
+ : @param $mba the MBA
+ :)
 declare updating function mba:loadNextExternalEvent($mba as element()) {
     let $queue := mba:getExternalEventQueue($mba)
     let $nextEvent := ($queue/event)[1]
@@ -849,12 +1090,19 @@ declare updating function mba:loadNextExternalEvent($mba as element()) {
 };
 
 
+(:~
+ :  returns Counter for user Events
+ : @param $mba the MBA
+ :)
 declare function mba:getCounter($mba)
 {
     $mba/*/*/sc:scxml/sc:datamodel/sc:data[@id = '_x']/response/counter/text()
 };
 
-
+(:~
+ :  loads Event from internal Event queue as current Event
+ : @param $mba the MBA
+ :)
 declare updating function mba:loadNextInternalEvent($mba as element()) {
     let $queue := mba:getInternalEventQueue($mba)
     let $nextEvent := ($queue/event)[1]
@@ -887,12 +1135,22 @@ declare updating function mba:loadNextInternalEvent($mba as element()) {
 };
 
 
+(:~
+ :  remove current event
+ : @param $mba the MBA
+ :)
 declare updating function mba:removeCurrentEvent($mba as element()) {
     let $currentEvent := mba:getCurrentEvent($mba)
 
     return delete nodes $currentEvent/*
 };
 
+
+(:~
+ :  initialize MBA with variables for Interpreter
+ : @param $mba the MBA
+ :)
+ 
 declare updating function mba:init($mba as element()) {
     let $scxml := mba:getSCXML($mba)
 
@@ -1033,7 +1291,10 @@ as element()* {
     return ($global, $local)
 };
 
-
+(:~
+ : select all Datamodels of MBA
+ : @param $mba the MBA
+ :)
 declare function mba:selectAllDataModels($mba as element()*)
 as element()* {
 

@@ -38,11 +38,13 @@ import module namespace sync='http://www.dke.jku.at/MBA/Synchronization';
 declare namespace xes = 'www.xes-standard.org/';
 declare namespace concept = 'www.xes-standard.org/concept';
 
-(:import module namespace sync = 'http://www.dke.jku.at/MBA/Synchronization';
-:)
+
 (:~
- : 
+ :  checks if the Eventname maches the Eventdescription
+ : @param $eventName (currently active Event)
+ : @param $eventDescriptors (event Descriptor in Transition)
  :)
+ 
 declare function sc:matchesEventDescriptors($eventName as xs:string,
         $eventDescriptors as xs:string*)
 as xs:boolean {
@@ -53,7 +55,12 @@ as xs:boolean {
     )
 };
 
-
+(:~
+ :  evaluates the current Transition
+ :  return false in case of exception 
+ : @param $cond the condition
+ : @param $dataModels the active dataModels
+ :)
 declare function sc:evaluateCond($cond, $dataModels) as xs:boolean
 {
 
@@ -88,7 +95,17 @@ declare function sc:evaluateCond($cond, $dataModels) as xs:boolean
 
 
 (:~
- : 
+ :  This function is used to modify the datamodel 
+ : @param $dataModels the current datmodel
+ : @param $location the location that will be changed
+  : @param $expression  the expression of the new value
+ : @param $type  the type of the assign
+  : @param $attribute  the added attributes
+ : @param $nodelist   the added nodelist
+  : @param $dbName  The name of the database
+ : @param $collectionName  The name of the collection
+  : @param $mbaName The name of the MBA
+ 
  :)
 declare updating function sc:assign($dataModels as element()*,
         $location as xs:string,
@@ -197,7 +214,17 @@ declare updating function sc:assign($dataModels as element()*,
 
 };
 
-
+(:~
+ :  Implementation of the userspecific content getValue 
+ : @param $dataModels the current datmodel
+ : @param $location the location that saved
+  : @param $expression  the expression of the new value
+ : @param $type  the type of the assign
+  : @param $attribute  the added attributes
+ : @param $nodelist   the added nodelist
+  : @param $id  The Counterid of the user
+ 
+ :)
 declare updating function sc:getValue($dataModels as element()*,
         $location as xs:string,
         $expression as xs:string?,
@@ -269,7 +296,17 @@ declare updating function sc:getValue($dataModels as element()*,
 
 };
 
-
+(:~
+ :  Logging Strings for the User
+ : @param $dataModels the current datmodel
+  : @param $expression  that is logged
+ : @param $label  Label for the Expression
+ : @param $nodelist   the added nodelist
+  : @param $id  The Counterid of the user
+  : @param $dbName as xs:string,
+ : @param $collectionName as xs:string,
+ :  @param $mbaName as xs:string
+ :)
 declare updating function sc:log($dataModels as element()*,
         $expression as xs:string?,
         $label as xs:string?,
@@ -364,7 +401,11 @@ declare updating function sc:log($dataModels as element()*,
     }
 };
 
-
+(:~
+ :  Returns the Transitions that are active without needing a event
+ : @param $configuration the current active states
+  : @param $dataModels  the current datamodel
+ :)
 declare function sc:selectEventlessTransitions($configuration as element()*,
         $dataModels as element()*)
 as element()* {
@@ -404,6 +445,13 @@ as element()* {
 
     return sc:removeConflictingTransitions($configuration, ($enabledTransitions))
 };
+
+(:~
+ :  Returns the Transitions that are active with the given event
+ : @param $configuration the current active states
+  : @param $dataModels  the current datamodel
+   : @param $event  the current event
+ :)
 
 declare function sc:selectTransitions($configuration as element()*,
         $dataModels as element()*,
@@ -460,6 +508,13 @@ declare function sc:selectTransitions($configuration as element()*,
         return sc:removeConflictingTransitions($configuration, ($enabledTransitions))
 };
 
+(:~
+ :  Returns the Transitions that are active with the given event
+ : This function is used for the Worklist Handler
+ : @param $configuration the current active states
+  : @param $dataModels  the current datamodel
+   : @param $event  the current event
+ :)
 
 declare function sc:selectTransitionsoC($configuration as element()*,
         $dataModels as element()*,
@@ -508,6 +563,12 @@ declare function sc:selectTransitionsoC($configuration as element()*,
         return sc:removeConflictingTransitions($configuration, ($enabledTransitions))
 };
 
+(:~
+ :  Removes the conflicting Transitions of the list of $transitions 
+ : 
+ : @param $configuration the current active states
+  : @param $transitions  the transitions to be checked after tran
+ :)
 
 declare function sc:removeConflictingTransitions($configuration as element()*,
         $transitions as element()*)
@@ -539,6 +600,12 @@ as element()*{
     return $filteredTransitions($enabledTransitions)
 };
 
+(:~
+ :  Computes the States that are exited when using the given transitions 
+ : @param $configuration the current active states
+  : @param $transitions  the transitions
+ :)
+
 declare function sc:computeExitSet($configuration as element()*,
         $transitions as element()*) as element()*{
     let $statesToExit :=
@@ -550,6 +617,12 @@ declare function sc:computeExitSet($configuration as element()*,
     return $statesToExit
 };
 
+(:~
+ :  Computes the States that are exited when using the given transitions 
+ : This is used when working with saved transitions
+ : @param $configuration the current active states
+  : @param $transitions  the transitions
+ :)
 declare function sc:computeExitSet2($configuration as element()*,
         $transitions as element()*) {
     let $statesToExit :=
@@ -565,7 +638,10 @@ declare function sc:computeExitSet2($configuration as element()*,
 };
 
 
-
+(:~
+ :  Computes the States that are enteres when using the given transitions 
+  : @param $transitions  the transitions
+ :)
 declare function sc:computeEntry($transitions as element()*) {
     if (fn:empty($transitions)) then ()
     else
@@ -641,7 +717,11 @@ declare function sc:computeEntry($transitions as element()*) {
         return $statesToEnter
 };
 
-
+(:~
+ :  Computes the States that are enteres when using the given transitions 
+ : This function is used in the worklist handler
+  : @param $transitions  the transitions
+ :)
 declare function sc:computeEntryOc($transitions as element()*) {
     if (fn:empty($transitions)) then ()
     else
@@ -717,7 +797,10 @@ declare function sc:computeEntryOc($transitions as element()*) {
         return $statesToEnter
 };
 
-
+(:~
+ :  Computes the States that are entered by the initial SCXML-Element
+  : @param $scxml  the scxml - element
+ :)
 declare function sc:computeEntryInit($scxml) {
 
     let $statesToEnterStart := if (fn:empty(sc:getInitialStates($scxml))) then
@@ -792,7 +875,10 @@ declare function sc:computeEntryInit($scxml) {
     return $statesToEnter
 };
 
-
+(:~
+ :  computes the states that have also be entered 
+  : @param $state  the starting state
+ :)
 declare function sc:addDescendantStatesToEnter($state as element()) as item() {
 (: TODO: history states :)
 
@@ -807,7 +893,14 @@ declare function sc:addDescendantStatesToEnter($state as element()) as item() {
     return sc:addDescendantStatesToEnter($state, (), (), $f, ())
 };
 
-
+(:~
+ :  computes the states that have also be entered 
+  : @param $states  the starting states
+    : @param $statesToEnter  the already saved states
+      : @param $statesForDefaultEntry  the  states for defaultentry
+        : @param $cont  the final function to be called
+          : @param $historyContent the saved historyContent  
+ :)
 declare function sc:addDescendantStatesToEnter($states as element()*,
         $statesToEnter as element()*,
         $statesForDefaultEntry as element()*,
@@ -966,6 +1059,11 @@ declare function sc:addDescendantStatesToEnter($states as element()*,
     return $results
 };
 
+(:~
+ :  computes the ancestor states that have also be entered 
+  : @param $state  the starting states
+    : @param $ancestor  the already saved states
+ :)
 declare function sc:addAncestorStatesToEnter($state as element(),
         $ancestor as element()) as item() {
     let $f := function($statesToEnter, $statesForDefaultEntry, $historyContent) {
@@ -979,6 +1077,16 @@ declare function sc:addAncestorStatesToEnter($state as element(),
     return sc:addAncestorStatesToEnter($state, $ancestor, (), (), $f, ())
 };
 
+(:~
+ :  computes the ancestor states that have also be entered 
+  : @param $states  the starting states
+  : @param ancestor the highest ancestors that has to be considers
+    : @param $statesToEnter  the already saved states
+      : @param $statesForDefaultEntry  the  states for defaultentry
+        : @param $cont  the final function to be called
+          : @param $historyContent the saved historyContent  
+ :)
+ 
 declare function sc:addAncestorStatesToEnter($states as element()*,
         $ancestor as element(),
         $statesToEnter as element()*,
@@ -997,6 +1105,14 @@ declare function sc:addAncestorStatesToEnter($states as element()*,
     return $results
 };
 
+(:~
+ :  computes the ancestor states that have also be entered 
+  : @param $states  the starting states
+    : @param $statesToEnter  the already saved states
+      : @param $statesForDefaultEntry  the  states for defaultentry
+        : @param $cont  the final function to be called
+          : @param $historyContent the saved historyContent  
+ :)
 declare function sc:foldAncestorStatesToEnter($states as element()*,
         $statesToEnter as element()*,
         $statesForDefaultEntry as element()*,
@@ -1038,7 +1154,12 @@ declare function sc:foldAncestorStatesToEnter($states as element()*,
     return $results
 };
 
-
+(:~
+ :  checks if SCXML is afterwards in a finalstate
+  : @param $state  
+  : @param configuration the current active states
+    : @param $enterState 
+ :)
 declare function sc:isInFinalState($state, $configuration, $enterState)
 {
 
@@ -1068,6 +1189,10 @@ declare function sc:isInFinalState($state, $configuration, $enterState)
 
 };
 
+(:~
+ :  returns the initialState of the given state
+  : @param $state  
+ :)
 declare function sc:getInitialStates($state) as element()* {
 
     let $states :=
@@ -1088,6 +1213,11 @@ declare function sc:getInitialStates($state) as element()* {
 
 };
 
+
+(:~
+ :  returns the history of a given Element
+  : @param $state  
+ :)
 declare function sc:getHistoryStates($state) as element()*
 {
 
@@ -1097,6 +1227,11 @@ declare function sc:getHistoryStates($state) as element()*
 
 };
 
+
+(:~
+ :  checks if State is a compoundState
+  : @param $state  
+ :)
 declare function sc:isCompoundState($state as element()) as xs:boolean {
     ( fn:exists($state/sc:state) or
             fn:exists($state/sc:parallel) or
@@ -1104,25 +1239,43 @@ declare function sc:isCompoundState($state as element()) as xs:boolean {
             fn:exists($state/self::sc:state)
 };
 
+(:~
+ :  checks if State is a atomicState
+  : @param $state  
+ :)
 declare function sc:isAtomicState($state as element()) as xs:boolean {
     empty($state/sc:state) and
             empty($state/sc:parallel) and
             empty($state/sc:final)
 };
-
+(:~
+ :  checks if State is a parallel State
+  : @param $state  
+ :)
 declare function sc:isParallelState($state as element()) as xs:boolean {
     fn:exists($state/self::sc:parallel)
 };
 
+(:~
+ :  checks if State is a HistoryState
+  : @param $state  
+ :)
 declare function sc:isHistoryState($state) as xs:boolean {
     fn:exists($state/self::sc:history)
 };
 
+(:~
+ :  checks if State is a finalstate
+  : @param $state  
+ :)
 declare function sc:isFinalState($state as element()) as xs:boolean {
     fn:exists($state/self::sc:final)
 };
 
-
+(:~
+ :  returns the childstates of a state
+  : @param $state  
+ :)
 declare function sc:getChildStates($state as element()) as element()* {
     $state/*[self::sc:state or self::sc:parallel or self::sc:final]
 };
@@ -1131,6 +1284,11 @@ declare function sc:getChildStates($state as element()) as element()* {
     $state//*[self::sc:state or self::sc:parallel or self::sc:final]
 };:)
 
+(:~
+ :  returns the targetStates of a transitions
+  : @param $transitions   
+ :)
+ 
 declare function sc:getTargetStates($transition as element()) as element()* {
     if (not($transition/@target)) then ()
     else
@@ -1138,6 +1296,10 @@ declare function sc:getTargetStates($transition as element()) as element()* {
         return $transition/ancestor::sc:scxml//*[@id = $state]
 };
 
+(:~
+ :  returns the targetStates of a transitions
+  : @param $transitions    Transitions
+ :)
 declare function sc:getEffectiveTargetStates($transition as element()) as element()* {
 
 
@@ -1161,11 +1323,18 @@ declare function sc:getEffectiveTargetStates($transition as element()) as elemen
 
 };
 
+(:~
+ :  returns the sourceState of a transitions
+  : @param $transitions   
+ :)
 declare function sc:getSourceState($transition) {
     $transition/..
 };
 
-
+(:~
+ :  returns the sourceState of a saved transitions
+  : @param $transitions   
+ :)
 declare function sc:getSourceStateTrans($transition) {
 
     $transition/ancestor::sc:scxml//*[@id = $transition/parent::*/@ref]
@@ -1173,11 +1342,19 @@ declare function sc:getSourceStateTrans($transition) {
 
 };
 
-
+(:~
+ :  checks if the transition is a internal transition
+  : @param $transitions   
+ :)
 declare function sc:isInternalTransition($transition as element()) as xs:boolean {
     fn:exists($transition/@type = 'internal')
 };
 
+
+(:~
+ :  returns the domain of a transition
+  : @param $transitions   
+ :)
 declare function sc:getTransitionDomain($transition as element()) as element() {
     let $targetStates := sc:getEffectiveTargetStates($transition)
     let $sourceState := sc:getSourceState($transition)
@@ -1191,7 +1368,9 @@ declare function sc:getTransitionDomain($transition as element()) as element() {
         else sc:findLCCA(($sourceState, $targetStates))
 };
 
-
+(:~
+ : 
+ :)
 declare function sc:getTransitionDomainExit($transition as element()) as element()? {
     let $targetStates := sc:getEffectiveTargetStates($transition)
     let $sourceState := sc:getSourceState($transition)
@@ -1205,7 +1384,9 @@ declare function sc:getTransitionDomainExit($transition as element()) as element
         else sc:findLCCA(($sourceState, $targetStates))
 };
 
-
+(:~
+: 
+ :)
 declare function sc:getTransitionDomainTrans($transition as element()) as element() {
     let $targetStates := sc:getEffectiveTargetStates($transition)
     let $sourceState := sc:getSourceStateTrans($transition)
@@ -1220,7 +1401,11 @@ declare function sc:getTransitionDomainTrans($transition as element()) as elemen
 };
 
 
-
+(:~
+ :  returns the  Least Common Compound Ancestor (LCCA) of the given elements
+ : the worst case has always to be the SCXML-Element
+ : @param $states
+ :)
 declare function sc:findLCCA($states as element()*) as element() {
     let $ancestorsOfHead :=
         sc:getProperAncestors(fn:head($states))[self::sc:scxml or sc:isCompoundState(.)]
@@ -1237,20 +1422,45 @@ declare function sc:findLCCA($states as element()*) as element() {
     return $lcca
 };
 
+(:~
+ :  returns if state1 is a descendat of state2
+ : @param $state1
+  : @param $state2
+ :)
+ 
 declare function sc:isDescendant($state1 as element(),
         $state2 as element()) as xs:boolean {
     some $n in $state2//descendant::* satisfies $n is $state1
 };
 
+(:~
+ :  returns the Ancestors of the state
+ : @param $state
+ :)
+ 
 declare function sc:getProperAncestors($state as element()) as element()* {
     fn:reverse($state/ancestor::*)
 };
 
+
+(:~
+ :  returns the Ancestors up to a certain level
+ : @param $state
+ : @param upTo
+ :)
+ 
 declare function sc:getProperAncestors($state as element(),
         $upTo as element()) as element()* {
     fn:reverse($state/ancestor::*[$upTo << .])
 };
 
+
+(:~
+ :  evaluates The Expression
+ : return an error in case of errors
+ : @param $expr
+ : @param dataModels
+ :)
 declare function sc:eval($expr as xs:string,
         $dataModels as element()*) {
     let $dataBindings :=
@@ -1273,9 +1483,11 @@ declare function sc:eval($expr as xs:string,
 };
 
 
-(:
-declare function sc:evalWithError($expr       as xs:string,
-                         $dataModels as element()*) {
+(:~
+ :  evaluates The Expression
+ : return an error code in case of errors
+ : @param $expr
+ : @param dataModels
  :)
 
 declare function sc:evalWithError($expr,
@@ -1306,80 +1518,11 @@ declare function sc:evalWithError($expr,
 };
 
 
-declare function sc:isSubDescriptorOrEqual($subDescriptor as xs:string,
-        $superDescriptor as xs:string)
-as xs:boolean {
-    fn:matches($subDescriptor, '^' || $superDescriptor)
-};
 
 (:~
- : 
+ :  create the Datamodel
+ : @param $mba
  :)
-declare function sc:getSpecializedTransitions($transition as element(),
-        $scxml as element())
-as element()* {
-    let $originalState := $transition/..
-
-    let $scxmlState :=
-        typeswitch ($originalState)
-            case element(sc:scxml) return $scxml
-            case element(sc:state) return $scxml//sc:state[@id = $originalState/@id]
-            case element(sc:parallel)
-                return $scxml//sc:parallel[@id = $originalState/@id]
-            default return ()
-
-    let $originalTargetStates :=
-        sc:getTargetStates($transition)
-
-    let $scxmlOriginalTargetStates :=
-        for $s in $originalTargetStates return
-            typeswitch ($s)
-                case element(sc:state) return $scxml//sc:state[@id = $s/@id]
-                case element(sc:parallel)
-                    return $scxml//sc:parallel[@id = $s/@id]
-                default return ()
-
-
-    let $scxmlTransitions :=
-        $scxmlState//sc:transition[
-        ( (not(@event) and not($transition/@event)) or
-                (@event = '' and $transition/@event = '') or
-                sc:isSubDescriptorOrEqual(@event, $transition/@event)) and
-
-                ( (not(@cond) and not($transition/@cond)) or
-                        (@cond = '' and $transition/@cond = '') or
-
-
-                        not($transition/@cond) or $transition/@cond = '' or
-                        @cond = $transition/@cond or
-                        fn:matches(@cond, '^' ||
-                        functx:escape-for-regex($transition/@cond || ' and')) or
-                        fn:matches(@cond,
-                                functx:escape-for-regex(' and ' || $transition/@cond) || '$')
-                ) and
-
-                ( (not(@target) and not($transition/@target)) or
-                        (@target = '' and $transition/@target = '') or
-                        (
-                            let $newTargets := fn:tokenize(@target, '\s')
-                            return
-                                every $target in $scxmlOriginalTargetStates satisfies (
-                                    some $newTarget in $newTargets satisfies
-                                    $target/@id = $newTarget or
-                                            $target//*/@id = $newTarget
-                                )
-                        )
-                ) and
-
-                ( (not(@type) and not($transition/@type)) or
-                        (@type = '' and $transition/@type = '') or
-                        @type = $transition/@type)
-        ]
-
-    return $scxmlTransitions
-};
-
-
 
 declare updating function sc:createDatamodel($mba)
 {
@@ -1471,6 +1614,12 @@ declare updating function sc:createDatamodel($mba)
 
 
 
+(:~
+ :  init the MBA 
+ : @param $dbName dbName of the MBA
+  : @param $collectionName collectionName of the MBA
+   : @param $mbaName name of the MBA 
+ :)
 
 declare updating function sc:initMBARest($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string)
 {
@@ -1481,6 +1630,13 @@ declare updating function sc:initMBARest($dbName as xs:string, $collectionName a
         mba:init($mba), sc:removeFromUpdateLog($dbName, $collectionName, $mbaName)
 };
 
+
+(:~
+ :  init the SCXML 
+ : @param $dbName dbName of the MBA
+  : @param $collectionName collectionName of the MBA
+   : @param $mbaName name of the MBA 
+ :)
 
 declare updating function sc:initSCXMLRest($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string)
 {
@@ -1497,6 +1653,12 @@ declare updating function sc:initSCXMLRest($dbName as xs:string, $collectionName
         else ()
 };
 
+(:~
+ :  set the running variable of the mba to false
+ : @param $dbName dbName of the MBA
+  : @param $collectionName collectionName of the MBA
+   : @param $mbaName name of the MBA 
+ :)
 
 declare updating function sc:updateRunning($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string)
 {
@@ -1514,6 +1676,12 @@ declare updating function sc:updateRunning($dbName as xs:string, $collectionName
 
 };
 
+(:~
+ : sends the current event to alle childMBAs with activated autoForward
+  : @param $dbName dbName of the MBA
+  : @param $collectionName collectionName of the MBA
+   : @param $mbaName name of the MBA 
+ :)
 
 declare updating function sc:autoForward($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string, $s)
 {
@@ -1558,41 +1726,74 @@ declare updating function sc:autoForward($dbName as xs:string, $collectionName a
 };
 
 
+(:~
+ : removes MBA from InsertLog
+  : @param $dbName dbName of the MBA
+  : @param $collectionName collectionName of the MBA
+   : @param $mbaName name of the MBA 
+ :)
 declare updating function sc:removeFromInsertLog($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string)
 {
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
     return mba:removeFromInsertLog($mba)
 };
 
-
+(:~
+ : adds MBA to Updated
+  : @param $dbName dbName of the MBA
+  : @param $collectionName collectionName of the MBA
+   : @param $mbaName name of the MBA 
+ :)
 declare updating function sc:markAsUpdated($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string)
 {
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
     return mba:markAsUpdated($mba)
 };
 
-
+(:~
+ : sets the new External Event as current Event
+  : @param $dbName dbName of the MBA
+  : @param $collectionName collectionName of the MBA
+   : @param $mbaName name of the MBA 
+ :)
 declare updating function sc:getNextExternalEvent($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string)
 {
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
     return mba:loadNextExternalEvent($mba)
 };
 
-
+(:~
+ : sets the new Internal Event as current Event
+  : @param $dbName dbName of the MBA
+  : @param $collectionName collectionName of the MBA
+   : @param $mbaName name of the MBA 
+ :)
 declare updating function sc:getNextInternalEvent($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string)
 {
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
     return mba:loadNextInternalEvent($mba)
 };
 
-
+(:~
+ : returns the Executable Content in the exit - Element of the State
+  : @param $dbName dbName of the MBA
+  : @param $collectionName collectionName of the MBA
+   : @param $mbaName name of the MBA 
+   : @param $state name of the MBA 
+ :)
 declare function sc:getExecutableContentsExit($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string, $state as element()*)
 {
     for $s in $state
     return $s/sc:onexit/reverse(*)
 };
 
+(:~
+ : returns the Executable Content in the current TransitionsQueue
+  : @param $dbName dbName of the MBA
+  : @param $collectionName collectionName of the MBA
+   : @param $mbaName name of the MBA 
 
+ :)
 declare function sc:getExecutableContentsTransitions($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string)
 {
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
@@ -1604,7 +1805,14 @@ declare function sc:getExecutableContentsTransitions($dbName as xs:string, $coll
 };
 
 
-
+(:~
+ : returns the Executable Content in the entry - Element of the State
+  : @param $dbName dbName of the MBA
+  : @param $collectionName collectionName of the MBA
+   : @param $mbaName name of the MBA 
+   : @param $historyContent historyContent of the State
+      : @param $state state to be checked
+ :)
 declare function sc:getExecutableContentsEnter($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string, $state, $historyContent)
 {
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
@@ -1632,6 +1840,13 @@ declare function sc:getExecutableContentsEnter($dbName as xs:string, $collection
 };
 
 
+(:~
+ : removes the MBA from the list of the updated MBAs
+  : @param $dbName dbName of the MBA
+  : @param $collectionName collectionName of the MBA
+   : @param $mbaName name of the MBA 
+
+ :)
 declare updating function sc:removeFromUpdateLog($dbName as xs:string, $collectionName as xs:string, $mbaName)
 {
 
@@ -1640,7 +1855,13 @@ declare updating function sc:removeFromUpdateLog($dbName as xs:string, $collecti
 };
 
 
-
+(:~
+ : removes the Usersaved Logs for a certain ID
+  : @param $dbName dbName of the MBA
+  : @param $collectionName collectionName of the MBA
+   : @param $mbaName name of the MBA 
+  : @param $id Value of the ID 
+ :)
 declare function sc:getResult($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string, $id as xs:integer)
 {
 
@@ -1651,14 +1872,26 @@ declare function sc:getResult($dbName as xs:string, $collectionName as xs:string
 
 };
 
+(:~
+  : get Value of Counter
+  : @param $dbName dbName of the MBA
+  : @param $collectionName collectionName of the MBA
+   : @param $mbaName name of the MBA 
 
+ :)
 declare function sc:getCounter($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string)
 {
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
     return $mba/*/*/sc:scxml/sc:datamodel/sc:data[@id = '_x']/response/counter/text()
 };
 
+(:~
+  : increases the  Counter of MBA by 1
+  : @param $dbName dbName of the MBA
+  : @param $collectionName collectionName of the MBA
+   : @param $mbaName name of the MBA 
 
+ :)
 declare updating function sc:updateCounter($dbName as xs:string, $collectionName as xs:string, $mbaName)
 {
 
@@ -1668,7 +1901,14 @@ declare updating function sc:updateCounter($dbName as xs:string, $collectionName
     return replace value of node $mba/*/*/sc:scxml/sc:datamodel/sc:data[@id = '_x']/response/counter with $newCounter
 };
 
-
+(:~
+  : exit a state 
+  : @param $dbName dbName of the MBA
+  : @param $collectionName collectionName of the MBA
+   : @param $mbaName name of the MBA 
+  : @param $stateToExit name of the MBA 
+    : @param $type name of the MBA 
+ :)
 declare updating function sc:exitStatesSingle($dbName, $collectionName, $mbaName, $stateToExit, $type)
 {
 
@@ -1758,7 +1998,13 @@ declare updating function sc:exitStatesSingle($dbName, $collectionName, $mbaName
 
 };
 
-
+(:~
+  : enter a state 
+  : @param $dbName dbName of the MBA
+  : @param $collectionName collectionName of the MBA
+   : @param $mbaName name of the MBA 
+  : @param $stateToExit name of the MBA 
+ :)
 declare updating function sc:enterStatesSingle($dbName, $collectionName, $mbaName, $state as element())
 {
 
@@ -1938,7 +2184,11 @@ return (: runExitcontent , cancelInvoke, :)
 
 };
 
-
+(:~
+  : initialize datamodel when late binding is used
+  : @param $mba the MBA 
+  : @param $states the initials States
+ :)
 declare updating function sc:initDatamodel($states, $mba)
 {
 
@@ -2006,6 +2256,10 @@ declare updating function sc:initDatamodel($states, $mba)
 
 };
 
+(:~
+  : get MBA from Text
+  : @param $src the data of the MBA
+ :)
 declare function sc:getMBAFromText($src as xs:string)
 {
 
@@ -2037,6 +2291,14 @@ declare function sc:getMBAFromText($src as xs:string)
         return $parentmba
 };
 
+
+(:~
+  : does the Logging of using Events  ( XSD-Log)
+  : @param $mba the data of the MBA
+   : @param $transition the dat of the transition
+      : @param $transType the type of the transition
+
+ :)
 
 declare updating function sc:doLogging($mba as element(),$transition as element()*,$transType as xs:string)
 {
@@ -2122,6 +2384,13 @@ return $insert
 
 
 
+(:~
+  : Doing the executable Content   ( XSD-Log)
+  : @param $dbName
+   : @param $collectionName 
+      : @param $mbaName the
+    : @param $content The content that has to be run
+ :)
 declare updating function sc:runExecutableContent($dbName as xs:string, $collectionName as xs:string, $mbaName as xs:string, $content)
 {
     let $mba := mba:getMBA($dbName, $collectionName, $mbaName)
@@ -2348,7 +2617,10 @@ declare updating function sc:runExecutableContent($dbName as xs:string, $collect
 };
 
 
-
+(:~
+  : Implementation of the Invoke-Elements
+  : @param $mba
+ :)
 declare updating function sc:invokeStates($mba)
 {
     let $scxml := mba:getSCXML($mba)
@@ -2617,11 +2889,6 @@ declare updating function sc:invokeStates($mba)
 
 };
 
-
-(:(:<xs:transition> {$transition}</xs:transition>
-  <xs:test> {$von/@id}</xs:test>
-   <xs:test> {$to/@id}</xs:test>
-  <xs:test> {$toN}</xs:test> :):)
 
 
 

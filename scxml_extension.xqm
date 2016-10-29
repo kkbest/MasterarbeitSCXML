@@ -27,6 +27,11 @@
  :)
 module namespace scx='http://www.w3.org/2005/07/scxml/extension/';
 
+
+(:~
+  : Add all Imports as String
+ :)
+ 
 declare function scx:importModules() as xs:string {
   let $importMbaNamespace :=
     'import module namespace mba = "http://www.dke.jku.at/MBA"; '
@@ -50,7 +55,10 @@ declare function scx:importModules() as xs:string {
 
 
 };
-
+(:~
+  : add al helperFunktion as String
+ :)
+ 
 declare function scx:builtInFunctionDeclarations() as xs:string {
   
   let $declareMba :=
