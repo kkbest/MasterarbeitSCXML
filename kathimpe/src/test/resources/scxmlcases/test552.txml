@@ -262,7 +262,7 @@
 test552.txt to have a value that's legal for the datamodel in question -->
 <scxml name="InformationSystemsProgram" xmlns="http://www.w3.org/2005/07/scxml" xmlns:conf="http://www.w3.org/2005/scxml-conformance" initial="s0" version="1.0" datamodel="xpath">
    <datamodel>
-      <data id="Var1" src="file:C:\Users\Katharina\workspace\kathimpe\src\test\resources\scxmlcases\test552.txt" />
+      <data id="Var1" src="file:C:\Users\Katharina\workspace\ProcessEnvironment\src\test\resources\scxmlcases\test552.txt" />
    </datamodel>
    <state id="s0">
       <transition cond="not (fn:empty($Var1/text()))" target="pass" />
