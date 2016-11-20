@@ -610,9 +610,9 @@ declare function sc:computeExitSet($configuration as element()*,
         $transitions as element()*) as element()*{
     let $statesToExit :=
         for $t in $transitions
-        let $domain := sc:getTransitionDomain($t)
+         let $domain := sc:getTransitionDomain($t)
         for $s in $configuration
-        return if (sc:isDescendant($s, $domain)) then $s else ()
+        return if (sc:isDescendant($s, $configuration)) then $s else ()
 
     return $statesToExit
 };
@@ -1423,7 +1423,7 @@ declare function sc:findLCCA($states as element()*) as element() {
 };
 
 (:~
- :  returns if state1 is a descendat of state2
+ :  returns if state1 is a isDescendant of state2
  : @param $state1
   : @param $state2
  :)

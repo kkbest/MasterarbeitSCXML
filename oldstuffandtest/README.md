@@ -1,2 +1,0 @@
-# SCXMLInterpreter
-Masterarbeit
