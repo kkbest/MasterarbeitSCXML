@@ -17,7 +17,7 @@ We recommend BaseX 8.1.1: http://basex.org/
 
 Checkout the git repository and run the .bxs script in order to install the module. Open the shell, change to the root directory of the repository on your disk and run the following command:
 
-basex repo_install.bxs
+basex installmodules.bxs
 
 
 ##2.) Start the XML database management system in server mode
