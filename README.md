@@ -13,14 +13,17 @@ We recommend BaseX 8.1.1: http://basex.org/
 # Installation 
 
 
-##1) Install the required XQuery modules 
+##1.) Install the required XQuery modules 
 
 Checkout the git repository and run the .bxs script in order to install the module. Open the shell, change to the root directory of the repository on your disk and run the following command:
 
 basex installmodules.bxs
 
+##2.) Install the Worklist Handler 
 
-##2.) Start the XML database management system in server mode
+(static folder into webapp folder of BASEX
+
+##3.) Start the XML database management system in server mode
 
 The process environment will access the XML database as a server. You don't actually need to create a database to run the examples/test cases.
 
@@ -31,11 +34,11 @@ http://docs.basex.org/wiki/Startup#Server
 The process Engine is now usable
 
 
-##3.) Resolve dependencies in Java Project 
+##4.) Resolve dependencies in Java Project 
 
 The multilevel business process environment requires several third-party libraries. We recommend using maven to resolve dependencies. A pom.xml file is provided in the root directory of the repository.
 
-##4.)bConfiguration
+##5.)Configuration
 
 In the MultilevelProcessEnvironment directory of this repository, there are several properties file that govern the behavior of the environment. Change the default values to adapt the environment to your specific needs. These properties files must be in the classpath when running the application.
 
